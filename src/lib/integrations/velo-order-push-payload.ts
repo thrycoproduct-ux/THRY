@@ -1,7 +1,6 @@
 import { buildOrderPlacedAtPayload } from "@/lib/datetime/india";
 
-export const DEFAULT_VELO_ORDER_PUSH_URL =
-  "";
+export const DEFAULT_VELO_ORDER_PUSH_URL = "";
 
 export type VeloOrderPushPayload = {
   shopBaseUrl: string;

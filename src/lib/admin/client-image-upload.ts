@@ -506,11 +506,7 @@ async function uploadViaDirectStorage(
 
       let putOk = false;
       // Prefer media-proxy PUT (same path as Velo) so image bytes skip Vercel.
-      if (
-        init.uploadMode === "proxy" &&
-        init.uploadUrl &&
-        init.uploadToken
-      ) {
+      if (init.uploadMode === "proxy" && init.uploadUrl && init.uploadToken) {
         // eslint-disable-next-line no-await-in-loop
         const putRes = await fetchWithTimeout(init.uploadUrl, {
           method: "PUT",
