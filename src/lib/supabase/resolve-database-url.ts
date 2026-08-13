@@ -1,9 +1,11 @@
 /**
- * Supabase deprecated direct host db.<ref>.supabase.co (ENOTFOUND on Vercel).
- * Rewrites to pooler: postgres.<ref>@aws-1-<region>.pooler.supabase.com:6543
+ * Supabase deprecated direct host db.<ref>.supabase.co for many serverless hosts.
+ * Prefer Session pooler: postgres.<ref>@aws-0-<region>.pooler.supabase.com:6543
+ *
+ * THRY project (azqgyxdzwlhdmjvkngbs) uses aws-0-ap-south-1. Do not rewrite to aws-1.
  */
 const DEFAULT_REGION = "ap-south-1";
-const DEFAULT_AWS_PREFIX = "aws-1";
+const DEFAULT_AWS_PREFIX = "aws-0";
 
 export type PoolerUrlOptions = {
   projectRef: string;
@@ -43,17 +45,9 @@ function parseLegacyDirectUrl(
   }
 }
 
-/** Fix pooler URLs that use the old aws-0 host for this project's region. */
-function fixOutdatedPoolerHost(url: string): string {
-  return url.replace(
-    /@aws-0-ap-south-1\.pooler\.supabase\.com/i,
-    "@aws-1-ap-south-1.pooler.supabase.com",
-  );
-}
-
 export function resolveDatabaseUrl(raw?: string): string {
   const poolerOverride = process.env.SUPABASE_DB_POOLER_URL?.trim();
-  if (poolerOverride) return fixOutdatedPoolerHost(poolerOverride);
+  if (poolerOverride) return poolerOverride;
 
   const url = (raw ?? process.env.DATABASE_URL ?? "").trim();
 
@@ -67,13 +61,7 @@ export function resolveDatabaseUrl(raw?: string): string {
   }
 
   if (/pooler\.supabase\.com/i.test(url)) {
-    const fixed = fixOutdatedPoolerHost(url);
-    if (fixed !== url) {
-      console.warn(
-        "[db] Updated pooler host aws-0-ap-south-1 → aws-1-ap-south-1.",
-      );
-    }
-    return fixed;
+    return url;
   }
 
   const legacy = parseLegacyDirectUrl(url);
