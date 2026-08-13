@@ -13,8 +13,8 @@ describe("cashfree-checkout-client", () => {
   });
 
   it("builds client return URLs from the current origin", () => {
-    expect(buildClientCashfreeReturnUrl("https://hubsofcraftss.com")).toBe(
-      "https://hubsofcraftss.com/api/cashfree/redirect?order_id={order_id}",
+    expect(buildClientCashfreeReturnUrl("http://localhost:3000")).toBe(
+      "http://localhost:3000/api/cashfree/redirect?order_id={order_id}",
     );
   });
 
@@ -25,8 +25,8 @@ describe("cashfree-checkout-client", () => {
       paymentSessionId: "session_abc123",
       environment: "production",
       returnUrl:
-        "https://hubsofcraftss.com/api/cashfree/redirect?order_id={order_id}",
-      checkoutOrigin: "https://hubsofcraftss.com",
+        "http://localhost:3000/api/cashfree/redirect?order_id={order_id}",
+      checkoutOrigin: "http://localhost:3000",
     });
 
     expect(parsed.paymentSessionId).toBe("session_abc123");
@@ -40,8 +40,8 @@ describe("cashfree-checkout-client", () => {
         paymentSessionId: "bad",
         environment: "production",
         returnUrl:
-          "https://hubsofcraftss.com/api/cashfree/redirect?order_id={order_id}",
-        checkoutOrigin: "https://hubsofcraftss.com",
+          "http://localhost:3000/api/cashfree/redirect?order_id={order_id}",
+        checkoutOrigin: "http://localhost:3000",
       }),
     ).toThrow("Invalid Cashfree checkout response");
   });
@@ -69,8 +69,8 @@ describe("cashfree-checkout-client", () => {
       paymentSessionId: "session_abc123",
       environment: "production" as const,
       returnUrl:
-        "https://hubsofcraftss.com/api/cashfree/redirect?order_id={order_id}",
-      checkoutOrigin: "https://hubsofcraftss.com",
+        "http://localhost:3000/api/cashfree/redirect?order_id={order_id}",
+      checkoutOrigin: "http://localhost:3000",
     };
 
     openCashfreeCheckout({ payload });

@@ -26,7 +26,7 @@ export const getURL = () => {
 const DEMO_S3_BUCKET = "hiyori-backpack";
 const DEMO_S3_REGION = "us-west-2";
 
-/** Public bucket for Sakthi product/collection photos (Supabase Storage). */
+/** Legacy Supabase Storage bucket name (fallback for old keys only). */
 export const SUPABASE_MEDIA_BUCKET = "media";
 
 export function supabaseStoragePublicUrl(storagePath: string) {

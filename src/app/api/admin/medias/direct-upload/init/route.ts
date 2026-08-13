@@ -41,6 +41,8 @@ export async function POST(request: NextRequest) {
       fileName: parsed.data.fileName,
       contentType: parsed.data.contentType,
       fileSize: parsed.data.fileSize,
+      // Same as Velo: browser → media worker → R2 (skip Vercel Fluid for bytes).
+      preferProxyUpload: true,
     });
 
     return NextResponse.json(

@@ -61,3 +61,7 @@ wrangler.workers.new-account.jsonc
 
 
 .dev.vars.new-account
+
+scripts/.thry-r2-secrets.local.json
+scripts/setup-thry-r2-from-wrangler.mjs
+

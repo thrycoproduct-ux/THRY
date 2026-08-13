@@ -20,14 +20,18 @@ export function getFreeShippingProgress(params: {
   const config = params.config;
   if (!config.enabled || !config.freeShippingEnabled) return null;
 
-  const threshold = Math.max(0, Math.round(Number(config.freeShippingMin) || 0));
+  const threshold = Math.max(
+    0,
+    Math.round(Number(config.freeShippingMin) || 0),
+  );
   if (threshold <= 0) return null;
 
   const rawAmount = Number(params.orderAmount);
-  const orderAmount = Number.isFinite(rawAmount)
-    ? Math.max(0, rawAmount)
-    : 0;
-  const remaining = Math.max(0, Math.round((threshold - orderAmount) * 100) / 100);
+  const orderAmount = Number.isFinite(rawAmount) ? Math.max(0, rawAmount) : 0;
+  const remaining = Math.max(
+    0,
+    Math.round((threshold - orderAmount) * 100) / 100,
+  );
   const unlocked = orderAmount >= threshold;
   const progress = Math.min(1, Math.max(0, orderAmount / threshold));
 

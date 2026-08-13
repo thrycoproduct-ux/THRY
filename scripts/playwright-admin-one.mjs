@@ -4,7 +4,7 @@ import { chromium } from "playwright";
 
 config({ path: ".env.local" });
 
-const base = "https://hub-of-craftss.hubofcraftss.workers.dev";
+const base = "http://localhost:3000";
 const path = process.argv[2] || "/admin/products";
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
@@ -23,7 +23,7 @@ await context.addCookies([
   {
     name: `sb-${projectRef}-auth-token`,
     value: encodeURIComponent(JSON.stringify(data.session)),
-    domain: "hub-of-craftss.hubofcraftss.workers.dev",
+    domain: "localhost:3000",
     path: "/",
     httpOnly: false,
     secure: true,

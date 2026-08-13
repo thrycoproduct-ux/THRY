@@ -107,10 +107,7 @@ export async function upsertProductSizeConfig(params: {
     try {
       await registerVariantTypeNames(groupNames, params.updatedBy);
     } catch (error) {
-      console.error(
-        "[sizeConfig] registerVariantTypeNames failed:",
-        error,
-      );
+      console.error("[sizeConfig] registerVariantTypeNames failed:", error);
     }
   }
 

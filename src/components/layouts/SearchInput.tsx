@@ -137,7 +137,8 @@ function SearchInput({
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         setSuggestions([]);
         setOpen(false);
       })
@@ -266,10 +267,7 @@ function SearchInput({
                       event.preventDefault();
                       if (!showPanel && suggestions.length > 0) setOpen(true);
                       setActiveIndex((prev) =>
-                        Math.min(
-                          prev + 1,
-                          Math.max(suggestions.length - 1, 0),
-                        ),
+                        Math.min(prev + 1, Math.max(suggestions.length - 1, 0)),
                       );
                       return;
                     }
@@ -317,7 +315,9 @@ function SearchInput({
             aria-label="Product suggestions"
             className={cn(
               "absolute left-0 right-0 z-50 overflow-hidden rounded-xl border bg-background shadow-lg",
-              isCompact ? "top-[calc(100%+0.5rem)]" : "left-4 right-4 top-[4.25rem]",
+              isCompact
+                ? "top-[calc(100%+0.5rem)]"
+                : "left-4 right-4 top-[4.25rem]",
             )}
           >
             {loading && suggestions.length === 0 ? (
@@ -351,8 +351,7 @@ function SearchInput({
                             <Image
                               src={imageSrc}
                               alt={
-                                suggestion.featuredImage?.alt ||
-                                suggestion.name
+                                suggestion.featuredImage?.alt || suggestion.name
                               }
                               fill
                               sizes="40px"

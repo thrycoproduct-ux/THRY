@@ -52,7 +52,7 @@ export function VeloKeysForm() {
       "",
       "async function pollOrders() {",
       "  const res = await fetch(",
-      "    `https://hubsofcraftss.com/api/velo/orders?since=${encodeURIComponent(since)}&limit=50`,",
+      "    `https://YOUR_SITE_URL/api/velo/orders?since=${encodeURIComponent(since)}&limit=50`,",
       "    { headers: { 'x-velo-key': apiKey } },",
       "  );",
       "  if (!res.ok) throw new Error('Failed to fetch orders');",
@@ -76,7 +76,7 @@ export function VeloKeysForm() {
     const key = latestApiKey || "YOUR_VELO_API_KEY";
     return [
       "const apiKey = '" + key + "';",
-      "const site = 'https://hubsofcraftss.com';",
+      "const site = 'https://YOUR_SITE_URL';",
       "const productsUrl = site + '/api/velo/products';",
       "const mediaInitUrl = site + '/api/velo/medias/direct-upload/init';",
       "const mediaCompleteUrl = site + '/api/velo/medias/direct-upload/complete';",

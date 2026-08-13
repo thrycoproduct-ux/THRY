@@ -481,8 +481,8 @@ export function AdminMediaManager() {
 
       <p className="text-xs text-muted-foreground">
         Tip: click to multi-select. Drag on empty space to box-select many
-        images quickly. Max 15 MB per image; uploads go directly to storage,
-        then are optimized on the server.
+        images quickly. Max 15 MB per image; uploads go to R2 via the media
+        worker (image bytes skip Vercel), then are optimized on the server.
       </p>
 
       {failedUploads.length > 0 ? (

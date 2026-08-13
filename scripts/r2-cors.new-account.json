@@ -1,17 +1,12 @@
-{
-  "rules": [
-    {
-      "allowed": {
-        "origins": [
-          "https://hubsofcraftss.com",
-          "https://www.hubsofcraftss.com",
-          "http://localhost:3000"
-        ],
-        "methods": ["GET", "PUT", "HEAD"],
-        "headers": ["*"]
-      },
-      "exposeHeaders": ["ETag"],
-      "maxAgeSeconds": 3600
-    }
-  ]
-}
+[
+  {
+    "AllowedOrigins": [
+      "http://localhost:3000",
+      "http://127.0.0.1:3000"
+    ],
+    "AllowedMethods": ["GET", "PUT", "HEAD"],
+    "AllowedHeaders": ["Content-Type", "Authorization"],
+    "ExposeHeaders": ["ETag"],
+    "MaxAgeSeconds": 86400
+  }
+]

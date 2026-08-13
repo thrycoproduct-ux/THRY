@@ -1,7 +1,6 @@
 /**
- * Hub of craftss lockup — single source for asset + display sizes.
- * Intrinsic size must match `public/images/hub-of-craftss-logo.png`
- * (tight crop around artwork; no tall empty padding).
+ * THRY lockup — single source for asset + display sizes.
+ * Replace `public/images/hub-of-craftss-logo.png` with THRY artwork when ready.
  */
 export const BRAND_LOGO = {
   src: "/images/hub-of-craftss-logo.png",

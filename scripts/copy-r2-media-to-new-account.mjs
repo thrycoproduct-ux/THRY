@@ -26,10 +26,10 @@ const oldCdn = (
   env.NEXT_PUBLIC_CDN_URL ||
   "https://pub-8ba09eae4a094c6cbdc094006fbc43af.r2.dev"
 ).replace(/\/$/, "");
-const bucket = process.env.NEW_R2_BUCKET || "hubofcraftss-cdn";
+const bucket = process.env.NEW_R2_BUCKET || "thry-cdn";
 const token = process.env.CLOUDFLARE_API_TOKEN;
 const accountId =
-  process.env.CLOUDFLARE_ACCOUNT_ID || "542992b23690c0c07bb23e5fecffa6ec";
+  process.env.CLOUDFLARE_ACCOUNT_ID || "";
 
 if (!token) {
   console.error("Set CLOUDFLARE_API_TOKEN for the NEW Cloudflare account.");

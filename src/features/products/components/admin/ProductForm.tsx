@@ -1911,7 +1911,9 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
                     }}
                   />
                   {customTypeError ? (
-                    <p className="text-sm text-destructive">{customTypeError}</p>
+                    <p className="text-sm text-destructive">
+                      {customTypeError}
+                    </p>
                   ) : null}
                 </div>
                 <DialogFooter className="gap-2 sm:gap-0">

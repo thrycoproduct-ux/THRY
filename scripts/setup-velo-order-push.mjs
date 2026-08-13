@@ -2,9 +2,8 @@ import { createHash, randomBytes } from "node:crypto";
 import postgres from "postgres";
 
 const VELO_PUSH_KEY = "velo_order_push";
-const DEFAULT_PUSH_URL =
-  "https://rzwbpjjayarptlwjfpzm.supabase.co/functions/v1/notify-velo-order-push";
-const SHOP_BASE_URL = "https://www.sairaghavendratex.com";
+const DEFAULT_PUSH_URL = "";
+const SHOP_BASE_URL = "http://localhost:3000";
 
 function canonicalShopKey(input) {
   const trimmed = input.trim().replace(/\/$/, "");

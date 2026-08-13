@@ -25,9 +25,7 @@ export function buildOrganizationJsonLd() {
     address: {
       "@type": "PostalAddress",
       streetAddress: siteConfig.addressLines.slice(0, 2).join(", "),
-      addressLocality: "Madurai",
-      addressRegion: "Tamil Nadu",
-      postalCode: "625107",
+      addressLocality: siteConfig.location || undefined,
       addressCountry: "IN",
     },
     sameAs: Object.values(siteConfig.social),
@@ -65,9 +63,7 @@ export function buildStoreJsonLd() {
     address: {
       "@type": "PostalAddress",
       streetAddress: siteConfig.address,
-      addressLocality: "Madurai",
-      addressRegion: "Tamil Nadu",
-      postalCode: "625107",
+      addressLocality: siteConfig.location || undefined,
       addressCountry: "IN",
     },
     priceRange: "₹₹",
@@ -78,7 +74,7 @@ export function buildSiteNavigationJsonLd() {
   return {
     "@context": "https://schema.org",
     "@type": "ItemList",
-    name: "Hub of craftss primary navigation",
+    name: "THRY primary navigation",
     itemListElement: SEO_PRIMARY_NAV.map((item, index) => ({
       "@type": "SiteNavigationElement",
       position: index + 1,

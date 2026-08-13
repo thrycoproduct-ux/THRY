@@ -23,7 +23,18 @@ import {
   products,
 } from "@/lib/supabase/schema";
 import { keytoUrl, slugify } from "@/lib/utils";
-import { and, asc, desc, eq, ilike, inArray, isNotNull, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  asc,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  isNotNull,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import { processUploadedImageBuffer } from "@/lib/image/processUpload";
 import {
   sanitizeUploadFileName,
@@ -1263,4 +1274,3 @@ async function handleDeleteCollection(
     };
   }
 }
-

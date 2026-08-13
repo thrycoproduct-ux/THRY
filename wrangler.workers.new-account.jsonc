@@ -1,11 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // NEW Cloudflare account (Shaarunew01) — production Worker for hubsofcraftss.com.
-  // Requires R2 enabled + bucket `hubofcraftss-cdn` on THIS account.
-  // MEDIA_BUCKET binding is the robust upload path (S3 API fallback 401s on Workers).
-  // NEXT_INC_CACHE_R2_BUCKET stores Next.js ISR/Data Cache (prevents Error 1102).
-  "name": "hub-of-craftss",
-  "account_id": "542992b23690c0c07bb23e5fecffa6ec",
+  // THRY — thrycoproduct@gmail.com account
+  "name": "thry",
+  "account_id": "77dfa9b757691b2321fe0630f01c8c6a",
   "main": ".open-next/worker.js",
   "minify": true,
   "compatibility_date": "2025-05-05",
@@ -13,24 +10,22 @@
   "assets": {
     "directory": ".open-next/assets",
     "binding": "ASSETS",
-    // false = static assets served directly by Cloudflare (not billed, no Worker
-    // CPU). Middleware matcher already excludes static paths, so this is safe.
     "run_worker_first": false
   },
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "hub-of-craftss"
+      "service": "thry"
     }
   ],
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
-      "bucket_name": "hubofcraftss-cdn"
+      "bucket_name": "thry-cdn"
     },
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
-      "bucket_name": "hubofcraftss-next-cache"
+      "bucket_name": "thry-next-cache"
     }
   ],
   "durable_objects": {

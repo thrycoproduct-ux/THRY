@@ -1,6 +1,9 @@
 import db from "@/lib/supabase/db";
 import { collections, medias, products } from "@/lib/supabase/schema";
-import { CACHE_TAGS, STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import {
+  CACHE_TAGS,
+  STOREFRONT_REVALIDATE_SECONDS,
+} from "@/lib/cache/constants";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
 import { and, eq, sql } from "drizzle-orm";
 import { categorizedPublishedProductConditions } from "./categorized-products";

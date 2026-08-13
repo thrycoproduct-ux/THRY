@@ -2,17 +2,12 @@ import type { NavItemWithOptionalChildren } from "@/types";
 
 export type SiteConfig = typeof siteConfig;
 
-/** Hub of craftss — Madurai */
-const ADDRESS_LINES = [
-  "No 162, Kasim Residency",
-  "Sarojini Nagar",
-  "Madurai – 625107, Tamil Nadu",
-] as const;
+/** THRY — temporary local identity until production domain is set */
+const ADDRESS_LINES = ["Address coming soon"] as const;
 
-/** Contacts — add phone/WhatsApp when available */
 const CONTACTS = [
   {
-    name: "Shaaru",
+    name: "THRY",
     phone: "",
     phoneHref: "",
   },
@@ -24,66 +19,49 @@ const EMAIL = "";
 const GSTIN = "";
 
 const SOCIAL = {
-  instagram: "https://www.instagram.com/hub_of_craftss_by_shaaru/",
+  instagram: "",
   youtube: "",
   facebook: "",
   whatsapp: "",
 } as const;
 
 export const siteConfig = {
-  /** Title-case shop board line (navbar/footer wordmark) */
-  shopBoardName: "Hub of craftss",
-  name: "Hub of craftss",
-  shortName: "HOC",
-  tagline: "Make · Craft · Create",
-  /** Town shown on shop board / navbar */
-  location: "MADURAI",
-  description:
-    "Terracotta raw materials and art & craft supplies — make, craft, create with Hub of craftss by Shaaru.",
-  searchPlaceholder: "Search craft supplies, terracotta, collections…",
-  url: "https://hubsofcraftss.com",
+  shopBoardName: "THRY",
+  name: "THRY",
+  shortName: "THRY",
+  tagline: "Shop",
+  location: "",
+  description: "THRY — online shop.",
+  searchPlaceholder: "Search products…",
+  url: "http://localhost:3000",
   addressLines: ADDRESS_LINES,
-  /** Single-line address for compact UI */
   address: ADDRESS_LINES.join(", "),
   phone: PHONE,
-  /** `tel:` href (digits only, with country code) */
   phoneHref: PHONE_HREF,
-  /** All proprietors / contact numbers */
   contacts: CONTACTS,
   email: EMAIL,
   gstin: GSTIN,
   currency: "INR",
   currencySymbol: "₹",
   social: SOCIAL,
-  /** Top offer ribbon — rotates on the storefront */
   announcements: [
     {
-      text: "Terracotta raw materials & art craft supplies — Make · Craft · Create",
+      text: "Welcome to THRY",
       href: "/shop",
       cta: "Shop now",
-    },
-    {
-      text: "Follow @hub_of_craftss_by_shaaru for new arrivals",
-      href: "https://www.instagram.com/hub_of_craftss_by_shaaru/",
-      cta: "Instagram",
-    },
-    {
-      text: "Visit us in Madurai · Sarojini Nagar",
-      href: "/contact",
-      cta: "Contact",
     },
   ],
   mainNav: [
     {
       title: "Collections",
       href: "/collections",
-      description: "Browse craft collections.",
+      description: "Browse collections.",
       items: [],
     },
     {
       title: "Featured",
       href: "/featured",
-      description: "Handpicked craft supplies.",
+      description: "Featured products.",
       items: [],
     },
     {
@@ -94,7 +72,6 @@ export const siteConfig = {
     },
   ] satisfies NavItemWithOptionalChildren[],
 
-  /** Storefront footer columns */
   footerNav: [
     {
       title: "Shop",
@@ -132,17 +109,11 @@ export const siteConfig = {
       ],
     },
     {
-      title: "About Hub of craftss",
+      title: "About THRY",
       items: [
         { title: "Our Story", href: "/about", items: [] },
         { title: "Our Collections", href: "/collections", items: [] },
-        { title: "Visit our store", href: "/contact#store", items: [] },
         { title: "Contact", href: "/contact", items: [] },
-        {
-          title: "Instagram",
-          href: "https://www.instagram.com/hub_of_craftss_by_shaaru/",
-          items: [],
-        },
       ],
     },
   ] satisfies NavItemWithOptionalChildren[],

@@ -1,59 +1,29 @@
 import { buildCanonicalRedirectUrl } from "./canonical-host-redirect";
 
-const CANONICAL = "https://hubsofcraftss.com";
+const CANONICAL = "http://localhost:3000";
 
 describe("buildCanonicalRedirectUrl", () => {
-  it("redirects workers.dev to the custom domain", () => {
+  it("redirects workers.dev to the canonical origin", () => {
     expect(
       buildCanonicalRedirectUrl(
-        "https://hub-of-craftss.shaarunew01.workers.dev/shop",
-        "hub-of-craftss.shaarunew01.workers.dev",
+        "https://thry.thrycoproduct.workers.dev/shop",
+        "thry.thrycoproduct.workers.dev",
         CANONICAL,
       ),
-    ).toBe("https://hubsofcraftss.com/shop");
-  });
-
-  it("redirects legacy workers.dev subdomains", () => {
-    expect(
-      buildCanonicalRedirectUrl(
-        "https://hub-of-craftss.hubofcraftss.workers.dev/admin",
-        "hub-of-craftss.hubofcraftss.workers.dev",
-        CANONICAL,
-      ),
-    ).toBe("https://hubsofcraftss.com/admin");
+    ).toBe("http://localhost:3000/shop");
   });
 
   it("preserves query strings through redirect", () => {
     expect(
       buildCanonicalRedirectUrl(
-        "https://hub-of-craftss.shaarunew01.workers.dev/?code=abc123",
-        "hub-of-craftss.shaarunew01.workers.dev",
+        "https://thry.thrycoproduct.workers.dev/?code=abc123",
+        "thry.thrycoproduct.workers.dev",
         CANONICAL,
       ),
-    ).toBe("https://hubsofcraftss.com/?code=abc123");
+    ).toBe("http://localhost:3000/?code=abc123");
   });
 
-  it("does not redirect the canonical apex host", () => {
-    expect(
-      buildCanonicalRedirectUrl(
-        "https://hubsofcraftss.com/shop",
-        "hubsofcraftss.com",
-        CANONICAL,
-      ),
-    ).toBeNull();
-  });
-
-  it("does not redirect the canonical www host", () => {
-    expect(
-      buildCanonicalRedirectUrl(
-        "https://www.hubsofcraftss.com/shop",
-        "www.hubsofcraftss.com",
-        CANONICAL,
-      ),
-    ).toBeNull();
-  });
-
-  it("does not redirect localhost", () => {
+  it("does not redirect the canonical host", () => {
     expect(
       buildCanonicalRedirectUrl(
         "http://localhost:3000/shop",
@@ -63,12 +33,12 @@ describe("buildCanonicalRedirectUrl", () => {
     ).toBeNull();
   });
 
-  it("does not redirect when canonical is still workers.dev", () => {
+  it("does not redirect 127.0.0.1", () => {
     expect(
       buildCanonicalRedirectUrl(
-        "https://hub-of-craftss.shaarunew01.workers.dev/",
-        "hub-of-craftss.shaarunew01.workers.dev",
-        "https://hub-of-craftss.shaarunew01.workers.dev",
+        "http://127.0.0.1:3000/shop",
+        "127.0.0.1",
+        CANONICAL,
       ),
     ).toBeNull();
   });

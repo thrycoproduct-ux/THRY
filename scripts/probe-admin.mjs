@@ -7,7 +7,7 @@ config({ path: ".env.local" });
 const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
 const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 const projectRef = process.env.NEXT_PUBLIC_SUPABASE_PROJECT_REF;
-const base = "https://hub-of-craftss.hubofcraftss.workers.dev";
+const base = "http://localhost:3000";
 
 const sb = createClient(url, anon);
 const { data, error } = await sb.auth.signInWithPassword({

@@ -18,14 +18,14 @@ describe("toInternationalPhoneDigits", () => {
 
   it("keeps already-international numbers", () => {
     expect(toInternationalPhoneDigits("918012715132")).toBe("918012715132");
-    expect(toInternationalPhoneDigits("tel:+918012715132")).toBe("918012715132");
+    expect(toInternationalPhoneDigits("tel:+918012715132")).toBe(
+      "918012715132",
+    );
   });
 
   it("builds tel and WhatsApp hrefs", () => {
     expect(buildTelHref("8870669160")).toBe("tel:+918870669160");
-    expect(buildWhatsAppHref("8870669160")).toBe(
-      "https://wa.me/918870669160",
-    );
+    expect(buildWhatsAppHref("8870669160")).toBe("https://wa.me/918870669160");
     expect(buildWhatsAppHref("")).toBe("https://wa.me/");
   });
 });

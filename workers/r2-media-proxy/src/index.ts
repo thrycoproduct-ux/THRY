@@ -34,18 +34,23 @@ const TOKEN_PREFIX = "uv1";
 const STAGING_PREFIX = "uploads/staging/";
 
 const CORS_ORIGINS = new Set([
-  "https://software-saree-order.vercel.app",
-  "https://hubsofcraftss.com",
-  "https://www.hubsofcraftss.com",
   "http://localhost:3000",
+  "http://127.0.0.1:3000",
   "https://localhost",
   "http://localhost",
   "capacitor://localhost",
 ]);
 
+function isAllowedCorsOrigin(origin: string): boolean {
+  if (!origin) return false;
+  if (CORS_ORIGINS.has(origin)) return true;
+  // Temporary: allow future THRY workers.dev / pages.dev previews only.
+  return /^https:\/\/thry[\w-]*\.(workers\.dev|pages\.dev)$/i.test(origin);
+}
+
 function corsHeaders(request: Request): HeadersInit {
   const origin = request.headers.get("origin") ?? "";
-  const allowOrigin = CORS_ORIGINS.has(origin) ? origin : "*";
+  const allowOrigin = isAllowedCorsOrigin(origin) ? origin : "*";
   return {
     "Access-Control-Allow-Origin": allowOrigin,
     "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",

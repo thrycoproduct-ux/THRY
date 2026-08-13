@@ -26,9 +26,7 @@ function storageKey(key: string) {
   return `${STORAGE_PREFIX}${key}`;
 }
 
-export function readListingState<T>(
-  key: string,
-): StoredListingState<T> | null {
+export function readListingState<T>(key: string): StoredListingState<T> | null {
   if (typeof window === "undefined") return null;
 
   try {
@@ -47,8 +45,7 @@ export function readListingState<T>(
     return {
       state: parsed.state,
       scrollY: Math.max(0, parsed.scrollY),
-      productId:
-        typeof parsed.productId === "string" ? parsed.productId : null,
+      productId: typeof parsed.productId === "string" ? parsed.productId : null,
       savedAt: parsed.savedAt,
     };
   } catch {
@@ -56,11 +53,7 @@ export function readListingState<T>(
   }
 }
 
-function writeListingState<T>(
-  key: string,
-  state: T,
-  productId: string | null,
-) {
+function writeListingState<T>(key: string, state: T, productId: string | null) {
   try {
     window.sessionStorage.setItem(
       storageKey(key),

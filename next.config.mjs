@@ -85,27 +85,6 @@ const nextConfig = {
         protocol: "https",
         hostname: "vumbnail.com",
       },
-      // Legacy Workers hosts (seeded absolute image URLs) + current account subdomain
-      {
-        protocol: "https",
-        hostname: "hub-of-craftss.hubofcraftss.workers.dev",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "hub-of-craftss.shaarunew01.workers.dev",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "hubsofcraftss.com",
-        pathname: "/**",
-      },
-      {
-        protocol: "https",
-        hostname: "www.hubsofcraftss.com",
-        pathname: "/**",
-      },
     ],
   },
   experimental: {

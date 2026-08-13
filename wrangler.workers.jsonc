@@ -1,8 +1,8 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
-  // Legacy alias — keep ISR bindings in sync with wrangler.workers.new-account.jsonc.
-  // Production deploys must use wrangler.workers.new-account.jsonc (see package.json).
-  "name": "hub-of-craftss",
+  // Alias of wrangler.workers.new-account.jsonc — keep in sync.
+  "name": "thry",
+  "account_id": "77dfa9b757691b2321fe0630f01c8c6a",
   "main": ".open-next/worker.js",
   "minify": true,
   "compatibility_date": "2025-05-05",
@@ -15,17 +15,17 @@
   "services": [
     {
       "binding": "WORKER_SELF_REFERENCE",
-      "service": "hub-of-craftss"
+      "service": "thry"
     }
   ],
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
-      "bucket_name": "hubofcraftss-cdn"
+      "bucket_name": "thry-cdn"
     },
     {
       "binding": "NEXT_INC_CACHE_R2_BUCKET",
-      "bucket_name": "hubofcraftss-next-cache"
+      "bucket_name": "thry-next-cache"
     }
   ],
   "durable_objects": {

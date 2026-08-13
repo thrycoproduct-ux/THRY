@@ -45,7 +45,7 @@ async function getCloudflareEnv(): Promise<Record<string, unknown> | null> {
 
 function missingMediaBucketError() {
   return new Error(
-    "Media storage is not bound (MEDIA_BUCKET missing). Enable R2 on this Cloudflare account, create bucket hubofcraftss-cdn, add the R2 binding, and redeploy.",
+    "Media storage is not bound (MEDIA_BUCKET missing). Enable R2 on the THRY Cloudflare account, create bucket thry-cdn, add the R2 binding, and redeploy.",
   );
 }
 

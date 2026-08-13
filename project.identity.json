@@ -2,72 +2,86 @@
   "$schema": "./project.identity.schema.json",
   "version": 1,
   "project": {
-    "name": "Hub of craftss",
-    "slug": "hub-of-craftss",
-    "repo": "sanjaycyberaudit-svg/Hub-of-craftss",
+    "name": "THRY",
+    "slug": "thry",
+    "repo": "thrycoproduct-ux/thry",
     "branch": "main"
   },
   "site": {
-    "canonicalOrigin": "https://hubsofcraftss.com",
-    "wwwOrigin": "https://www.hubsofcraftss.com",
+    "canonicalOrigin": "http://localhost:3000",
+    "wwwOrigin": "http://127.0.0.1:3000",
     "localOrigins": [
       "http://localhost:3000",
       "http://127.0.0.1:3000"
     ]
   },
   "supabase": {
-    "projectRef": "xytdexahcdyhykvuwpys",
-    "url": "https://xytdexahcdyhykvuwpys.supabase.co",
+    "projectRef": "azqgyxdzwlhdmjvkngbs",
+    "url": "https://azqgyxdzwlhdmjvkngbs.supabase.co",
     "regionHint": "ap-south-1"
   },
   "cloudflare": {
-    "accountEmail": "shaarunew01@gmail.com",
-    "accountId": "542992b23690c0c07bb23e5fecffa6ec",
-    "workerName": "hub-of-craftss",
-    "mediaWorkerName": "hub-of-craftss-media",
+    "accountEmail": "thrycoproduct@gmail.com",
+    "accountId": "77dfa9b757691b2321fe0630f01c8c6a",
+    "workerName": "thry",
+    "mediaWorkerName": "thry-media",
     "productionWranglerConfig": "wrangler.workers.new-account.jsonc",
     "mediaWranglerConfig": "workers/r2-media-proxy/wrangler.jsonc",
     "r2": {
-      "mediaBucket": "hubofcraftss-cdn",
-      "nextCacheBucket": "hubofcraftss-next-cache",
-      "s3Endpoint": "https://542992b23690c0c07bb23e5fecffa6ec.r2.cloudflarestorage.com",
-      "publicCdnHint": "https://pub-d036df4365494925a278f4ecf244316d.r2.dev"
+      "mediaBucket": "thry-cdn",
+      "nextCacheBucket": "thry-next-cache",
+      "s3Endpoint": "https://77dfa9b757691b2321fe0630f01c8c6a.r2.cloudflarestorage.com",
+      "publicCdnHint": "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev",
+      "mediaProxyUrl": "https://thry-media.thrycoproduct.workers.dev"
     }
   },
   "vercel": {
-    "teamSlug": "shaarunew01-4571s-projects",
-    "projectSlug": "hubs-of-craftss-project",
-    "productionHost": "hubsofcraftss.com"
+    "teamSlug": "thryco",
+    "projectSlug": "thry",
+    "productionHost": "localhost"
   },
   "github": {
-    "owner": "sanjaycyberaudit-svg",
-    "repo": "Hub-of-craftss",
-    "pushAccount": "sanjaycyberaudit-svg"
+    "owner": "thrycoproduct-ux",
+    "repo": "thry",
+    "pushAccount": "thrycoproduct-ux"
   },
   "authRedirectOrigins": [
-    "https://hubsofcraftss.com",
-    "https://www.hubsofcraftss.com",
     "http://localhost:3000",
     "http://127.0.0.1:3000"
   ],
   "forbidden": {
-    "description": "Never use these for Hub of craftss deploys, R2, env, or wrangler login.",
+    "description": "Never use these for THRY deploys, R2, env, or wrangler login.",
     "cloudflareAccountEmails": [
+      "shaarunew01@gmail.com",
       "sripalanitextilesonline@gmail.com"
     ],
-    "supabaseProjectRefs": [],
+    "cloudflareAccountIds": [
+      "542992b23690c0c07bb23e5fecffa6ec"
+    ],
+    "supabaseProjectRefs": [
+      "xytdexahcdyhykvuwpys",
+      "rzwbpjjayarptlwjfpzm",
+      "qhtwwyqlsnckorndmhmt"
+    ],
     "siteHosts": [
+      "hubsofcraftss.com",
+      "www.hubsofcraftss.com",
+      "hubofcraftss.com",
+      "www.hubofcraftss.com",
       "sairaghavendratex.com",
       "www.sairaghavendratex.com",
       "ssr-tex-shop.vercel.app",
-      "hubofcraftss.com",
-      "www.hubofcraftss.com"
+      "hubs-of-craftss-project.vercel.app"
+    ],
+    "r2Buckets": [
+      "hubofcraftss-cdn",
+      "hubofcraftss-next-cache"
     ]
   },
   "notes": [
-    "Secrets stay in .env.local / Vercel / Cloudflare — never commit them.",
-    "This file is the only public source of truth for project identity.",
-    "Run npm run validate:identity before auth, R2, wrangler, or deploy work.",
-    "If Cloudflare/Supabase/Vercel/site IDs change, update THIS file first, then configs."
+    "THRY is a NEW shop. Secrets stay in .env.local — never commit them.",
+    "Cloudflare account: thrycoproduct@gmail.com / 77dfa9b757691b2321fe0630f01c8c6a",
+    "Supabase project azqgyxdzwlhdmjvkngbs is the only allowed DB/auth project.",
+    "Run npm run validate:identity before auth, R2, wrangler, or deploy work."
   ]
 }

@@ -1,14 +1,7 @@
 {
   "$schema": "node_modules/wrangler/config-schema.json",
   // Pages Git builds: do NOT set pages_build_output_dir here.
-  // When that key is present, Cloudflare reads build config from this file and
-  // skips injecting dashboard env vars into `next build` (breaks NEXT_PUBLIC_*).
-  // Build command + output dir stay in the Pages project settings:
-  //   build: npm run pages:build
-  //   output: .open-next/pages
-  // OpenNext Workers builds use wrangler.workers.jsonc instead.
-  "name": "hub-of-craftss",
-  // Required for Workers Free 3 MiB gzip limit (same as wrangler.workers.jsonc).
+  "name": "thry",
   "minify": true,
   "compatibility_date": "2025-05-05",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"]

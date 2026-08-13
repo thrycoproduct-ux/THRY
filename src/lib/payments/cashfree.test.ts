@@ -7,11 +7,11 @@ jest.mock("../network/fetchWithTimeout", () => ({
 }));
 
 jest.mock("../utils", () => ({
-  getURL: () => "https://hubsofcraftss.com/",
+  getURL: () => "http://localhost:3000/",
 }));
 
 jest.mock("../auth/site-urls", () => ({
-  getCanonicalSiteOrigin: () => "https://hubsofcraftss.com",
+  getCanonicalSiteOrigin: () => "http://localhost:3000",
 }));
 
 import { getCashfreeConfig } from "../integrations/settings";
@@ -68,7 +68,7 @@ describe("createCashfreePayment", () => {
       order_meta: { return_url: string };
     };
     expect(body.order_meta.return_url).toBe(
-      "https://hubsofcraftss.com/api/cashfree/redirect?order_id={order_id}&token=guest_hmac_token",
+      "http://localhost:3000/api/cashfree/redirect?order_id={order_id}&token=guest_hmac_token",
     );
   });
 

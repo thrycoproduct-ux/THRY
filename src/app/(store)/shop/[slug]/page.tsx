@@ -140,7 +140,7 @@ async function ProductDetailPage({ params }: Props) {
       )
     : pricingProduct;
 
-  const storefrontSizeLabels = (sizeConfig.groups?.length
+  const storefrontSizeLabels = sizeConfig.groups?.length
     ? sizeConfig.groups.flatMap((group) =>
         group.options
           .filter((option) => Number(option.qty ?? 0) > 0)
@@ -167,7 +167,7 @@ async function ProductDetailPage({ params }: Props) {
           if (!value) return `${option.qty}`;
           if (/^[A-Z]+$/.test(value)) return `${value} : ${option.qty}`;
           return value;
-        }));
+        });
 
   const availableLabel =
     (sizeConfig.groups?.length ?? 0) > 1

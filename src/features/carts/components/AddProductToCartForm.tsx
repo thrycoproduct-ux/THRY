@@ -79,7 +79,10 @@ function AddProductToCartForm({
         (option) =>
           String(option.value ?? option.size ?? "")
             .trim()
-            .toUpperCase() === String(value ?? "").trim().toUpperCase(),
+            .toUpperCase() ===
+          String(value ?? "")
+            .trim()
+            .toUpperCase(),
       );
       if (!choice) return 0;
       min = Math.min(min, Math.max(0, Number(choice.qty ?? 0)));
@@ -193,7 +196,9 @@ function AddProductToCartForm({
                         })
                       }
                     >
-                      <option value="">Select {group.name.toLowerCase()}</option>
+                      <option value="">
+                        Select {group.name.toLowerCase()}
+                      </option>
                       {choices.map((option) => {
                         const value = String(option.value ?? option.size ?? "")
                           .trim()
@@ -202,7 +207,10 @@ function AddProductToCartForm({
                         const priceLabel =
                           option.price != null ? ` · ₹${option.price}` : "";
                         return (
-                          <option key={`${group.id}-${value || "NO_LABEL"}`} value={value}>
+                          <option
+                            key={`${group.id}-${value || "NO_LABEL"}`}
+                            value={value}
+                          >
                             {label}
                             {priceLabel}
                           </option>

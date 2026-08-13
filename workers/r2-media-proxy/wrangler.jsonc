@@ -1,13 +1,13 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "hub-of-craftss-media",
-  "account_id": "542992b23690c0c07bb23e5fecffa6ec",
+  "name": "thry-media",
+  "account_id": "77dfa9b757691b2321fe0630f01c8c6a",
   "main": "src/index.ts",
   "compatibility_date": "2025-05-05",
   "r2_buckets": [
     {
       "binding": "MEDIA_BUCKET",
-      "bucket_name": "hubofcraftss-cdn"
+      "bucket_name": "thry-cdn"
     }
   ],
   "observability": {

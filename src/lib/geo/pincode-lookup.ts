@@ -34,7 +34,9 @@ const STATE_ALIASES: Record<string, (typeof INDIAN_STATES)[number]> = {
   "jammu and kashmir": "Jammu and Kashmir",
 };
 
-export function normalizePincode(raw: string | null | undefined): string | null {
+export function normalizePincode(
+  raw: string | null | undefined,
+): string | null {
   const digits = String(raw ?? "")
     .replace(/\D/g, "")
     .slice(0, 6);

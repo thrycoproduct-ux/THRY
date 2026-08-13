@@ -64,7 +64,8 @@ export function usePincodeLookup(rawPin: string): PincodeLookupState {
       })
       .catch((error: unknown) => {
         if (controller.signal.aborted) return;
-        if (error instanceof DOMException && error.name === "AbortError") return;
+        if (error instanceof DOMException && error.name === "AbortError")
+          return;
         setState({
           status: "error",
           result: null,

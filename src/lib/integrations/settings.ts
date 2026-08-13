@@ -314,8 +314,7 @@ export async function resolveCourierChargesConfig(): Promise<CourierChargesConfi
         DEFAULT_COURIER_CONFIG.qty5PlusFlat,
       ),
       freeShippingEnabled: Boolean(
-        value.freeShippingEnabled ??
-          DEFAULT_COURIER_CONFIG.freeShippingEnabled,
+        value.freeShippingEnabled ?? DEFAULT_COURIER_CONFIG.freeShippingEnabled,
       ),
       freeShippingMin: toRoundedAmount(
         value.freeShippingMin,

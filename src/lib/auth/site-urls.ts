@@ -1,5 +1,5 @@
 /** Canonical storefront origin(s) used for auth redirects and SEO. */
-const DEFAULT_PRODUCTION_ORIGIN = "https://hubsofcraftss.com";
+const DEFAULT_PRODUCTION_ORIGIN = "http://localhost:3000";
 
 function normalizeOrigin(value: string): string {
   const trimmed = value.trim().replace(/\/$/, "");
@@ -34,8 +34,6 @@ export function getAuthCallbackUrls(): string[] {
     `${canonical}/auth/callback`,
     "http://localhost:3000/auth/callback",
     "http://127.0.0.1:3000/auth/callback",
-    "https://hub-of-craftss.shaarunew01.workers.dev/auth/callback",
-    "https://hub-of-craftss.hubofcraftss.workers.dev/auth/callback",
   ]);
 
   try {
