@@ -8,11 +8,13 @@
     "branch": "main"
   },
   "site": {
-    "canonicalOrigin": "http://localhost:3000",
-    "wwwOrigin": "http://127.0.0.1:3000",
+    "canonicalOrigin": "https://thry.thrycoproduct.workers.dev",
+    "wwwOrigin": "https://thry-thryco.vercel.app",
     "localOrigins": [
       "http://localhost:3000",
-      "http://127.0.0.1:3000"
+      "http://127.0.0.1:3000",
+      "https://thry.thrycoproduct.workers.dev",
+      "https://thry-thryco.vercel.app"
     ]
   },
   "supabase": {
@@ -38,7 +40,7 @@
   "vercel": {
     "teamSlug": "thryco",
     "projectSlug": "thry",
-    "productionHost": "localhost"
+    "productionHost": "thry-thryco.vercel.app"
   },
   "github": {
     "owner": "thrycoproduct-ux",
@@ -47,7 +49,9 @@
   },
   "authRedirectOrigins": [
     "http://localhost:3000",
-    "http://127.0.0.1:3000"
+    "http://127.0.0.1:3000",
+    "https://thry.thrycoproduct.workers.dev",
+    "https://thry-thryco.vercel.app"
   ],
   "forbidden": {
     "description": "Never use these for THRY deploys, R2, env, or wrangler login.",

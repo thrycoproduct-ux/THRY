@@ -33,7 +33,7 @@ export const siteConfig = {
   location: "",
   description: "THRY — online shop.",
   searchPlaceholder: "Search products…",
-  url: "http://localhost:3000",
+  url: "https://thry.thrycoproduct.workers.dev",
   addressLines: ADDRESS_LINES,
   address: ADDRESS_LINES.join(", "),
   phone: PHONE,
