@@ -78,7 +78,7 @@ function MarqueeStrip({
   );
 }
 
-function CraftAnnouncementShell({
+function AnnouncementShell({
   children,
   className,
   label,
@@ -92,7 +92,6 @@ function CraftAnnouncementShell({
       className={cn("announcement-craft group/announcement", className)}
       aria-label={label}
     >
-      <div className="announcement-bunting" aria-hidden />
       <div className="announcement-craft-rail">{children}</div>
     </div>
   );
@@ -105,16 +104,16 @@ export function AnnouncementBar() {
   if (items.length === 1) {
     const item = items[0];
     return (
-      <CraftAnnouncementShell>
+      <AnnouncementShell>
         <div className="flex h-[var(--announcement-rail-height)] items-center justify-center gap-2 px-3 sm:px-4">
           <MarqueeItem item={item} />
         </div>
-      </CraftAnnouncementShell>
+      </AnnouncementShell>
     );
   }
 
   return (
-    <CraftAnnouncementShell label="Store announcements">
+    <AnnouncementShell label="Store announcements">
       <div className="flex h-[var(--announcement-rail-height)] items-center">
         <div className="announcement-marquee-mask relative min-w-0 flex-1 overflow-hidden">
           <div
@@ -129,6 +128,6 @@ export function AnnouncementBar() {
           </div>
         </div>
       </div>
-    </CraftAnnouncementShell>
+    </AnnouncementShell>
   );
 }

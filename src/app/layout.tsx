@@ -16,13 +16,13 @@ export const metadata: Metadata = {
   },
   description: siteConfig.description,
   keywords: [
-    "Hub of craftss",
-    "HOC",
-    "terracotta",
-    "art and craft supplies",
-    "craft materials Madurai",
-    "Shaaru crafts",
-    "make craft create",
+    "THRY",
+    "THRY CO",
+    "3D printed gifts",
+    "art and craft tools",
+    "customised gifts",
+    "3D printed statues",
+    "clay cutters",
   ],
   applicationName: siteConfig.name,
   authors: [{ name: siteConfig.name }],
@@ -61,9 +61,9 @@ export const metadata: Metadata = {
     canonical: siteUrl,
   },
   icons: {
-    icon: [{ url: "/images/hub-of-craftss-logo.png", type: "image/png" }],
-    shortcut: ["/images/hub-of-craftss-logo.png"],
-    apple: [{ url: "/images/hub-of-craftss-logo.png", type: "image/png" }],
+    icon: [{ url: "/images/thry-wordmark.svg", type: "image/svg+xml" }],
+    shortcut: ["/images/thry-wordmark.svg"],
+    apple: [{ url: "/images/thry-wordmark.svg", type: "image/svg+xml" }],
   },
 };
 

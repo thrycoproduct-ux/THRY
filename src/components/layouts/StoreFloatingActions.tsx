@@ -56,7 +56,7 @@ export function StoreFloatingActions() {
           mode="call"
           isOpen={openPicker === "call"}
           onOpenChange={(open) => handlePickerChange("call", open)}
-          triggerLabel="Call Hub of craftss — choose a number"
+          triggerLabel="Call THRY — choose a number"
           triggerClassName={`animate-phone-glow ${floatingActionButtonClass} bg-primary text-white ring-2 ring-primary/40`}
           triggerIcon={<PhoneCall className="h-5 w-5" strokeWidth={2} />}
         />

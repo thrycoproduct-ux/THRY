@@ -19,7 +19,7 @@ export function buildOrganizationJsonLd() {
     "@type": "Organization",
     name: siteConfig.name.replace("®", "").trim(),
     url: absoluteUrl(),
-    logo: absoluteUrl("/images/hub-of-craftss-logo.png"),
+    logo: absoluteUrl("/images/thry-wordmark.svg"),
     email: siteConfig.email || undefined,
     telephone: siteConfig.phone || undefined,
     address: {
@@ -57,7 +57,7 @@ export function buildStoreJsonLd() {
     "@type": "Store",
     name: siteConfig.name.replace("®", "").trim(),
     url: absoluteUrl(),
-    image: absoluteUrl("/images/hub-of-craftss-logo.png"),
+    image: absoluteUrl("/images/thry-wordmark.svg"),
     telephone: siteConfig.phone || undefined,
     email: siteConfig.email || undefined,
     address: {

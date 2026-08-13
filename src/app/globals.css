@@ -5,60 +5,61 @@
 @layer base {
   :root {
     /*
-      Hub of craftss — light rose (logo magenta #c03078) · soft gold
-      White surfaces replaced with blush rose; pennants still pop on cream rail.
+      THRY — locked to wordmark gradient
+      #f472b6 rose → #e879f9 magenta → #a78bfa lilac → #fbbf24 gold
     */
-    --background: 337 76% 97%;
-    --foreground: 330 28% 18%;
+    --background: 330 55% 98%;
+    --foreground: 280 22% 18%;
 
-    --card: 342 80% 98%;
-    --card-foreground: 330 28% 18%;
+    --card: 0 0% 100%;
+    --card-foreground: 280 22% 18%;
 
-    --popover: 342 80% 98%;
-    --popover-foreground: 330 28% 18%;
+    --popover: 0 0% 100%;
+    --popover-foreground: 280 22% 18%;
 
-    /* Logo magenta-rose primary */
-    --primary: 330 60% 47%;
-    --primary-foreground: 340 40% 98%;
+    /* CTA: slightly deeper rose for white text contrast */
+    --primary: 329 72% 52%;
+    --primary-foreground: 0 0% 100%;
 
-    --secondary: 336 55% 93%;
-    --secondary-foreground: 330 28% 22%;
+    /* Soft lilac wash (#a78bfa family) */
+    --secondary: 255 70% 95%;
+    --secondary-foreground: 255 40% 28%;
 
-    --muted: 337 45% 94%;
-    --muted-foreground: 330 16% 38%;
+    --muted: 300 40% 96%;
+    --muted-foreground: 280 12% 40%;
 
-    /* Soft gold wash */
-    --accent: 42 55% 93%;
-    --accent-foreground: 38 50% 28%;
+    /* Soft magenta wash (#e879f9 family) */
+    --accent: 292 60% 95%;
+    --accent-foreground: 292 40% 28%;
 
     --destructive: 0 72% 46%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 336 28% 88%;
-    --input: 336 28% 88%;
-    --ring: 330 60% 47%;
+    --border: 300 28% 90%;
+    --input: 300 28% 90%;
+    --ring: 329 72% 52%;
 
-    /* Logo-matched craft accents (aliases keep existing brand-* class names working) */
-    --brand-rose: 330 60% 47%;
-    --brand-gold: 40 62% 46%;
-    --brand-cream: 337 76% 97%;
-    --brand-teal: 330 22% 42%;
-    --brand-magenta: 330 60% 47%;
-    --brand-lime: 42 35% 48%;
-    --brand-orange: 38 70% 48%;
-    --brand-yellow: 43 72% 52%;
-    --brand-cyan: 330 40% 72%;
-    --brand-purple: 330 30% 32%;
-    --brand-lavender: 336 50% 88%;
+    /* Exact wordmark stops */
+    --brand-rose: 329 86% 70%; /* #f472b6 */
+    --brand-magenta: 292 91% 73%; /* #e879f9 */
+    --brand-purple: 255 91% 76%; /* #a78bfa */
+    --brand-gold: 43 97% 56%; /* #fbbf24 */
+    --brand-cream: 330 55% 98%;
+    --brand-lavender: 255 70% 94%;
+    /* Legacy aliases remapped into the logo family */
+    --brand-teal: 255 45% 58%;
+    --brand-lime: 43 70% 50%;
+    --brand-orange: 340 85% 65%;
+    --brand-yellow: 43 97% 56%;
+    --brand-cyan: 255 60% 78%;
 
     --radius: 0.5rem;
     --mobile-nav-height: calc(
       3.5rem + max(0.5rem, env(safe-area-inset-bottom, 0px))
     );
     /* Fallbacks — StoreHeaderMetrics overrides from shop-board.ts at runtime */
-    --announcement-bar-height: 2.75rem;
-    --announcement-bunting-height: 0.7rem;
-    --announcement-rail-height: 2.05rem;
+    --announcement-bar-height: 2.35rem;
+    --announcement-rail-height: 2.15rem;
     --store-nav-content-height-mobile: 4.5rem;
     --store-nav-content-height-desktop: 5.25rem;
     --store-nav-height-mobile: 5rem;
@@ -116,45 +117,45 @@
   }
 
   .dark {
-    --background: 345 22% 9%;
-    --foreground: 40 30% 95%;
+    --background: 280 18% 9%;
+    --foreground: 330 30% 96%;
 
-    --card: 345 18% 12%;
-    --card-foreground: 40 30% 95%;
+    --card: 280 16% 12%;
+    --card-foreground: 330 30% 96%;
 
-    --popover: 345 18% 12%;
-    --popover-foreground: 40 30% 95%;
+    --popover: 280 16% 12%;
+    --popover-foreground: 330 30% 96%;
 
-    --primary: 330 55% 62%;
-    --primary-foreground: 330 22% 10%;
+    --primary: 329 86% 70%;
+    --primary-foreground: 280 30% 10%;
 
-    --secondary: 330 16% 16%;
-    --secondary-foreground: 40 30% 95%;
+    --secondary: 255 22% 16%;
+    --secondary-foreground: 255 70% 90%;
 
-    --muted: 330 14% 16%;
-    --muted-foreground: 330 10% 70%;
+    --muted: 280 14% 16%;
+    --muted-foreground: 280 10% 72%;
 
-    --accent: 40 35% 18%;
-    --accent-foreground: 42 70% 72%;
+    --accent: 292 22% 18%;
+    --accent-foreground: 292 70% 85%;
 
     --destructive: 0 62% 42%;
-    --destructive-foreground: 40 30% 95%;
+    --destructive-foreground: 330 30% 96%;
 
-    --border: 330 14% 20%;
-    --input: 330 14% 20%;
-    --ring: 330 55% 62%;
+    --border: 280 14% 20%;
+    --input: 280 14% 20%;
+    --ring: 329 86% 70%;
 
-    --brand-rose: 330 55% 62%;
-    --brand-gold: 42 65% 58%;
-    --brand-cream: 337 30% 88%;
-    --brand-teal: 330 20% 58%;
-    --brand-magenta: 330 55% 62%;
-    --brand-lime: 42 40% 58%;
-    --brand-orange: 38 65% 58%;
-    --brand-yellow: 43 70% 58%;
-    --brand-cyan: 330 30% 70%;
-    --brand-purple: 330 28% 70%;
-    --brand-lavender: 330 28% 72%;
+    --brand-rose: 329 86% 70%;
+    --brand-magenta: 292 91% 73%;
+    --brand-purple: 255 91% 76%;
+    --brand-gold: 43 97% 56%;
+    --brand-cream: 280 14% 14%;
+    --brand-lavender: 255 30% 70%;
+    --brand-teal: 255 45% 68%;
+    --brand-lime: 43 70% 58%;
+    --brand-orange: 340 80% 68%;
+    --brand-yellow: 43 97% 56%;
+    --brand-cyan: 255 55% 75%;
   }
 }
 
@@ -286,7 +287,7 @@ html {
   animation: phone-glow 2.2s ease-in-out infinite;
 }
 
-/* Full logo lockup — soft craft shadow (no gold-on-purple shop board) */
+/* THRY wordmark lockup */
 .brand-board-lockup {
   isolation: isolate;
   color-scheme: light;
@@ -294,6 +295,20 @@ html {
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
   text-rendering: geometricPrecision;
+}
+
+.brand-wordmark-text {
+  background-image: linear-gradient(
+    90deg,
+    #f472b6 0%,
+    #e879f9 35%,
+    #a78bfa 70%,
+    #fbbf24 100%
+  );
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  filter: drop-shadow(0 1px 1px hsl(var(--brand-rose) / 0.18));
 }
 
 .brand-board-emblem {
@@ -305,7 +320,8 @@ html {
   filter: drop-shadow(0 1px 3px hsl(var(--brand-gold) / 0.18));
 }
 
-.dark .brand-board-emblem {
+.dark .brand-board-emblem,
+.dark .brand-wordmark-text {
   filter: drop-shadow(0 2px 8px rgba(0, 0, 0, 0.45));
 }
 
@@ -315,21 +331,26 @@ html {
   }
 }
 
-/* Soft blush · gold · cream atmosphere */
+/* Soft colourful atmosphere — logo rose · magenta · lilac · gold */
 .storefront-atmosphere {
   background: radial-gradient(
       120% 80% at 0% 0%,
-      hsl(var(--brand-rose) / 0.14),
+      hsl(var(--brand-rose) / 0.18),
       transparent 55%
     ),
     radial-gradient(
       90% 70% at 100% 8%,
-      hsl(var(--brand-gold) / 0.12),
+      hsl(var(--brand-magenta) / 0.14),
       transparent 50%
     ),
     radial-gradient(
+      80% 55% at 85% 75%,
+      hsl(var(--brand-gold) / 0.14),
+      transparent 48%
+    ),
+    radial-gradient(
       70% 50% at 50% 100%,
-      hsl(var(--brand-lavender) / 0.45),
+      hsl(var(--brand-lavender) / 0.55),
       transparent 45%
     ),
     hsl(var(--background));
@@ -367,41 +388,25 @@ html {
   will-change: transform;
 }
 
-/* Cream craft announcement — pennants stay vivid on light rail */
+/* Clean announcement rail — soft blush, no pennants / LED strip */
 .announcement-craft {
-  --announcement-bunting-height: 0.75rem;
   --announcement-rail-height: 2.15rem;
   position: relative;
   overflow: hidden;
-  /* Single soft hairline — clean shop trim */
   border-bottom: 1px solid hsl(var(--brand-rose) / 0.18);
   background: linear-gradient(
     180deg,
-    hsl(337 70% 97%) 0%,
-    hsl(336 55% 95%) 100%
+    hsl(330 55% 99%) 0%,
+    hsl(300 42% 97%) 100%
   );
+  box-shadow: inset 0 1px 0 hsl(var(--brand-rose) / 0.08);
   contain: layout paint;
-}
-
-.announcement-bunting {
-  height: var(--announcement-bunting-height);
-  width: 100%;
-  pointer-events: none;
-  /* Bright pennants + light cord — readable on cream (not deep rose) */
-  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='72' height='12' viewBox='0 0 72 12'%3E%3Cpath fill='%23f5e6c8' d='M0 1h72' stroke='%23d4a84b' stroke-width='1.1'/%3E%3Cpath fill='%23f09018' stroke='%23fff8f0' stroke-width='0.4' d='M0 1.5h12L6 12z'/%3E%3Cpath fill='%23f0b418' stroke='%23fff8f0' stroke-width='0.4' d='M12 1.5h12l-6 10.5z'/%3E%3Cpath fill='%2390b430' stroke='%23fff8f0' stroke-width='0.4' d='M24 1.5h12l-6 10.5z'/%3E%3Cpath fill='%2348b4c4' stroke='%23fff8f0' stroke-width='0.4' d='M36 1.5h12l-6 10.5z'/%3E%3Cpath fill='%23854aad' stroke='%23fff8f0' stroke-width='0.4' d='M48 1.5h12l-6 10.5z'/%3E%3Cpath fill='%23d4488a' stroke='%23fff8f0' stroke-width='0.4' d='M60 1.5h12l-6 10.5z'/%3E%3C/svg%3E");
-  background-repeat: repeat-x;
-  background-position: center top;
-  background-size: auto 100%;
 }
 
 .announcement-craft-rail {
   position: relative;
   min-height: var(--announcement-rail-height);
-  background: linear-gradient(
-    180deg,
-    hsl(337 65% 97%) 0%,
-    hsl(336 50% 95%) 100%
-  );
+  background: transparent;
 }
 
 .announcement-marquee-mask {

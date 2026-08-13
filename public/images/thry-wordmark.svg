@@ -1,0 +1,19 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 160" role="img" aria-label="THRY">
+  <defs>
+    <linearGradient id="thry" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="35%" stop-color="#e879f9"/>
+      <stop offset="70%" stop-color="#a78bfa"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <text
+    x="16"
+    y="112"
+    font-family="Nunito, Arial Black, Arial, sans-serif"
+    font-size="112"
+    font-weight="800"
+    letter-spacing="-4"
+    fill="url(#thry)"
+  >THRY</text>
+</svg>

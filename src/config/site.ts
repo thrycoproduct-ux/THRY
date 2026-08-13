@@ -29,9 +29,10 @@ export const siteConfig = {
   shopBoardName: "THRY",
   name: "THRY",
   shortName: "THRY",
-  tagline: "Shop",
+  tagline: "Creative 3D printed products",
   location: "",
-  description: "THRY — online shop.",
+  description:
+    "THRY — creative 3D printed products, art & craft tools, customised gifts and home essentials.",
   searchPlaceholder: "Search products…",
   url: "https://thry.thrycoproduct.workers.dev",
   addressLines: ADDRESS_LINES,
@@ -46,9 +47,29 @@ export const siteConfig = {
   social: SOCIAL,
   announcements: [
     {
-      text: "Welcome to THRY",
+      text: "Welcome to THRY — creative 3D printed products",
       href: "/shop",
       cta: "Shop now",
+    },
+    {
+      text: "Art & craft tools · clay cutters · stamps · mandala kits",
+      href: "/shop",
+      cta: "Explore",
+    },
+    {
+      text: "Customised gifts for every occasion",
+      href: "/collections",
+      cta: "Browse gifts",
+    },
+    {
+      text: "3D printed statues · planters · toys & home essentials",
+      href: "/shop",
+      cta: "See more",
+    },
+    {
+      text: "New drops & festive favourites — shop the collection",
+      href: "/featured",
+      cta: "Featured",
     },
   ],
   mainNav: [

@@ -1,6 +1,5 @@
-import Image from "next/image";
 import { siteConfig } from "@/config/site";
-import { BRAND_LOGO, brandLogoMaxHeight } from "@/lib/brand/logo";
+import { BRAND_WORDMARK, brandLogoMaxHeight } from "@/lib/brand/logo";
 import { cn } from "@/lib/utils";
 import type { ShopBoardBrandSize } from "@/lib/brand/shop-board";
 
@@ -12,35 +11,39 @@ type Props = {
   align?: "left" | "center";
 };
 
-/** Hub of craftss logo lockup — fixed height so header width cannot shrink it. */
+const sizeClass: Record<BrandWordmarkSize, string> = {
+  nav: "text-[2rem] leading-none md:text-[2.15rem]",
+  md: "text-[2.5rem] leading-none",
+  footer: "text-[3rem] leading-none",
+};
+
+/** THRY text wordmark — colorful girl-forward brand lockup. */
 export function BrandWordmark({
   className,
   size = "md",
   align = "left",
 }: Props) {
   const height = brandLogoMaxHeight[size];
-  const width = Math.round((BRAND_LOGO.width / BRAND_LOGO.height) * height);
 
   return (
     <span
       className={cn(
-        "brand-board-lockup inline-flex shrink-0 items-center",
+        "brand-board-lockup brand-wordmark inline-flex shrink-0 items-center",
         size === "nav" && "brand-board-lockup--nav",
         align === "center" && "mx-auto justify-center",
         className,
       )}
+      style={{ minHeight: height }}
       aria-label={`${siteConfig.shopBoardName} — ${siteConfig.tagline}`}
     >
-      <Image
-        src={BRAND_LOGO.src}
-        alt={siteConfig.shopBoardName}
-        width={BRAND_LOGO.width}
-        height={BRAND_LOGO.height}
-        className="brand-board-emblem relative z-[2] shrink-0 object-contain object-left"
-        style={{ height, width, maxWidth: "none" }}
-        sizes={`${width}px`}
-        priority={size === "nav"}
-      />
+      <span
+        className={cn(
+          "brand-wordmark-text relative z-[2] select-none font-[family-name:var(--font-brand-sans)] font-extrabold tracking-tight",
+          sizeClass[size],
+        )}
+      >
+        {BRAND_WORDMARK}
+      </span>
     </span>
   );
 }

@@ -1,21 +1,25 @@
 /**
- * THRY lockup — single source for asset + display sizes.
- * Replace `public/images/hub-of-craftss-logo.png` with THRY artwork when ready.
+ * THRY brand mark — text wordmark only (no image lockup).
+ */
+export const BRAND_WORDMARK = "THRY" as const;
+
+/**
+ * Optional square mark for favicon / JSON-LD (SVG wordmark asset).
+ * Storefront chrome uses {@link BRAND_WORDMARK} text, not this image.
  */
 export const BRAND_LOGO = {
-  src: "/images/hub-of-craftss-logo.png",
-  width: 483,
-  height: 295,
+  src: "/images/thry-wordmark.svg",
+  width: 512,
+  height: 160,
 } as const;
 
 /**
- * Fixed display heights (px). Cropped art is wide (~1.64:1), so we set
- * height explicitly — max-height alone lets the nav width-squeeze shrink it.
+ * Fixed display heights (px) for the text wordmark — keeps header metrics in sync.
  */
 export const brandLogoMaxHeight = {
-  nav: 80,
-  md: 100,
-  footer: 128,
+  nav: 40,
+  md: 52,
+  footer: 64,
 } as const;
 
 export type BrandLogoSize = keyof typeof brandLogoMaxHeight;

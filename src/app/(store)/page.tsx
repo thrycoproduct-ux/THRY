@@ -23,16 +23,16 @@ import type { Metadata } from "next";
 export const revalidate = 120;
 
 export const metadata: Metadata = {
-  title: "Hub of craftss | Make · Craft · Create",
+  title: "Creative 3D printed products",
   description:
-    "Shop terracotta raw materials and art & craft supplies at Hub of craftss by Shaaru in Madurai. Make · Craft · Create.",
+    "Shop creative 3D printed products at THRY — art & craft tools, customised gifts, statues, planters and more.",
   alternates: {
     canonical: "/",
   },
   openGraph: {
-    title: "Hub of craftss | Make · Craft · Create",
+    title: "THRY | Creative 3D printed products",
     description:
-      "Shop terracotta raw materials and art & craft supplies at Hub of craftss by Shaaru in Madurai.",
+      "Shop creative 3D printed products at THRY — art & craft tools, gifts, statues and home essentials.",
     url: "/",
   },
 };

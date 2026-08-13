@@ -53,7 +53,7 @@ function CollectionBanner({
             {label}
           </h1>
           <p className="mt-2 text-xs font-semibold uppercase tracking-[0.14em] text-brand-yellow sm:text-sm">
-            Hub of craftss collection
+            THRY collection
           </p>
         </div>
       </div>

@@ -1,7 +1,7 @@
 import { shopBoardSizeConfig } from "./shop-board";
 
-/** Matches `AnnouncementBar` craft shell (bunting + text rail) */
-const ANNOUNCEMENT_BAR_PX = 44;
+/** Matches `AnnouncementBar` text rail */
+const ANNOUNCEMENT_BAR_PX = 38;
 
 /** Matches `MobileNavbar` row height (`h-16`) */
 const NAV_MOBILE_ROW_PX = 64;

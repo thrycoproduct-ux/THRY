@@ -1,0 +1,30 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1600" height="900" viewBox="0 0 1600 900" role="img" aria-label="THRY creative products">
+  <defs>
+    <linearGradient id="bg" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#fdf2f8"/>
+      <stop offset="40%" stop-color="#fce7f3"/>
+      <stop offset="75%" stop-color="#ede9fe"/>
+      <stop offset="100%" stop-color="#ecfdf5"/>
+    </linearGradient>
+    <linearGradient id="orb1" x1="0%" y1="0%" x2="100%" y2="100%">
+      <stop offset="0%" stop-color="#f472b6" stop-opacity="0.55"/>
+      <stop offset="100%" stop-color="#e879f9" stop-opacity="0.15"/>
+    </linearGradient>
+    <linearGradient id="orb2" x1="100%" y1="0%" x2="0%" y2="100%">
+      <stop offset="0%" stop-color="#34d399" stop-opacity="0.4"/>
+      <stop offset="100%" stop-color="#a78bfa" stop-opacity="0.2"/>
+    </linearGradient>
+    <linearGradient id="mark" x1="0%" y1="0%" x2="100%" y2="0%">
+      <stop offset="0%" stop-color="#f472b6"/>
+      <stop offset="50%" stop-color="#c084fc"/>
+      <stop offset="100%" stop-color="#fbbf24"/>
+    </linearGradient>
+  </defs>
+  <rect width="1600" height="900" fill="url(#bg)"/>
+  <circle cx="280" cy="220" r="220" fill="url(#orb1)"/>
+  <circle cx="1320" cy="640" r="280" fill="url(#orb2)"/>
+  <circle cx="1180" cy="180" r="120" fill="#f9a8d4" fill-opacity="0.35"/>
+  <circle cx="420" cy="720" r="140" fill="#fde68a" fill-opacity="0.35"/>
+  <text x="800" y="430" text-anchor="middle" font-family="Nunito, Arial Black, Arial, sans-serif" font-size="140" font-weight="800" letter-spacing="-6" fill="url(#mark)">THRY</text>
+  <text x="800" y="510" text-anchor="middle" font-family="Nunito, Arial, sans-serif" font-size="36" font-weight="600" fill="#9d174d" fill-opacity="0.75">Creative products · 3D printed</text>
+</svg>

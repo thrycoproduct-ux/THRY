@@ -41,7 +41,10 @@ export function r2PublicUrl(key: string) {
 
 /** OpenNext on Cloudflare serves `/_next/image` with attachment headers for remote URLs. */
 export function shouldBypassImageOptimization(src: string): boolean {
-  if (!src || src.startsWith("/")) return false;
+  if (!src) return false;
+  // Local SVGs (e.g. THRY hero placeholders) skip the image optimizer.
+  if (src.startsWith("/") && /\.svg(?:$|\?)/i.test(src)) return true;
+  if (src.startsWith("/")) return false;
   if (src.startsWith("http://") || src.startsWith("https://")) return true;
   return false;
 }
@@ -64,7 +67,7 @@ export const keytoUrl = (key?: string) => {
     return key;
   }
 
-  // Local public assets (e.g. /images/hub-of-craftss-logo.png)
+  // Local public assets (e.g. /images/thry-wordmark.svg)
   if (key.startsWith("/")) {
     return key;
   }

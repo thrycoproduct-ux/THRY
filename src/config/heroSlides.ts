@@ -10,33 +10,33 @@ export type HeroSlide = {
   imageAlt: string;
 };
 
-/** Homepage hero fallback until Admin → Home Banner uploads craft photos. */
+/** Homepage hero fallback until Admin → Home Banner uploads product photos. */
 export const heroSlides: HeroSlide[] = [
   {
-    id: "terracotta",
-    title: "Terracotta materials",
-    subtitle: "Raw materials for jewellery and craft projects",
+    id: "craft",
+    title: "Art & craft tools",
+    subtitle: "Clay cutters, stamps, mandala tools and more",
     href: "/shop",
     cta: "Shop now",
-    image: "/images/hub-of-craftss-logo.png",
-    imageAlt: `${siteConfig.name} — terracotta craft supplies`,
+    image: "/images/thry-hero-craft.svg",
+    imageAlt: `${siteConfig.name} — art and craft tools`,
   },
   {
-    id: "art-supplies",
-    title: "Art & craft supplies",
-    subtitle: "Make · Craft · Create with quality supplies",
+    id: "gifts",
+    title: "Customised gifts",
+    subtitle: "Thoughtful 3D-printed gifts for every occasion",
     href: "/collections",
     cta: "Explore",
-    image: "/images/hub-of-craftss-logo.png",
-    imageAlt: `${siteConfig.name} — art and craft supplies`,
+    image: "/images/thry-hero-gifts.svg",
+    imageAlt: `${siteConfig.name} — customised gifts`,
   },
   {
-    id: "madurai-hub",
-    title: "From Madurai",
-    subtitle: "Hub of craftss by Shaaru — Sarojini Nagar",
-    href: "/about",
-    cta: "Our story",
-    image: "/images/hub-of-craftss-logo.png",
-    imageAlt: `${siteConfig.name} — Madurai craft shop`,
+    id: "statues",
+    title: "3D printed creations",
+    subtitle: "Statues, planters, toys and home essentials",
+    href: "/shop",
+    cta: "Browse all",
+    image: "/images/thry-hero-statues.svg",
+    imageAlt: `${siteConfig.name} — 3D printed creations`,
   },
 ];

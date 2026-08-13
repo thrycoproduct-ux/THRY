@@ -147,7 +147,7 @@ function ModernTextTestimonialCard({
         </blockquote>
       ) : (
         <p className="flex-1 text-sm text-white/85">
-          Thank you for shopping with Hub of craftss.
+          Thank you for shopping with THRY.
         </p>
       )}
 
