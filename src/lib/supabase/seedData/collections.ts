@@ -11,13 +11,13 @@ const seedCollections = async () => {
     for (let i = 0; i < SAKTHI_COLLECTION_LABELS.length; i++) {
       const label = SAKTHI_COLLECTION_LABELS[i];
       const slug = slugify(label);
-      const imageKey = collectionPlaceholderImage(i);
+      const imageKey = collectionPlaceholderImage(label);
 
       const [media] = await db
         .insert(schema.medias)
         .values({
           key: imageKey,
-          alt: `${label} — Hub of craftss`,
+          alt: `${label} — THRY`,
         })
         .returning();
 
@@ -27,13 +27,13 @@ const seedCollections = async () => {
         label,
         slug,
         title: label,
-        description: `Explore our ${label} at Hub of craftss.`,
+        description: `Explore our ${label} at THRY.`,
         order: i + 1,
         featuredImageId: media.id,
       });
     }
 
-    console.log(`Saree collections are added to the DB.`);
+    console.log(`Collections are added to the DB.`);
   } catch (err) {
     console.log("Error happen while inserting collections", err);
   }
