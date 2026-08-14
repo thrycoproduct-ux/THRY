@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
+import * as Sentry from "@sentry/nextjs";
 import { sql } from "drizzle-orm";
 import db from "@/lib/supabase/db";
 import { isRedisCacheEnabled, redisGet } from "@/lib/cache/redis";
+import { isSentryEnabled } from "@/lib/sentry/shared";
 
 export const dynamic = "force-dynamic";
 
@@ -33,6 +35,7 @@ export async function GET() {
       () => "ok" as const,
       (error) => {
         console.error("[health] database check failed:", error);
+        Sentry.captureException(error);
         return "error" as const;
       },
     ),
@@ -52,8 +55,12 @@ export async function GET() {
     {
       status: healthy ? "ok" : "degraded",
       timestamp: checkedAt,
-      service: "hiyori-app",
-      checks: { database, redis },
+      service: "thry",
+      checks: {
+        database,
+        redis,
+        sentry: isSentryEnabled() ? "ok" : "disabled",
+      },
     },
     { status: healthy ? 200 : 503 },
   );
