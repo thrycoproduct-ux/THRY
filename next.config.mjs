@@ -98,6 +98,7 @@ const nextConfig = {
       dynamic: 0,
       static: 180,
     },
+    optimizePackageImports: ["lucide-react"],
   },
   // Keep browser-only PDF out of the Next server graph (Workers Free 3 MiB).
   serverExternalPackages: ["jspdf"],

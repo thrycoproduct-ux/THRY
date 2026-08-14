@@ -4,11 +4,9 @@ import { Icons } from "@/components/layouts/icons";
 import {
   HomeHeroCarousel,
   HomeCategoriesCarousel,
-  HomePriceCarousel,
-  HomeTestimonialsCarousel,
-  HomeShoppableReels,
   HomeExploreLinks,
 } from "@/features/storefront/components";
+import dynamic from "next/dynamic";
 import { heroSlides } from "@/config/heroSlides";
 import { getHomeBannerSlidesCached } from "@/lib/integrations/settings";
 import { withTimeoutFallback } from "@/lib/resilience";
@@ -17,8 +15,24 @@ import { getLandingPageDataCached } from "@/lib/storefront/landing-data";
 import { getShopByPriceBucketsCached } from "@/lib/storefront/shop-by-price";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
 import { siteConfig } from "@/config/site";
-import { cn } from "@/lib/utils";
+import { cn, keytoUrl } from "@/lib/utils";
 import type { Metadata } from "next";
+
+const HomePriceCarousel = dynamic(() =>
+  import("@/features/storefront/components/HomePriceCarousel").then(
+    (mod) => mod.HomePriceCarousel,
+  ),
+);
+const HomeShoppableReels = dynamic(() =>
+  import("@/features/storefront/components/HomeShoppableReels").then(
+    (mod) => mod.HomeShoppableReels,
+  ),
+);
+const HomeTestimonialsCarousel = dynamic(() =>
+  import("@/features/storefront/components/HomeTestimonialsCarousel").then(
+    (mod) => mod.HomeTestimonialsCarousel,
+  ),
+);
 
 export const revalidate = 120;
 
@@ -89,8 +103,23 @@ export default async function Home() {
     featuredProducts.map(({ node }) => node.id),
   );
 
+  const firstCategoryImageKey =
+    collectionScrollCards?.edges?.find((edge) => edge.node.featuredImage?.key)
+      ?.node.featuredImage?.key ?? null;
+  const firstCategoryImageSrc = firstCategoryImageKey
+    ? keytoUrl(firstCategoryImageKey)
+    : null;
+
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden">
+      {firstCategoryImageSrc ? (
+        <link
+          rel="preload"
+          as="image"
+          href={firstCategoryImageSrc}
+          fetchPriority="high"
+        />
+      ) : null}
       <DeferredStoreButterflies />
       <HomeHeroCarousel slides={slides} />
 

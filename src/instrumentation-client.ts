@@ -11,16 +11,10 @@ Sentry.init({
   enabled: isSentryEnabled(),
   environment: getSentryEnvironment(),
   tracesSampleRate: getTracesSampleRate(),
-  integrations: [
-    Sentry.replayIntegration({
-      maskAllText: true,
-      maskAllInputs: true,
-      blockAllMedia: true,
-    }),
-  ],
-  replaysSessionSampleRate: 0.1,
-  replaysOnErrorSampleRate: 1.0,
-  // Avoid leaking PII from ecommerce forms into Sentry by default.
+  // Session replay is deferred off the homepage critical path (large JS + TBT).
+  integrations: [],
+  replaysSessionSampleRate: 0,
+  replaysOnErrorSampleRate: 0,
   sendDefaultPii: false,
 });
 

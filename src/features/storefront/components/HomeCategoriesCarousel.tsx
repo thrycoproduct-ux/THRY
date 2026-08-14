@@ -11,11 +11,6 @@ import {
   type HomeCategoryNode,
 } from "@/lib/storefront/collections-page";
 import { HomeSectionHeader } from "./HomeSectionHeader";
-import {
-  MotionHoverLift,
-  MotionRevealItem,
-  MotionSection,
-} from "./MotionSection";
 
 type Props = {
   initialEdges: { node: HomeCategoryNode }[];
@@ -123,7 +118,7 @@ export function HomeCategoriesCarousel({
   if (!edges.length) return null;
 
   return (
-    <MotionSection className="w-full min-w-0 py-4 sm:py-8 md:py-10">
+    <section className="w-full min-w-0 py-4 sm:py-8 md:py-10">
       <HomeSectionHeader
         title="Product"
         titleAccent="Categories"
@@ -138,28 +133,21 @@ export function HomeCategoriesCarousel({
           const imageKey = node.featuredImage?.key;
           if (!imageKey) return null;
           return (
-            <MotionRevealItem
-              key={node.id}
-              index={Math.min(index, 11)}
-              instant
-              className="w-full"
-            >
-              <MotionHoverLift className="w-full">
-                <ViewTransitionLink
-                  href={`/collections/${node.slug}`}
-                  className="group block w-full rounded-[1.25rem] border border-brand-teal/20 bg-card p-1.5 shadow-sm transition-[border-color,box-shadow] duration-300 hover:border-brand-magenta/40 hover:shadow-[0_18px_40px_-18px_rgba(192,48,120,0.35)] sm:overflow-hidden sm:bg-muted/30 sm:p-0"
-                >
-                  <CollectionCardSurface
-                    label={node.label}
-                    imageSrc={keytoUrl(imageKey)}
-                    imageAlt={node.featuredImage?.alt || node.label}
-                    sizes="(max-width: 640px) 48vw, (max-width: 1024px) 31vw, 260px"
-                    priority={index < 4}
-                    viewTransitionName={collectionImageTransitionName(node.id)}
-                  />
-                </ViewTransitionLink>
-              </MotionHoverLift>
-            </MotionRevealItem>
+            <div key={node.id} className="w-full">
+              <ViewTransitionLink
+                href={`/collections/${node.slug}`}
+                className="group block w-full rounded-[1.25rem] border border-brand-teal/20 bg-card p-1.5 shadow-sm transition-[border-color,box-shadow,transform] duration-300 hover:-translate-y-1 hover:border-brand-magenta/40 hover:shadow-[0_18px_40px_-18px_rgba(192,48,120,0.35)] sm:overflow-hidden sm:bg-muted/30 sm:p-0"
+              >
+                <CollectionCardSurface
+                  label={node.label}
+                  imageSrc={keytoUrl(imageKey)}
+                  imageAlt={node.featuredImage?.alt || node.label}
+                  sizes="(max-width: 640px) 48vw, (max-width: 1024px) 31vw, 260px"
+                  priority={index < 2}
+                  viewTransitionName={collectionImageTransitionName(node.id)}
+                />
+              </ViewTransitionLink>
+            </div>
           );
         })}
       </section>
@@ -188,6 +176,6 @@ export function HomeCategoriesCarousel({
           </button>
         </div>
       ) : null}
-    </MotionSection>
+    </section>
   );
 }
