@@ -1,10 +1,13 @@
 /**
- * Thin R2 proxy for Vercel (and other hosts without MEDIA_BUCKET).
+ * Thin R2 proxy for THRY on Vercel (no MEDIA_BUCKET on the Next host).
  *
  * Auth:
  * - Authorization: Bearer <MEDIA_PROXY_SECRET> (server / Vercel)
- * - Authorization: Bearer upload.v1.<exp>.<keyB64>.<sig> (short-lived client PUT)
+ * - Authorization: Bearer uv1.<exp>.<keyB64>.<sig> (short-lived client PUT
+ *   to uploads/staging/* only — image bytes skip Vercel)
  */
+
+import { corsHeaders } from "./cors";
 
 type R2ObjectBody = {
   size: number;
@@ -32,32 +35,6 @@ export interface Env {
 const MAX_BODY_BYTES = 8 * 1024 * 1024;
 const TOKEN_PREFIX = "uv1";
 const STAGING_PREFIX = "uploads/staging/";
-
-const CORS_ORIGINS = new Set([
-  "http://localhost:3000",
-  "http://127.0.0.1:3000",
-  "https://localhost",
-  "http://localhost",
-  "capacitor://localhost",
-]);
-
-function isAllowedCorsOrigin(origin: string): boolean {
-  if (!origin) return false;
-  if (CORS_ORIGINS.has(origin)) return true;
-  // Temporary: allow future THRY workers.dev / pages.dev previews only.
-  return /^https:\/\/thry[\w-]*\.(workers\.dev|pages\.dev)$/i.test(origin);
-}
-
-function corsHeaders(request: Request): HeadersInit {
-  const origin = request.headers.get("origin") ?? "";
-  const allowOrigin = isAllowedCorsOrigin(origin) ? origin : "*";
-  return {
-    "Access-Control-Allow-Origin": allowOrigin,
-    "Access-Control-Allow-Methods": "GET, PUT, DELETE, OPTIONS",
-    "Access-Control-Allow-Headers": "Content-Type, Authorization",
-    "Access-Control-Max-Age": "86400",
-  };
-}
 
 function jsonResponse(request: Request, body: unknown, status = 200): Response {
   return new Response(JSON.stringify(body), {
@@ -212,6 +189,9 @@ export default {
     if (request.method === "PUT") {
       const key = objectKey;
       if (!key) return badRequest(request, "Missing or invalid key.");
+      if (auth === "upload" && !key.startsWith(STAGING_PREFIX)) {
+        return unauthorized(request);
+      }
 
       const contentLength = Number(request.headers.get("content-length") || 0);
       if (

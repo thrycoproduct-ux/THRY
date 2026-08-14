@@ -31,8 +31,8 @@ function safeEqual(a: string, b: string): boolean {
 }
 
 /**
- * Short-lived client upload token for the Hub R2 media proxy.
- * Client PUTs bytes to the Worker; Vercel never sees the image body.
+ * Short-lived client upload token for the THRY R2 media proxy.
+ * Client PUTs bytes to thry-media; Vercel never sees the image body.
  */
 export function createMediaProxyUploadToken(
   storagePath: string,
@@ -40,6 +40,9 @@ export function createMediaProxyUploadToken(
 ): { token: string; expiresAt: number } {
   const key = storagePath.trim();
   if (!key) throw new Error("storagePath is required.");
+  if (!key.startsWith("uploads/staging/") || key.includes("..")) {
+    throw new Error("Upload tokens are limited to staging keys.");
+  }
   const exp = Math.floor(Date.now() / 1000) + Math.max(60, ttlSeconds);
   const secret = mediaProxySecret();
   const keyB64 = Buffer.from(key, "utf8").toString("base64url");

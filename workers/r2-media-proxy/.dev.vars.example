@@ -1,0 +1,3 @@
+# Local-only Worker secrets. Do not commit real values.
+# Copy to workers/r2-media-proxy/.dev.vars
+MEDIA_PROXY_SECRET=

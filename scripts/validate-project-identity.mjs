@@ -85,6 +85,26 @@ if (!fs.existsSync(envLocalPath)) {
       `S3_ENDPOINT=${endpoint} ≠ identity ${identity.cloudflare.r2.s3Endpoint}`,
     );
   }
+  const proxyUrl = env("R2_MEDIA_PROXY_URL").replace(/\/$/, "");
+  const expectedProxy = identity.cloudflare.r2.mediaProxyUrl?.replace(
+    /\/$/,
+    "",
+  );
+  if (proxyUrl && expectedProxy && proxyUrl !== expectedProxy) {
+    err(`R2_MEDIA_PROXY_URL=${proxyUrl} ≠ identity ${expectedProxy}`);
+  }
+  if (proxyUrl) {
+    const proxyHost = hostFromOrigin(proxyUrl);
+    if (
+      identity.forbidden.siteHosts.map((h) => h.toLowerCase()).includes(proxyHost)
+    ) {
+      err(`R2_MEDIA_PROXY_URL host "${proxyHost}" is forbidden for this project`);
+    }
+  }
+  const proxySecret = env("R2_MEDIA_PROXY_SECRET");
+  if (proxyUrl && proxySecret && proxySecret.length < 16) {
+    err("R2_MEDIA_PROXY_SECRET must be at least 16 characters");
+  }
   for (const blocked of identity.forbidden.supabaseProjectRefs || []) {
     if (ref && ref === blocked) {
       err(`Supabase project ref ${ref} is forbidden`);

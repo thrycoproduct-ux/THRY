@@ -2,7 +2,7 @@ import type { NavItemWithOptionalChildren } from "@/types";
 
 export type SiteConfig = typeof siteConfig;
 
-/** THRY — temporary local identity until production domain is set */
+/** THRY storefront */
 const ADDRESS_LINES = ["Address coming soon"] as const;
 
 const CONTACTS = [
@@ -34,7 +34,7 @@ export const siteConfig = {
   description:
     "THRY — creative 3D printed products, art & craft tools, customised gifts and home essentials.",
   searchPlaceholder: "Search products…",
-  url: "https://thry.thrycoproduct.workers.dev",
+  url: "https://thryco.com",
   addressLines: ADDRESS_LINES,
   address: ADDRESS_LINES.join(", "),
   phone: PHONE,

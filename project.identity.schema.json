@@ -1,7 +1,7 @@
 {
   "$schema": "http://json-schema.org/draft-07/schema#",
   "$id": "project.identity.schema.json",
-  "title": "Hub of craftss project identity",
+  "title": "THRY project identity",
   "type": "object",
   "required": [
     "version",
@@ -71,7 +71,8 @@
             "mediaBucket": { "type": "string" },
             "nextCacheBucket": { "type": "string" },
             "s3Endpoint": { "type": "string", "format": "uri" },
-            "publicCdnHint": { "type": "string" }
+            "publicCdnHint": { "type": "string" },
+            "mediaProxyUrl": { "type": "string", "format": "uri" }
           }
         }
       }

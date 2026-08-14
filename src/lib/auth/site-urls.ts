@@ -1,5 +1,5 @@
 /** Canonical storefront origin(s) used for auth redirects and SEO. */
-const DEFAULT_PRODUCTION_ORIGIN = "http://localhost:3000";
+const DEFAULT_PRODUCTION_ORIGIN = "https://thryco.com";
 
 function normalizeOrigin(value: string): string {
   const trimmed = value.trim().replace(/\/$/, "");

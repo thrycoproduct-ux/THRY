@@ -527,9 +527,19 @@ html {
 
 .craft-price-pill.craft-price-pill--frost {
   color: #fff;
-  background: rgba(255, 255, 255, 0.18);
-  border-color: rgba(255, 255, 255, 0.35);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 18, 28, 0.82);
+  border-color: rgba(255, 255, 255, 0.55);
+  box-shadow: 0 6px 16px rgba(0, 0, 0, 0.35);
+  backdrop-filter: blur(8px);
+}
+
+.craft-price-pill.craft-price-pill--frost,
+.craft-price-pill.craft-price-pill--frost * {
+  color: #fff !important;
+}
+
+.craft-price-pill.craft-price-pill--frost .line-through {
+  color: rgba(255, 255, 255, 0.72) !important;
 }
 
 .craft-size-pill {

@@ -8,13 +8,16 @@
     "branch": "main"
   },
   "site": {
-    "canonicalOrigin": "https://thry.thrycoproduct.workers.dev",
-    "wwwOrigin": "https://thry-thryco.vercel.app",
+    "canonicalOrigin": "https://thryco.com",
+    "wwwOrigin": "https://www.thryco.com",
     "localOrigins": [
       "http://localhost:3000",
       "http://127.0.0.1:3000",
+      "https://thryco.com",
+      "https://www.thryco.com",
       "https://thry.thrycoproduct.workers.dev",
-      "https://thry-thryco.vercel.app"
+      "https://thry-thryco.vercel.app",
+      "https://thry-self.vercel.app"
     ]
   },
   "supabase": {
@@ -34,13 +37,13 @@
       "nextCacheBucket": "thry-next-cache",
       "s3Endpoint": "https://77dfa9b757691b2321fe0630f01c8c6a.r2.cloudflarestorage.com",
       "publicCdnHint": "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev",
-      "mediaProxyUrl": "https://thry-media.thrycoproduct.workers.dev"
+      "mediaProxyUrl": "https://media.thryco.com"
     }
   },
   "vercel": {
     "teamSlug": "thryco",
     "projectSlug": "thry",
-    "productionHost": "thry-thryco.vercel.app"
+    "productionHost": "thryco.com"
   },
   "github": {
     "owner": "thrycoproduct-ux",
@@ -50,8 +53,11 @@
   "authRedirectOrigins": [
     "http://localhost:3000",
     "http://127.0.0.1:3000",
+    "https://thryco.com",
+    "https://www.thryco.com",
     "https://thry.thrycoproduct.workers.dev",
-    "https://thry-thryco.vercel.app"
+    "https://thry-thryco.vercel.app",
+    "https://thry-self.vercel.app"
   ],
   "forbidden": {
     "description": "Never use these for THRY deploys, R2, env, or wrangler login.",
@@ -86,6 +92,7 @@
     "THRY is a NEW shop. Secrets stay in .env.local — never commit them.",
     "Cloudflare account: thrycoproduct@gmail.com / 77dfa9b757691b2321fe0630f01c8c6a",
     "Supabase project azqgyxdzwlhdmjvkngbs is the only allowed DB/auth project.",
-    "Run npm run validate:identity before auth, R2, wrangler, or deploy work."
+    "Run npm run validate:identity before auth, R2, wrangler, or deploy work.",
+    "Shop domain thryco.com is on Cloudflare. Apex/www are Worker custom domains (thry-shop-edge) in front of the Vercel storefront. Media is media.thryco.com (thry-media). Wrangler OAuth cannot edit zone DNS records."
   ]
 }

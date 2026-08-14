@@ -58,7 +58,9 @@ function ReelProductCard({
           </p>
           <ProductPriceDisplay
             product={product}
-            className="mt-1 craft-price-pill--frost text-white [&_span]:text-white [&_s]:text-white/70"
+            className="mt-1 craft-price-pill--frost"
+            saleClassName="text-base font-extrabold text-white"
+            originalClassName="text-xs font-medium text-white/80 line-through"
           />
           {packLabel ? (
             <p className="mt-0.5 text-xs font-medium text-white/85">

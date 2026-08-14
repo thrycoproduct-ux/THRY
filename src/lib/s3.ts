@@ -3,11 +3,11 @@ import { env } from "@/env.mjs";
 import { AwsClient } from "aws4fetch";
 
 /**
- * Hub media storage on Cloudflare R2.
+ * THRY media storage on Cloudflare R2 (bucket thry-cdn).
  *
- * - Browser direct uploads: aws4fetch presigned PUT (S3 API)
- * - Worker put/get/delete: R2 binding (no S3 signature — avoids 401s from
- *   aws4fetch + global_fetch_strictly_public on Workers)
+ * - Browser staging: short-lived PUT to thry-media worker (skips Vercel)
+ * - Fallback: aws4fetch presigned PUT (S3 API) when proxy is unset
+ * - Worker put/get/delete: R2 binding (no S3 signature)
  *
  * `trusted-server` — route already authenticated (e.g. Velo API key).
  */

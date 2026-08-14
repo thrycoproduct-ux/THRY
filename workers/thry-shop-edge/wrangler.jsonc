@@ -1,25 +1,20 @@
 {
   "$schema": "../../node_modules/wrangler/config-schema.json",
-  "name": "thry-media",
+  "name": "thry-shop-edge",
   "account_id": "77dfa9b757691b2321fe0630f01c8c6a",
   "main": "src/index.ts",
   "compatibility_date": "2026-08-14",
   "workers_dev": true,
-  "r2_buckets": [
-    {
-      "binding": "MEDIA_BUCKET",
-      "bucket_name": "thry-cdn"
-    }
-  ],
-  "secrets": {
-    "required": ["MEDIA_PROXY_SECRET"]
-  },
   "observability": {
     "enabled": true
   },
   "routes": [
     {
-      "pattern": "media.thryco.com",
+      "pattern": "thryco.com",
+      "custom_domain": true
+    },
+    {
+      "pattern": "www.thryco.com",
       "custom_domain": true
     }
   ]

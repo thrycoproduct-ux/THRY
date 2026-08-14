@@ -33,4 +33,10 @@ describe("velo-upload-token", () => {
       "https://media.example.test/object?key=uploads%2Fstaging%2Fabc.webp",
     );
   });
+
+  it("refuses tokens for non-staging keys", () => {
+    expect(() =>
+      createMediaProxyUploadToken("products/secret.webp", 300),
+    ).toThrow(/staging/i);
+  });
 });
