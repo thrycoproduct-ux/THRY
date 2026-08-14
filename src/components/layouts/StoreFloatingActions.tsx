@@ -56,7 +56,7 @@ export function StoreFloatingActions() {
           mode="call"
           isOpen={openPicker === "call"}
           onOpenChange={(open) => handlePickerChange("call", open)}
-          triggerLabel="Call THRY — choose a number"
+          triggerLabel="Call THRY"
           triggerClassName={`animate-phone-glow ${floatingActionButtonClass} bg-primary text-white ring-2 ring-primary/40`}
           triggerIcon={<PhoneCall className="h-5 w-5" strokeWidth={2} />}
         />
@@ -74,7 +74,7 @@ export function StoreFloatingActions() {
           mode="whatsapp"
           isOpen={openPicker === "whatsapp"}
           onOpenChange={(open) => handlePickerChange("whatsapp", open)}
-          triggerLabel="Chat on WhatsApp — choose a contact"
+          triggerLabel="Chat on WhatsApp"
           triggerClassName={`animate-whatsapp-glow ${floatingActionButtonClass} bg-[#25D366] text-white ring-2 ring-[#25D366]/40`}
           triggerIcon={<Icons.whatsapp className="h-5 w-5" />}
         />

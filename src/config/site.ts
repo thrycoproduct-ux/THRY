@@ -3,18 +3,24 @@ import type { NavItemWithOptionalChildren } from "@/types";
 export type SiteConfig = typeof siteConfig;
 
 /** THRY storefront */
-const ADDRESS_LINES = ["Address coming soon"] as const;
+const ADDRESS_LINES = [
+  "355/1, Balaji Nagar Bedrapalii, Sipcot-1",
+  "Hosur-635126",
+  "Tamil Nadu",
+  "India",
+] as const;
+
+const PHONE_DISPLAY = "+91 97900 49838";
+const PHONE_HREF = "tel:+919790049838";
+const WHATSAPP_HREF = "https://wa.me/919790049838";
 
 const CONTACTS = [
   {
     name: "THRY",
-    phone: "",
-    phoneHref: "",
+    phone: PHONE_DISPLAY,
+    phoneHref: PHONE_HREF,
   },
 ] as const;
-
-const PHONE = CONTACTS[0].phone;
-const PHONE_HREF = CONTACTS[0].phoneHref;
 const EMAIL = "";
 const GSTIN = "";
 
@@ -22,7 +28,7 @@ const SOCIAL = {
   instagram: "",
   youtube: "",
   facebook: "",
-  whatsapp: "",
+  whatsapp: WHATSAPP_HREF,
 } as const;
 
 export const siteConfig = {
@@ -30,14 +36,14 @@ export const siteConfig = {
   name: "THRY",
   shortName: "THRY",
   tagline: "Creative 3D printed products",
-  location: "",
+  location: "Hosur, Tamil Nadu",
   description:
     "THRY — creative 3D printed products, art & craft tools, customised gifts and home essentials.",
   searchPlaceholder: "Search products…",
   url: "https://thryco.com",
   addressLines: ADDRESS_LINES,
   address: ADDRESS_LINES.join(", "),
-  phone: PHONE,
+  phone: PHONE_DISPLAY,
   phoneHref: PHONE_HREF,
   contacts: CONTACTS,
   email: EMAIL,

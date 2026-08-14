@@ -40,9 +40,9 @@ export default async function TermsAndConditionsPage() {
           <Link href="/" className="text-primary hover:underline">
             {siteConfig.url.replace(/^https:\/\//, "")}
           </Link>{" "}
-          operated by {businessName}, a terracotta and art &amp; craft supplies
-          merchant based in Madurai, Tamil Nadu, India (&quot;we&quot;,
-          &quot;us&quot;, &quot;our&quot;).
+          operated by {businessName}, a 3D printed products merchant based in
+          Hosur, Tamil Nadu, India (&quot;we&quot;, &quot;us&quot;,
+          &quot;our&quot;).
         </p>
         <p>
           By browsing this website, creating an account, or placing an order,

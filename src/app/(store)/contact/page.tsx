@@ -7,9 +7,9 @@ import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
-  title: "Contact | Hub of craftss",
+  title: "Contact | THRY",
   description:
-    "Contact Hub of craftss — phone, email, WhatsApp, and store address",
+    "Contact THRY — phone, WhatsApp, and store address in Hosur, Tamil Nadu",
 };
 
 export const revalidate = 60;
@@ -23,7 +23,7 @@ export default async function ContactPage() {
   return (
     <InfoPage
       heading="Contact Us"
-      description="Reach Hub of craftss by Instagram, email, or visit our store in Madurai."
+      description="Reach THRY by phone, WhatsApp, or visit our store in Hosur."
     >
       <section id="store" className="space-y-3">
         <h2 className="text-base font-semibold text-foreground">
@@ -75,7 +75,7 @@ export default async function ContactPage() {
           </ul>
         ) : (
           <p className="text-muted-foreground">
-            Phone number coming soon. Message us on Instagram for orders and
+            Phone number coming soon. Message us on WhatsApp for orders and
             queries.
           </p>
         )}
@@ -97,7 +97,7 @@ export default async function ContactPage() {
           </p>
         ) : (
           <p className="text-muted-foreground">
-            WhatsApp link coming soon. Reach us on Instagram meanwhile.
+            WhatsApp link coming soon. Call us meanwhile.
           </p>
         )}
       </section>

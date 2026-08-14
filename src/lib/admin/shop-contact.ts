@@ -74,9 +74,12 @@ export function resolveShopContact(
 ): ResolvedShopContact {
   if (!admin || !enabled) return defaults;
 
-  const addressLines = admin.addressLines?.length
+  const parsedAddress = admin.addressLines?.length
     ? parseAddressLines(admin.addressLines, defaults.addressLines)
     : defaults.addressLines;
+  const addressLines = parsedAddress.some((line) => /coming soon/i.test(line))
+    ? defaults.addressLines
+    : parsedAddress;
 
   const contacts = admin.contacts?.length
     ? normalizeShopContacts(admin.contacts)

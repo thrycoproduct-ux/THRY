@@ -7,33 +7,25 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: `Our Story | ${siteConfig.name}`,
-  description: `About ${siteConfig.name} — terracotta raw materials and art & craft supplies from Madurai.`,
+  description: `About ${siteConfig.name} — creative 3D printed products from Hosur, Tamil Nadu.`,
 };
 
 export default function AboutPage() {
   return (
     <InfoPage
       heading="Our Story"
-      description={`${siteConfig.name} by Shaaru — ${siteConfig.tagline}.`}
+      description={`${siteConfig.name} — ${siteConfig.tagline}.`}
     >
       <p>
-        {siteConfig.name} is your hub for terracotta raw materials and art &amp;
-        craft supplies. We help makers, hobbyists, and wholesale buyers find
-        quality materials to make, craft, and create.
+        {siteConfig.name} makes creative 3D printed products, art &amp; craft
+        tools, customised gifts, and home essentials.
       </p>
       <p>
-        Based in Madurai, Tamil Nadu ({siteConfig.address}), we combine the
-        warmth of a local craft shop with convenient online ordering. Follow us
-        on Instagram{" "}
-        <a
-          href={siteConfig.social.instagram}
-          className="text-primary hover:underline"
-          target="_blank"
-          rel="noreferrer"
-        >
-          @hub_of_craftss_by_shaaru
-        </a>{" "}
-        for new arrivals and ideas.
+        Based in Hosur, Tamil Nadu. Visit us at {siteConfig.address}, or call{" "}
+        <a href={siteConfig.phoneHref} className="text-primary hover:underline">
+          {siteConfig.phone}
+        </a>
+        .
       </p>
       <p>
         Browse our{" "}

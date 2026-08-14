@@ -24,11 +24,13 @@ export function buildOrganizationJsonLd() {
     telephone: siteConfig.phone || undefined,
     address: {
       "@type": "PostalAddress",
-      streetAddress: siteConfig.addressLines.slice(0, 2).join(", "),
-      addressLocality: siteConfig.location || undefined,
+      streetAddress: siteConfig.addressLines[0],
+      addressLocality: "Hosur",
+      postalCode: "635126",
+      addressRegion: "Tamil Nadu",
       addressCountry: "IN",
     },
-    sameAs: Object.values(siteConfig.social),
+    sameAs: Object.values(siteConfig.social).filter(Boolean),
   };
 }
 
@@ -63,7 +65,9 @@ export function buildStoreJsonLd() {
     address: {
       "@type": "PostalAddress",
       streetAddress: siteConfig.address,
-      addressLocality: siteConfig.location || undefined,
+      addressLocality: "Hosur",
+      postalCode: "635126",
+      addressRegion: "Tamil Nadu",
       addressCountry: "IN",
     },
     priceRange: "₹₹",
