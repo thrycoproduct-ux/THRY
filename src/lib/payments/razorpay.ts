@@ -10,7 +10,7 @@ import { siteConfig } from "@/config/site";
 export {
   verifyRazorpayCheckoutSignature,
   verifyRazorpayWebhookSignature,
-} from "@/lib/payments/razorpay-standards";
+} from "@/lib/payments/razorpay-crypto";
 
 const RAZORPAY_HTTP_TIMEOUT_MS = 12_000;
 

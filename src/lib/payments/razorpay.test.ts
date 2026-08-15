@@ -2,7 +2,7 @@ import crypto from "crypto";
 import {
   verifyRazorpayCheckoutSignature,
   verifyRazorpayWebhookSignature,
-} from "./razorpay-standards";
+} from "./razorpay-crypto";
 
 describe("razorpay signatures", () => {
   const secret = "test_webhook_or_key_secret";
