@@ -12,6 +12,7 @@ import {
   parseCashfreeCheckoutSessionPayload,
 } from "@/lib/payments/cashfree-checkout-client";
 import {
+  ensureRazorpayCheckoutScript,
   openRazorpayCheckout,
   parseRazorpayCheckoutSessionPayload,
 } from "@/lib/payments/razorpay-checkout-client";
@@ -34,6 +35,8 @@ export async function startCheckout({
   onProgress,
 }: StartCheckoutParams) {
   onProgress?.(creatingOrderProgress());
+  // Official checkout.js from Razorpay CDN — start while the order is created.
+  void ensureRazorpayCheckoutScript().catch(() => undefined);
 
   const res = await fetchWithTimeout("/api/create-checkout-session", {
     method: "POST",

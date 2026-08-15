@@ -4,6 +4,24 @@ import {
   type RazorpayCheckoutSessionPayload,
 } from "@/lib/payments/razorpay-standards";
 
+const SCRIPT_TIMEOUT_MS = 12_000;
+const RETRY_DELAYS_MS = [0, 600, 1600] as const;
+
+type RazorpayCtor = new (options: Record<string, unknown>) => {
+  open: () => void;
+  on: (event: string, handler: (response: unknown) => void) => void;
+};
+
+type RazorpayWindow = Window & { Razorpay?: RazorpayCtor };
+
+type RazorpayHandlerResponse = {
+  razorpay_payment_id: string;
+  razorpay_order_id: string;
+  razorpay_signature: string;
+};
+
+let loadPromise: Promise<void> | null = null;
+
 export function parseRazorpayCheckoutSessionPayload(
   payload: unknown,
 ): RazorpayCheckoutSessionPayload {
@@ -14,63 +32,161 @@ export function parseRazorpayCheckoutSessionPayload(
   return parsed.data;
 }
 
-function loadRazorpayScript(): Promise<void> {
-  if (typeof window === "undefined") {
-    throw new Error("Razorpay checkout is only available in the browser.");
-  }
+function getRazorpayCtor(): RazorpayCtor | undefined {
+  if (typeof window === "undefined") return undefined;
+  return (window as RazorpayWindow).Razorpay;
+}
 
-  const RazorpayCtor = (
-    window as Window & {
-      Razorpay?: new (options: unknown) => { open: () => void };
-    }
-  ).Razorpay;
-  if (RazorpayCtor) return Promise.resolve();
-
-  return new Promise((resolve, reject) => {
-    const existing = document.querySelector(
-      `script[src="${RAZORPAY_CHECKOUT_SCRIPT_URL}"]`,
-    );
-    if (existing) {
-      existing.addEventListener("load", () => resolve(), { once: true });
-      existing.addEventListener(
-        "error",
-        () => reject(new Error("Razorpay checkout script failed to load.")),
-        { once: true },
-      );
-      return;
-    }
-
-    const script = document.createElement("script");
-    script.src = RAZORPAY_CHECKOUT_SCRIPT_URL;
-    script.async = true;
-    script.onload = () => resolve();
-    script.onerror = () =>
-      reject(new Error("Razorpay checkout script failed to load."));
-    document.head.appendChild(script);
+function sleep(ms: number): Promise<void> {
+  return new Promise((resolve) => {
+    window.setTimeout(resolve, ms);
   });
 }
 
-type RazorpayHandlerResponse = {
-  razorpay_payment_id: string;
-  razorpay_order_id: string;
-  razorpay_signature: string;
-};
+function findCheckoutScript(): HTMLScriptElement | null {
+  return document.querySelector<HTMLScriptElement>(
+    `script[src="${RAZORPAY_CHECKOUT_SCRIPT_URL}"]`,
+  );
+}
+
+function removeCheckoutScript(): void {
+  findCheckoutScript()?.remove();
+}
+
+function waitForConstructor(script: HTMLScriptElement): Promise<void> {
+  return new Promise((resolve, reject) => {
+    if (getRazorpayCtor()) {
+      resolve();
+      return;
+    }
+
+    const timer = window.setTimeout(() => {
+      cleanup();
+      reject(
+        new Error(
+          "Razorpay checkout is taking too long. Check your connection and try again.",
+        ),
+      );
+    }, SCRIPT_TIMEOUT_MS);
+
+    const onLoad = () => {
+      cleanup();
+      if (getRazorpayCtor()) {
+        resolve();
+        return;
+      }
+      reject(new Error("Razorpay checkout script failed to initialize."));
+    };
+
+    const onError = () => {
+      cleanup();
+      reject(
+        new Error(
+          "Razorpay checkout script failed to load. Please retry checkout.",
+        ),
+      );
+    };
+
+    function cleanup() {
+      window.clearTimeout(timer);
+      script.removeEventListener("load", onLoad);
+      script.removeEventListener("error", onError);
+    }
+
+    script.addEventListener("load", onLoad);
+    script.addEventListener("error", onError);
+  });
+}
+
+async function insertOfficialCheckoutScript(): Promise<void> {
+  if (getRazorpayCtor()) return;
+
+  const existing = findCheckoutScript();
+  if (existing) {
+    try {
+      await waitForConstructor(existing);
+      return;
+    } catch (error) {
+      removeCheckoutScript();
+      throw error;
+    }
+  }
+
+  const script = document.createElement("script");
+  script.src = RAZORPAY_CHECKOUT_SCRIPT_URL;
+  script.async = true;
+  script.dataset.razorpayCheckout = "1";
+  document.head.appendChild(script);
+  await waitForConstructor(script);
+}
+
+async function loadRazorpayScriptWithRetry(): Promise<void> {
+  let lastError: unknown;
+  for (const delayMs of RETRY_DELAYS_MS) {
+    if (getRazorpayCtor()) return;
+    if (delayMs > 0) await sleep(delayMs);
+    try {
+      await insertOfficialCheckoutScript();
+      if (getRazorpayCtor()) return;
+    } catch (error) {
+      lastError = error;
+      removeCheckoutScript();
+    }
+  }
+
+  throw lastError instanceof Error
+    ? lastError
+    : new Error("Razorpay checkout script failed to load. Please retry.");
+}
+
+export async function ensureRazorpayCheckoutScript(): Promise<void> {
+  if (typeof window === "undefined") {
+    throw new Error("Razorpay checkout is only available in the browser.");
+  }
+  if (getRazorpayCtor()) return;
+
+  if (!loadPromise) {
+    loadPromise = loadRazorpayScriptWithRetry();
+  }
+
+  try {
+    await loadPromise;
+  } catch (error) {
+    loadPromise = null;
+    throw error;
+  }
+
+  if (!getRazorpayCtor()) {
+    loadPromise = null;
+    throw new Error("Razorpay checkout script loaded but did not initialize.");
+  }
+}
+
+/** Official CDN script on cart / Buy Now pages so checkout.js is ready before Pay. */
+export function preloadRazorpayCheckoutScript(): void {
+  if (typeof window === "undefined") return;
+  void ensureRazorpayCheckoutScript().catch(() => {
+    loadPromise = null;
+  });
+}
+
+export function preconnectRazorpayCheckout(): void {
+  if (typeof document === "undefined") return;
+  const href = "https://checkout.razorpay.com";
+  if (document.querySelector(`link[rel="preconnect"][href="${href}"]`)) return;
+  const link = document.createElement("link");
+  link.rel = "preconnect";
+  link.href = href;
+  document.head.appendChild(link);
+}
 
 export async function openRazorpayCheckout(params: {
   payload: RazorpayCheckoutSessionPayload;
   onDismiss?: () => void;
 }): Promise<RazorpayHandlerResponse> {
-  await loadRazorpayScript();
+  await ensureRazorpayCheckoutScript();
 
-  const RazorpayCtor = (
-    window as Window & {
-      Razorpay?: new (options: Record<string, unknown>) => {
-        open: () => void;
-        on: (event: string, handler: (response: unknown) => void) => void;
-      };
-    }
-  ).Razorpay;
-
+  const RazorpayCtor = getRazorpayCtor();
   if (!RazorpayCtor) {
     throw new Error("Razorpay SDK did not initialize.");
   }
@@ -87,6 +203,7 @@ export async function openRazorpayCheckout(params: {
       order_id: session.razorpayOrderId,
       prefill: session.prefill,
       theme: { color: session.themeColor || "#c03078" },
+      retry: { enabled: true, max_count: 4 },
       modal: {
         ondismiss: () => {
           params.onDismiss?.();

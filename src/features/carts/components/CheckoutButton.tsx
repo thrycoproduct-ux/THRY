@@ -1,6 +1,6 @@
 "use client";
 
-import React, { useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import { cn } from "@/lib/utils";
 import { Spinner } from "@/components/ui/spinner";
 import { Button } from "@/components/ui/button";
@@ -11,6 +11,10 @@ import type { SavedShippingAddress } from "@/features/addresses";
 import { clearCheckoutAddressDraft } from "@/features/addresses/lib/checkoutAddressDraft";
 import { clearClaimedOfferCode } from "@/features/offers/lib/welcomeOffer";
 import { startCheckout } from "@/features/checkout/startCheckout";
+import {
+  preconnectRazorpayCheckout,
+  preloadRazorpayCheckoutScript,
+} from "@/lib/payments/razorpay-checkout-client";
 import { useCheckoutProgress } from "@/features/checkout/useCheckoutProgress";
 import BulkOrderGuardDialog from "@/features/carts/components/BulkOrderGuardDialog";
 import { isBulkOrderQuantity } from "@/features/carts/constants/bulkOrder";
@@ -44,6 +48,11 @@ function CheckoutButton({
   const [isLoading, setIsLoading] = useState(false);
   const { progress, isLocked, beginProgress, clearProgress, overlay } =
     useCheckoutProgress();
+
+  useEffect(() => {
+    preconnectRazorpayCheckout();
+    preloadRazorpayCheckoutScript();
+  }, []);
   const hasBulkLineItem = useMemo(
     () =>
       bulkOrder.enabled &&

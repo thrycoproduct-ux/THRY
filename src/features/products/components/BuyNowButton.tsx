@@ -1,6 +1,6 @@
 "use client";
 
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/use-toast";
@@ -8,6 +8,10 @@ import { CheckoutAddressDialog } from "@/features/addresses";
 import type { SavedShippingAddress } from "@/features/addresses";
 import { clearCheckoutAddressDraft } from "@/features/addresses/lib/checkoutAddressDraft";
 import { startCheckout } from "@/features/checkout/startCheckout";
+import {
+  preconnectRazorpayCheckout,
+  preloadRazorpayCheckoutScript,
+} from "@/lib/payments/razorpay-checkout-client";
 import { useCheckoutProgress } from "@/features/checkout/useCheckoutProgress";
 import { useAuth } from "@/providers/AuthProvider";
 import { useStockControlConfig } from "@/providers/StockControlProvider";
@@ -29,6 +33,11 @@ function BuyNowButton({ productId, quantity = 1, stock }: BuyNowButtonProps) {
   const [isProcessing, setIsProcessing] = useState(false);
   const { progress, isLocked, beginProgress, clearProgress, overlay } =
     useCheckoutProgress();
+
+  useEffect(() => {
+    preconnectRazorpayCheckout();
+    preloadRazorpayCheckoutScript();
+  }, []);
 
   const accountDefaults = useMemo(
     () =>

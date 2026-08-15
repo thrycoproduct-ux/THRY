@@ -19,7 +19,7 @@ export const SECURITY_HEADERS = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=()",
+    value: "camera=(), microphone=(), geolocation=(), payment=(self)",
   },
   {
     key: "X-DNS-Prefetch-Control",
@@ -28,7 +28,7 @@ export const SECURITY_HEADERS = [
 ];
 
 export const CONTENT_SECURITY_POLICY =
-  "default-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfree.com https://checkout.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://lumberjack.razorpay.com; frame-src 'self' https://accounts.google.com https://www.youtube-nocookie.com https://player.vimeo.com https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com; upgrade-insecure-requests";
+  "default-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfree.com https://checkout.razorpay.com https://cdn.razorpay.com https://*.razorpay.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://cdn.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com; frame-src 'self' https://accounts.google.com https://www.youtube-nocookie.com https://player.vimeo.com https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://cdn.razorpay.com https://*.razorpay.com; upgrade-insecure-requests";
 
 export function buildNextSecurityHeaders(options = {}) {
   const enforceCsp = options.enforceCsp === true;
