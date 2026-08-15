@@ -1,5 +1,6 @@
 "use client";
 
+import { siteConfig } from "@/config/site";
 import { useStorefrontSocial } from "@/providers/SocialLinksProvider";
 import { Icons } from "./icons";
 import { cn } from "@/lib/utils";
@@ -76,7 +77,7 @@ function SocialMedias({
             href={href}
             target="_blank"
             rel="noopener noreferrer"
-            aria-label={`${label} — Hub of craftss`}
+            aria-label={`${label} — ${siteConfig.name}`}
             title={label}
             className="rounded-md p-0.5 transition-opacity hover:opacity-80 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-primary/40"
           >

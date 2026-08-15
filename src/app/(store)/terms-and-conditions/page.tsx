@@ -8,9 +8,9 @@ import { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Terms & Conditions | Hub of craftss",
+  title: "Terms & Conditions | THRY",
   description:
-    "Terms and Conditions and Terms of Use for shopping at Hub of craftss (HOC) online craft store.",
+    "Terms and Conditions and Terms of Use for shopping at THRY.",
   alternates: {
     canonical: "/terms-and-conditions",
   },

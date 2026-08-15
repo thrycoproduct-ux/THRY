@@ -303,7 +303,7 @@ export function VeloKeysForm() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>
-            When a website order is paid, HOC POSTs to Velo&apos;s{" "}
+            When a website order is paid, THRY POSTs to Velo&apos;s{" "}
             <code className="text-xs">notify-velo-order-push</code> edge
             function so the Velo app can alert immediately (not only poll every
             15s).

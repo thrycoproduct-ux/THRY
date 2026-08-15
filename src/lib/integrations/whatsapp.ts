@@ -145,7 +145,7 @@ export async function sendOrderSuccessWhatsApp(
         to,
         type: "text",
         text: {
-          body: `Hi ${params.customerName || "Customer"}, your order #${params.orderId} is confirmed. Amount paid: INR ${params.amount}. Thank you for shopping with Hub of craftss.`,
+          body: `Hi ${params.customerName || "Customer"}, your order #${params.orderId} is confirmed. Amount paid: INR ${params.amount}. Thank you for shopping with THRY.`,
         },
       };
   return postWhatsAppMessage(config.phoneNumberId, config.accessToken, body);

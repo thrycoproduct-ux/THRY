@@ -65,7 +65,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   if (productName) {
     const productDescription =
       data?.productsCollection?.edges?.[0]?.node?.description?.trim() ||
-      `Buy ${productName} online from Hub of craftss. Premium terracotta and craft supplies with secure checkout.`;
+      `Buy ${productName} online from THRY. Creative 3D printed products with secure checkout.`;
     return {
       title: productName,
       description: productDescription,
@@ -73,7 +73,7 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         canonical: path,
       },
       openGraph: {
-        title: `${productName} | Hub of craftss`,
+        title: `${productName} | THRY`,
         description: productDescription,
         url: path,
       },
@@ -81,9 +81,9 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
   }
 
   return {
-    title: "Hub of craftss | Art & Craft Supplies",
+    title: "THRY | Creative 3D printed products",
     description:
-      "Authentic terracotta and craft supplies — wholesale and retail",
+      "THRY — creative 3D printed products, art and craft tools, and customised gifts.",
   };
 }
 

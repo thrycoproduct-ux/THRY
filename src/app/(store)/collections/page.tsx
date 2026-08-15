@@ -9,14 +9,14 @@ export const revalidate = 300;
 export const metadata: Metadata = {
   title: "All Collections",
   description:
-    "Browse craft collections at Hub of craftss — terracotta materials, art supplies, and creative kits.",
+    "Browse craft collections at THRY — terracotta materials, art supplies, and creative kits.",
   alternates: {
     canonical: "/collections",
   },
   openGraph: {
-    title: "All Collections | Hub of craftss",
+    title: "All Collections | THRY",
     description:
-      "Browse terracotta and art & craft collections at Hub of craftss.",
+      "Browse terracotta and art & craft collections at THRY.",
     url: "/collections",
   },
 };

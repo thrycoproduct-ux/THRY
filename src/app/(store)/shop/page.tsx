@@ -28,14 +28,14 @@ export const revalidate = 120;
 export const metadata: Metadata = {
   title: "Shop All Products",
   description:
-    "Browse all silk, cotton, wedding and festive craft supplies at Hub of craftss. Shop online with secure checkout and delivery across India.",
+    "Browse all silk, cotton, wedding and festive craft supplies at THRY. Shop online with secure checkout and delivery across India.",
   alternates: {
     canonical: "/shop",
   },
   openGraph: {
-    title: "Shop All Products | Hub of craftss",
+    title: "Shop All Products | THRY",
     description:
-      "Browse all silk, cotton, wedding and festive craft supplies at Hub of craftss.",
+      "Browse all silk, cotton, wedding and festive craft supplies at THRY.",
     url: "/shop",
   },
 };

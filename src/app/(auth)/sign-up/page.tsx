@@ -6,8 +6,8 @@ import OAuthLoginButtons from "@/features/auth/components/OAuthLoginButtons";
 import { SignupForm } from "@/features/auth";
 
 export const metadata: Metadata = {
-  title: "Sign Up | Hub of craftss",
-  description: "Create your Hub of craftss account",
+  title: "Sign Up | THRY",
+  description: "Create your THRY account",
 };
 
 type SignUpPageProps = {
@@ -25,7 +25,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
             Create account
           </h1>
           <p className="text-sm text-muted-foreground">
-            Join Hub of craftss for orders and wishlist
+            Join THRY for orders and wishlist
           </p>
         </div>
       </div>

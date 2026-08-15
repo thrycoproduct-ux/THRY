@@ -35,6 +35,6 @@ export const ORDER_SHIPPING = {
 } as const;
 
 export const ORDER_SHIPPING_FALLBACK = {
-  email: "artbyshaaru@gmail.com",
-  whatsappPhoneDigits: "918870669160",
+  email: "",
+  whatsappPhoneDigits: "919790049838",
 } as const;

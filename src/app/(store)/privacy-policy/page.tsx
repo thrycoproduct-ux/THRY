@@ -8,9 +8,9 @@ import { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Privacy Policy | Hub of craftss",
+  title: "Privacy Policy | THRY",
   description:
-    "Privacy Policy explaining how Hub of craftss collects and uses customer information.",
+    "Privacy Policy explaining how THRY collects and uses customer information.",
   alternates: {
     canonical: "/privacy-policy",
   },

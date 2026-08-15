@@ -14,9 +14,9 @@ import { Metadata } from "next";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Shipping & Returns | Hub of craftss",
+  title: "Shipping & Returns | THRY",
   description:
-    "Simple order processing and delivery times for Hub of craftss — Tamil Nadu, India, and international.",
+    "Simple order processing and delivery times for THRY — Tamil Nadu, India, and international.",
 };
 
 export default async function ShippingReturnsPage() {
@@ -87,7 +87,7 @@ export default async function ShippingReturnsPage() {
             >
               Chat with us
             </Link>
-            {contact.phone ? ` (${contact.phone})` : " (8870669160)"}
+            {contact.phone ? ` (${contact.phone})` : " (+91 97900 49838)"}
           </li>
           {contact.phone ? (
             <li>

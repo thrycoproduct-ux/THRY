@@ -40,13 +40,13 @@ export async function generateMetadata({ params }: CategoryPageProps) {
 
   return {
     title: `${collectionName} Sarees`,
-    description: `Shop ${collectionName} craft supplies at Hub of craftss. Premium terracotta and craft supplies with secure online ordering.`,
+    description: `Shop ${collectionName} craft supplies at THRY. Premium terracotta and craft supplies with secure online ordering.`,
     alternates: {
       canonical: path,
     },
     openGraph: {
-      title: `${collectionName} Sarees | Hub of craftss`,
-      description: `Shop ${collectionName} craft supplies at Hub of craftss.`,
+      title: `${collectionName} Sarees | THRY`,
+      description: `Shop ${collectionName} craft supplies at THRY.`,
       url: path,
     },
   };
