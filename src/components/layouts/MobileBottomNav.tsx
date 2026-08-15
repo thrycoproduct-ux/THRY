@@ -102,8 +102,7 @@ export function MobileBottomNav() {
 
   return (
     <nav
-      className="md:hidden fixed bottom-0 left-0 right-0 z-[220] isolate border-t border-zinc-700 bg-zinc-900 text-white shadow-[0_-4px_24px_rgba(0,0,0,0.35)]"
-      style={{ paddingBottom: "max(0.5rem, env(safe-area-inset-bottom, 0px))" }}
+      className="md:hidden fixed inset-x-0 bottom-0 z-[220] isolate border-t border-zinc-700 bg-zinc-900 pb-[env(safe-area-inset-bottom,0px)] text-white shadow-[0_-4px_24px_rgba(0,0,0,0.35)]"
       aria-label="Mobile navigation"
     >
       <div className="mx-auto flex h-14 max-w-lg items-stretch justify-around">

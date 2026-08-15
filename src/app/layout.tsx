@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { siteConfig } from "@/config/site";
@@ -65,6 +65,13 @@ export const metadata: Metadata = {
     shortcut: ["/images/thry-wordmark.svg"],
     apple: [{ url: "/images/thry-wordmark.svg", type: "image/svg+xml" }],
   },
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  viewportFit: "cover",
+  themeColor: "#18181b",
 };
 
 export default function RootLayout({
