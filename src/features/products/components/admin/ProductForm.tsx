@@ -45,6 +45,7 @@ import {
   products,
 } from "@/lib/supabase/schema";
 import { DIGITAL_UPLOAD_LIMIT_MB } from "@/lib/products/digital-product";
+import { MAX_PRODUCT_IMAGES } from "@/lib/admin/product-gallery-shared";
 import { X } from "lucide-react";
 import {
   mergeUniqueFiles,
@@ -368,8 +369,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
           key: product.digitalFileKey,
           fileName: product.digitalFileName || "software.zip",
           fileSize: product.digitalFileSize || 0,
-          contentType:
-            product.digitalContentType || "application/octet-stream",
+          contentType: product.digitalContentType || "application/octet-stream",
         }
       : null,
   );
@@ -710,7 +710,9 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
         fileName?: string;
       } | null;
       if (!initRes.ok || !initBody?.key || !initBody.uploadUrl) {
-        throw new Error(initBody?.message || "Could not start software upload.");
+        throw new Error(
+          initBody?.message || "Could not start software upload.",
+        );
       }
 
       const putRes = await fetch(initBody.uploadUrl, {
@@ -760,8 +762,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
     } catch (error) {
       toast({
         title: "Software upload failed",
-        description:
-          error instanceof Error ? error.message : "Please retry.",
+        description: error instanceof Error ? error.message : "Please retry.",
         variant: "destructive",
       });
     } finally {

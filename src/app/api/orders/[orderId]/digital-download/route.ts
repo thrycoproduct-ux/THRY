@@ -32,7 +32,10 @@ export async function GET(
   const token = request.nextUrl.searchParams.get("token");
 
   if (!orderId || !lineId) {
-    return NextResponse.json({ message: "Missing download details." }, { status: 400 });
+    return NextResponse.json(
+      { message: "Missing download details." },
+      { status: 400 },
+    );
   }
 
   const [order] = await db
@@ -82,7 +85,7 @@ export async function GET(
     isDigital: Boolean(line.isDigitalSnapshot),
     fileKey: line.digitalFileKeySnapshot,
   });
-  if (!gate.ok) {
+  if (gate.ok === false) {
     return NextResponse.json({ message: gate.message }, { status: 403 });
   }
 

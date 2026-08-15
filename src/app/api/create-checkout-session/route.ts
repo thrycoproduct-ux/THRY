@@ -1,4 +1,5 @@
 import { publicErrorMessage } from "@/lib/api/public-error";
+import { createOrderAccessToken } from "@/lib/auth/order-access-token";
 import { checkCheckoutRateLimit, getRequestIp } from "@/lib/auth/rate-limit";
 import {
   buildCheckoutLineItems,
@@ -462,9 +463,7 @@ export async function POST(request: Request) {
             productImageKeySnapshot: mediaKeyById.get(featuredImageId) ?? null,
             isDigitalSnapshot: Boolean(isDigital),
             digitalFileKeySnapshot: isDigital ? digitalFileKey ?? null : null,
-            digitalFileNameSnapshot: isDigital
-              ? digitalFileName ?? null
-              : null,
+            digitalFileNameSnapshot: isDigital ? digitalFileName ?? null : null,
           }),
         ),
       );

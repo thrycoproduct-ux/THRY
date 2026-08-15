@@ -22,6 +22,7 @@ import {
   getProductSizeConfig,
 } from "@/lib/products/sizeConfig";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo/json-ld";
+import { getCartProductPricingByIds } from "@/lib/storefront/cart-pricing";
 import { getPublishedProductDetailCached } from "@/lib/storefront/product-detail";
 import {
   ProductDiscountBadge,
@@ -105,24 +106,28 @@ async function ProductDetailPage({ params }: Props) {
   const productSlug = resolvedParams.slug;
   const recommendationIds =
     data.recommendations?.edges?.map(({ node }) => node.id) ?? [];
-  const [sizeConfig, livePricing, packFieldsById, recommendationPackLabels, digitalMeta] =
-    await Promise.all([
-      // Variant data gates add-to-cart, so it must not silently degrade.
-      getProductSizeConfig(id),
-      // Presentation-only enrichment: fall back to the values already in `node`.
-      withFallback("pdp:pricing", () => getCartProductPricingByIds([id]), {}),
-      withFallback(
-        "pdp:pack-fields",
-        () => getProductPackFieldsByIds([id]),
-        new Map<string, ProductPackFields>(),
-      ),
-      getProductPackLabelsByIds(recommendationIds),
-      withFallback(
-        "pdp:digital",
-        () => getProductDigitalStorefront(id),
-        { isDigital: false, fileName: null },
-      ),
-    ]);
+  const [
+    sizeConfig,
+    livePricing,
+    packFieldsById,
+    recommendationPackLabels,
+    digitalMeta,
+  ] = await Promise.all([
+    // Variant data gates add-to-cart, so it must not silently degrade.
+    getProductSizeConfig(id),
+    // Presentation-only enrichment: fall back to the values already in `node`.
+    withFallback("pdp:pricing", () => getCartProductPricingByIds([id]), {}),
+    withFallback(
+      "pdp:pack-fields",
+      () => getProductPackFieldsByIds([id]),
+      new Map<string, ProductPackFields>(),
+    ),
+    getProductPackLabelsByIds(recommendationIds),
+    withFallback("pdp:digital", () => getProductDigitalStorefront(id), {
+      isDigital: false,
+      fileName: null,
+    }),
+  ]);
   const isDigital = digitalMeta.isDigital;
   const digitalFileName = digitalMeta.fileName;
   const packLabel = formatProductPackLabel(packFieldsById.get(id));

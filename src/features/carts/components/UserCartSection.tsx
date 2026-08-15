@@ -483,10 +483,10 @@ function UserCartSection({
   };
 
   const createCartObject = (
-    data: DocumentType<typeof FetchCartQuery>,
+    source: DocumentType<typeof FetchCartQuery> | null | undefined,
   ): CartItems => {
     const cart: CartItems = {};
-    data.cartsCollection.edges.forEach((item) => {
+    source?.cartsCollection?.edges?.forEach((item) => {
       const product = item.node.product;
       if (!product) return;
       cart[product.id] = {
@@ -498,7 +498,7 @@ function UserCartSection({
     return cart;
   };
 
-  const order = createCartObject(data);
+  const order = createCartObject(cartData);
 
   const summaryFields = {
     productCount,
@@ -539,7 +539,7 @@ function UserCartSection({
 
   return (
     <>
-      {data.cartsCollection && cart.length > 0 ? (
+      {cartData?.cartsCollection && cart.length > 0 ? (
         <section
           aria-label="Cart Section"
           className={cn(

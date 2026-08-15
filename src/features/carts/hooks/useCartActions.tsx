@@ -65,7 +65,7 @@ function useCartActions(
   ) => {
     const size = opts.size;
     const selections = opts.selections;
-    const existedProduct = data?.cartsCollection.edges.find(
+    const existedProduct = data?.cartsCollection?.edges?.find(
       ({ node }) => node.product_id === productId,
     );
     const currentQuantity = existedProduct?.node.quantity ?? 0;
