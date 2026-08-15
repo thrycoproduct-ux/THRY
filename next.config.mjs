@@ -91,6 +91,17 @@ const nextConfig = {
     ],
   },
   experimental: {
+    // Cloudflare shop-edge proxies thryco.com → thry-thryco.vercel.app.
+    // Vercel then sets x-forwarded-host to the *.vercel.app host while the
+    // browser Origin stays thryco.com, which Next.js rejects as a forged
+    // Server Action (POST /cart 500 after Razorpay returns to the cart).
+    serverActions: {
+      allowedOrigins: [
+        "thryco.com",
+        "www.thryco.com",
+        "thry-thryco.vercel.app",
+      ],
+    },
     // (Next 15+) moved to top-level `serverExternalPackages`.
     // Always refetch dynamic routes (e.g. admin dashboard) when navigating
     // back to them, instead of replaying the stale client Router Cache.
