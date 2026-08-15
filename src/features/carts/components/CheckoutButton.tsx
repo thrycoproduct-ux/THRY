@@ -79,6 +79,7 @@ function CheckoutButton({
   );
 
   const handleCheckoutComplete = async (shipping: SavedShippingAddress) => {
+    setOpen(false);
     setIsLoading(true);
     try {
       await startCheckout({
@@ -181,7 +182,6 @@ function CheckoutButton({
       <CheckoutAddressDialog
         open={open}
         onOpenChange={(next) => {
-          if (isLocked && !next) return;
           setOpen(next);
         }}
         onComplete={handleCheckoutComplete}

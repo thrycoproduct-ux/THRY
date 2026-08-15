@@ -43,6 +43,26 @@ function sleep(ms: number): Promise<void> {
   });
 }
 
+/** Close the phone keyboard and host focus trap so Razorpay taps work. */
+export async function prepareHostPageForRazorpayModal(): Promise<void> {
+  if (typeof document === "undefined") return;
+
+  const active = document.activeElement;
+  if (active instanceof HTMLElement) active.blur();
+
+  document.querySelectorAll("input, textarea, select, button").forEach((node) => {
+    if (node instanceof HTMLElement && node !== document.body) {
+      node.blur();
+    }
+  });
+
+  await new Promise<void>((resolve) => {
+    window.requestAnimationFrame(() => resolve());
+  });
+  // iOS keeps the keyboard up for ~300ms after blur.
+  await sleep(400);
+}
+
 function findCheckoutScript(): HTMLScriptElement | null {
   return document.querySelector<HTMLScriptElement>(
     `script[src="${RAZORPAY_CHECKOUT_SCRIPT_URL}"]`,
@@ -193,6 +213,7 @@ export async function openRazorpayCheckout(params: {
   }
 
   const session = params.payload;
+  await prepareHostPageForRazorpayModal();
 
   return new Promise((resolve, reject) => {
     let settled = false;

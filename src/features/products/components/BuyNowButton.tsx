@@ -52,6 +52,7 @@ function BuyNowButton({ productId, quantity = 1, stock }: BuyNowButtonProps) {
   );
 
   const handleCheckoutComplete = async (shipping: SavedShippingAddress) => {
+    setOpen(false);
     setIsProcessing(true);
     try {
       await startCheckout({
@@ -103,7 +104,6 @@ function BuyNowButton({ productId, quantity = 1, stock }: BuyNowButtonProps) {
       <CheckoutAddressDialog
         open={open}
         onOpenChange={(next) => {
-          if (isLocked && !next) return;
           setOpen(next);
         }}
         onComplete={handleCheckoutComplete}
