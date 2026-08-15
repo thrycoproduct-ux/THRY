@@ -1,5 +1,6 @@
 import type { InsertProducts } from "@/lib/supabase/schema";
 import { normalizeDiscountPercent } from "@/lib/products/discount";
+import { resolveDigitalProductFields } from "@/lib/products/digital-product";
 
 const BADGE_VALUES = new Set(["new_product", "best_sale", "featured"]);
 
@@ -98,7 +99,7 @@ export function normalizeProductFormPayload(
     );
   }
 
-  const soldAsPack = Boolean(data.soldAsPack);
+  const soldAsPack = Boolean(data.soldAsPack) && !data.isDigital;
   let packSize: number | null = null;
   if (soldAsPack) {
     const raw = Number(data.packSize);
@@ -114,6 +115,8 @@ export function normalizeProductFormPayload(
     }
     packSize = raw;
   }
+
+  const digital = resolveDigitalProductFields(data);
 
   return {
     ...data,
@@ -132,6 +135,11 @@ export function normalizeProductFormPayload(
     discountPercent,
     soldAsPack,
     packSize,
+    isDigital: digital.isDigital,
+    digitalFileKey: digital.digitalFileKey,
+    digitalFileName: digital.digitalFileName,
+    digitalFileSize: digital.digitalFileSize,
+    digitalContentType: digital.digitalContentType,
   };
 }
 

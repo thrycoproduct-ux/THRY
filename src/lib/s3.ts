@@ -138,6 +138,41 @@ export async function createPresignedPutUrl(params: {
   return String(signed.url);
 }
 
+/** Short-lived GET for a paid digital download (caller must already authorize). */
+export async function createPresignedGetUrl(params: {
+  key: string;
+  expiresInSeconds?: number;
+  fileName?: string;
+}) {
+  const expires = params.expiresInSeconds ?? 60;
+  const disposition = params.fileName
+    ? `attachment; filename="${params.fileName.replace(/"/g, "")}"`
+    : "attachment";
+  const url = `${objectUrl(params.key)}?X-Amz-Expires=${expires}&response-content-disposition=${encodeURIComponent(disposition)}`;
+
+  const signed = await getAwsClient().sign(url, {
+    method: "GET",
+    aws: { signQuery: true },
+  });
+
+  return String(signed.url);
+}
+
+export async function statObject(
+  key: string,
+  options?: { auth?: MediaWriteAuth },
+) {
+  await assertMediaWriteAuth(options?.auth ?? "admin-session");
+  const res = await getAwsClient().fetch(objectUrl(key), { method: "HEAD" });
+  if (!res.ok) {
+    throw new Error("Uploaded file not found. Try uploading again.");
+  }
+  return {
+    size: Number(res.headers.get("content-length") || 0),
+    contentType: res.headers.get("content-type"),
+  };
+}
+
 export async function putObject(
   params: PutObjectParams,
   options?: { auth?: MediaWriteAuth },

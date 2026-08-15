@@ -1,5 +1,5 @@
 import Link from "next/link";
-import { CheckCircle2, Circle, Package, Truck } from "lucide-react";
+import { CheckCircle2, Circle, Download, Package, Truck } from "lucide-react";
 import { notFound, redirect } from "next/navigation";
 import { Shell } from "@/components/layouts/Shell";
 import { Badge } from "@/components/ui/badge";
@@ -124,6 +124,8 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
       productNameSnapshot: orderLines.productNameSnapshot,
       productSlugSnapshot: orderLines.productSlugSnapshot,
       productImageKeySnapshot: orderLines.productImageKeySnapshot,
+      isDigitalSnapshot: orderLines.isDigitalSnapshot,
+      digitalFileNameSnapshot: orderLines.digitalFileNameSnapshot,
       imageKey: medias.key,
       imageAlt: medias.alt,
     })
@@ -262,6 +264,27 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
                         Qty: {line.quantity} •{" "}
                         {formatPrice(Number(line.unitPrice))}
                       </p>
+                      {line.isDigitalSnapshot ? (
+                        order.paymentStatus === "paid" ? (
+                          <Button asChild size="sm" className="mt-2">
+                            <a
+                              href={`/api/orders/${order.id}/digital-download?lineId=${encodeURIComponent(line.id)}${
+                                resolvedSearchParams?.token
+                                  ? `&token=${encodeURIComponent(resolvedSearchParams.token)}`
+                                  : ""
+                              }`}
+                            >
+                              <Download className="mr-2 h-4 w-4" />
+                              Download{" "}
+                              {line.digitalFileNameSnapshot || "software"}
+                            </a>
+                          </Button>
+                        ) : (
+                          <p className="mt-2 text-xs text-muted-foreground">
+                            Download appears after payment is confirmed.
+                          </p>
+                        )
+                      ) : null}
                     </div>
                   </div>
                 );

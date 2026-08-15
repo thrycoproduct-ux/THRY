@@ -121,6 +121,12 @@ function GuestCartSection({
     () => calcProductCountStorage(cartItems),
     [cartItems],
   );
+  const physicalCount = useMemo(() => {
+    return Object.entries(cartItems).reduce((acc, [productId, item]) => {
+      if (livePricing[productId]?.isDigital) return acc;
+      return acc + Number(item.quantity ?? 0);
+    }, 0);
+  }, [cartItems, livePricing]);
   const pincodeLookup = usePincodeLookup(deliveryPincode);
   const activeOfferCodes = useMemo(() => {
     const map = new Map<string, number>();
@@ -144,11 +150,11 @@ function GuestCartSection({
     if (!courierConfig.enabled || !deliveryState) return null;
     return calculateCourierCharge({
       state: deliveryState,
-      quantity: productCount,
+      quantity: physicalCount,
       orderAmount: discountedSubtotal,
       config: courierConfig,
     });
-  }, [courierConfig, deliveryState, discountedSubtotal, productCount]);
+  }, [courierConfig, deliveryState, discountedSubtotal, physicalCount]);
   const courierCharge = courierBreakdown?.charge ?? 0;
   const courierEnabled = courierConfig.enabled;
   const offerCodesEnabled = activeOfferCodes.size > 0;

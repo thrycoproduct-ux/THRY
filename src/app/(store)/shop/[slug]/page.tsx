@@ -42,7 +42,7 @@ import {
   resolveProductPricingForSelection,
   toProductDiscountFields,
 } from "@/lib/products/pricing";
-import { getCartProductPricingByIds } from "@/lib/storefront/cart-pricing";
+import { getProductDigitalStorefront } from "@/lib/products/digital-product.server";
 import { keytoUrl } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Metadata } from "next";
@@ -105,7 +105,7 @@ async function ProductDetailPage({ params }: Props) {
   const productSlug = resolvedParams.slug;
   const recommendationIds =
     data.recommendations?.edges?.map(({ node }) => node.id) ?? [];
-  const [sizeConfig, livePricing, packFieldsById, recommendationPackLabels] =
+  const [sizeConfig, livePricing, packFieldsById, recommendationPackLabels, digitalMeta] =
     await Promise.all([
       // Variant data gates add-to-cart, so it must not silently degrade.
       getProductSizeConfig(id),
@@ -117,13 +117,21 @@ async function ProductDetailPage({ params }: Props) {
         new Map<string, ProductPackFields>(),
       ),
       getProductPackLabelsByIds(recommendationIds),
+      withFallback(
+        "pdp:digital",
+        () => getProductDigitalStorefront(id),
+        { isDigital: false, fileName: null },
+      ),
     ]);
+  const isDigital = digitalMeta.isDigital;
+  const digitalFileName = digitalMeta.fileName;
   const packLabel = formatProductPackLabel(packFieldsById.get(id));
   const resolvedPricing = livePricing[id];
   const pricingProduct = resolvedPricing
     ? toProductDiscountFields(resolvedPricing)
     : productEdge.node;
   const hasConfiguredSizes =
+    !isDigital &&
     sizeConfig.enabled &&
     (sizeConfig.groups?.some((group) =>
       group.options.some((option) => Number(option.qty ?? 0) > 0),
@@ -232,6 +240,18 @@ async function ProductDetailPage({ params }: Props) {
                 stock={stock}
                 className="text-sm font-medium text-destructive"
               />
+              {isDigital ? (
+                <p className="text-sm font-medium text-foreground">
+                  Digital file
+                  {digitalFileName ? (
+                    <>
+                      : <span className="font-semibold">{digitalFileName}</span>
+                    </>
+                  ) : null}
+                  . After payment you’ll get a Download button on the order
+                  page.
+                </p>
+              ) : null}
               {hasConfiguredSizes ? (
                 <p className="text-sm text-muted-foreground">
                   {availableLabel}: {storefrontSizeLabels.join(", ")}

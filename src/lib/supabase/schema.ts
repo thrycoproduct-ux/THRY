@@ -315,6 +315,11 @@ export const products = pgTable(
     featuredImageId: text("featured_image_id")
       .notNull()
       .references(() => medias.id, { onDelete: "restrict" }),
+    isDigital: boolean("is_digital").notNull().default(false),
+    digitalFileKey: text("digital_file_key"),
+    digitalFileName: text("digital_file_name"),
+    digitalFileSize: integer("digital_file_size"),
+    digitalContentType: text("digital_content_type"),
   },
   (table) => {
     return {
@@ -423,6 +428,9 @@ export const orderLines = pgTable(
     productSlugSnapshot: text("product_slug_snapshot"),
     productCodeSnapshot: text("product_code_snapshot"),
     productImageKeySnapshot: text("product_image_key_snapshot"),
+    isDigitalSnapshot: boolean("is_digital_snapshot").notNull().default(false),
+    digitalFileKeySnapshot: text("digital_file_key_snapshot"),
+    digitalFileNameSnapshot: text("digital_file_name_snapshot"),
     quantity: integer("quantity").notNull(),
     price: decimal("price", { precision: 8, scale: 2 }).notNull(),
     createdAt: timestamp("created_at", {

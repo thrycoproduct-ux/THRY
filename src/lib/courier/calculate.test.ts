@@ -17,6 +17,17 @@ const baseConfig: CourierChargesConfig = {
 };
 
 describe("calculateCourierCharge free shipping", () => {
+  it("charges nothing when there are no physical items", () => {
+    const result = calculateCourierCharge({
+      state: "Tamil Nadu",
+      quantity: 0,
+      orderAmount: 1500,
+      config: baseConfig,
+    });
+    expect(result.charge).toBe(0);
+    expect(result.ruleApplied).toBe("no_physical_items");
+  });
+
   it("uses normal slab when free shipping is disabled even above threshold", () => {
     const result = calculateCourierCharge({
       state: "Tamil Nadu",

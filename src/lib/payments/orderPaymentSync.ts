@@ -382,11 +382,15 @@ export async function syncCashfreeOrderPayment(orderId: string) {
   };
 }
 
-export async function syncRazorpayOrderPayment(input: {
-  orderId: string;
-  razorpayOrderId?: string | null;
-  razorpayPaymentId?: string | null;
-}) {
+export async function syncRazorpayOrderPayment(
+  input: {
+    orderId: string;
+    razorpayOrderId?: string | null;
+    razorpayPaymentId?: string | null;
+  },
+  options?: { runSideEffects?: boolean; treatAsPaid?: boolean },
+) {
+  const runSideEffects = options?.runSideEffects !== false;
   const currentOrder = await db.query.orders.findFirst({
     where: eq(orders.id, input.orderId),
   });
@@ -396,7 +400,9 @@ export async function syncRazorpayOrderPayment(input: {
   }
 
   if (currentOrder.payment_status === "paid") {
-    await ensurePaidOrderSideEffects(currentOrder);
+    if (runSideEffects) {
+      await ensurePaidOrderSideEffects(currentOrder);
+    }
     return {
       orderId: currentOrder.id,
       state: "paid",
@@ -442,7 +448,10 @@ export async function syncRazorpayOrderPayment(input: {
 
   const orderStatus = String(rzpOrder.status ?? "").toLowerCase();
   const paymentStatus = String(rzpPayment?.status ?? "").toLowerCase();
-  let isPaid = orderStatus === "paid" || paymentStatus === "captured";
+  let isPaid =
+    Boolean(options?.treatAsPaid) ||
+    orderStatus === "paid" ||
+    paymentStatus === "captured";
   const isFailed = paymentStatus === "failed";
 
   const amountCheck = detectPaidAmountMismatch(
@@ -503,7 +512,13 @@ export async function syncRazorpayOrderPayment(input: {
   }
 
   if (isPaid) {
-    await runPaidOrderSideEffects(updated);
+    if (runSideEffects) {
+      await runPaidOrderSideEffects(updated);
+    } else {
+      void runPaidOrderSideEffects(updated).catch((error) => {
+        console.error("[payments] Razorpay side effects deferred:", error);
+      });
+    }
   } else if (isFailed) {
     await maybeReleaseUnpaidReservation(updated.id, "payment_failed");
   } else {

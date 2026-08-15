@@ -47,7 +47,7 @@ import {
   resolveCourierChargesConfig,
   resolveOfferCodesConfig,
 } from "@/lib/integrations/settings";
-import { createOrderAccessToken } from "@/lib/auth/order-access";
+import { physicalQuantityForShipping } from "@/lib/products/digital-product";
 import { eq, inArray } from "drizzle-orm";
 
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
@@ -253,6 +253,7 @@ export async function POST(request: Request) {
       Object.keys(checkout.orderProducts),
     );
     for (const line of productsQuantity) {
+      if (line.isDigital) continue;
       const cartItem = checkout.orderProducts[line.id];
       const sizeConfig = sizeConfigs.get(line.id);
       const activeGroups = getActiveOptionGroups(sizeConfig);
@@ -339,9 +340,10 @@ export async function POST(request: Request) {
       (sum, item) => sum + item.quantity,
       0,
     );
+    const physicalQuantity = physicalQuantityForShipping(productsQuantity);
     const courierBreakdown = calculateCourierCharge({
       state: checkout.shipping.state,
-      quantity: totalQuantity,
+      quantity: physicalQuantity,
       orderAmount: discountedSubtotal,
       config: courierConfig,
     });
@@ -446,6 +448,9 @@ export async function POST(request: Request) {
             slug,
             productCode,
             featuredImageId,
+            isDigital,
+            digitalFileKey,
+            digitalFileName,
           }) => ({
             productId: id,
             quantity,
@@ -455,6 +460,11 @@ export async function POST(request: Request) {
             productSlugSnapshot: slug,
             productCodeSnapshot: productCode ?? null,
             productImageKeySnapshot: mediaKeyById.get(featuredImageId) ?? null,
+            isDigitalSnapshot: Boolean(isDigital),
+            digitalFileKeySnapshot: isDigital ? digitalFileKey ?? null : null,
+            digitalFileNameSnapshot: isDigital
+              ? digitalFileName ?? null
+              : null,
           }),
         ),
       );

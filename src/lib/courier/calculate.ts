@@ -20,6 +20,7 @@ export type CourierChargeBreakdown = {
   charge: number;
   ruleApplied:
     | "free_shipping"
+    | "no_physical_items"
     | "qty1_base"
     | "qty2_4_add_on"
     | "qty5_plus_flat";
@@ -47,10 +48,27 @@ export function calculateCourierCharge(params: {
   config: CourierChargesConfig;
 }): CourierChargeBreakdown {
   const normalizedState = normalizeStateForCourier(params.state);
-  const quantity = Math.max(1, Math.round(params.quantity));
+  const rawQuantity = Math.round(Number(params.quantity));
   const config = params.config;
   const isTamilNadu =
     normalizedState === "tamil nadu" || normalizedState === "tamilnadu";
+
+  if (!Number.isFinite(rawQuantity) || rawQuantity <= 0) {
+    return {
+      state: params.state,
+      normalizedState,
+      quantity: 0,
+      charge: 0,
+      ruleApplied: "no_physical_items",
+      region: isTamilNadu
+        ? "tamil_nadu"
+        : SOUTH_STATES.has(normalizedState)
+          ? "south_states"
+          : "rest_of_india",
+    };
+  }
+
+  const quantity = rawQuantity;
 
   const region: CourierChargeBreakdown["region"] = isTamilNadu
     ? "tamil_nadu"

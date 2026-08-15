@@ -23,6 +23,9 @@ export function useCheckoutProgress() {
     beginProgress,
     clearProgress,
     setProgress,
-    overlay: progress ? <CheckoutProgressOverlay open {...progress} /> : null,
+    overlay:
+      progress && !progress.suppressOverlay ? (
+        <CheckoutProgressOverlay open {...progress} />
+      ) : null,
   };
 }

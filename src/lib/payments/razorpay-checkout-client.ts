@@ -183,6 +183,7 @@ export function preconnectRazorpayCheckout(): void {
 export async function openRazorpayCheckout(params: {
   payload: RazorpayCheckoutSessionPayload;
   onDismiss?: () => void;
+  onOpened?: () => void;
 }): Promise<RazorpayHandlerResponse> {
   await ensureRazorpayCheckoutScript();
 
@@ -194,6 +195,13 @@ export async function openRazorpayCheckout(params: {
   const session = params.payload;
 
   return new Promise((resolve, reject) => {
+    let settled = false;
+    const settle = (fn: () => void) => {
+      if (settled) return;
+      settled = true;
+      fn();
+    };
+
     const checkout = new RazorpayCtor({
       key: session.keyId,
       amount: session.amount,
@@ -203,15 +211,17 @@ export async function openRazorpayCheckout(params: {
       order_id: session.razorpayOrderId,
       prefill: session.prefill,
       theme: { color: session.themeColor || "#c03078" },
-      retry: { enabled: true, max_count: 4 },
+      // Docs: retry.enabled is for web; max_count is Android/iOS SDK only.
+      retry: { enabled: true },
       modal: {
+        confirm_close: true,
         ondismiss: () => {
           params.onDismiss?.();
-          reject(new Error("Payment cancelled."));
+          settle(() => reject(new Error("Payment cancelled.")));
         },
       },
       handler: (response: RazorpayHandlerResponse) => {
-        resolve(response);
+        settle(() => resolve(response));
       },
     });
 
@@ -227,9 +237,12 @@ export async function openRazorpayCheckout(params: {
               (response.error as { description?: string }).description ?? "",
             )
           : "";
-      reject(new Error(description || "Razorpay payment failed."));
+      settle(() =>
+        reject(new Error(description || "Razorpay payment failed.")),
+      );
     });
 
     checkout.open();
+    params.onOpened?.();
   });
 }

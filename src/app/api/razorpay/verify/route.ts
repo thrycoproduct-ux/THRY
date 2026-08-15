@@ -61,11 +61,14 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await syncRazorpayOrderPayment({
-      orderId: order.id,
-      razorpayOrderId: body.razorpay_order_id,
-      razorpayPaymentId: body.razorpay_payment_id,
-    });
+    const result = await syncRazorpayOrderPayment(
+      {
+        orderId: order.id,
+        razorpayOrderId: body.razorpay_order_id,
+        razorpayPaymentId: body.razorpay_payment_id,
+      },
+      { runSideEffects: false, treatAsPaid: true },
+    );
 
     const redirectPath = resolvePaymentReturnPath({
       orderId: order.id,

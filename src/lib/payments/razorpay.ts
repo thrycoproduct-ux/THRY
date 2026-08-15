@@ -6,6 +6,7 @@ import {
   validateRazorpayRuntimeConfig,
 } from "@/lib/payments/razorpay-standards";
 import { siteConfig } from "@/config/site";
+import { toInternationalPhoneDigits } from "@/lib/contact/phone";
 
 export {
   verifyRazorpayCheckoutSignature,
@@ -78,6 +79,14 @@ async function razorpayRequest<T>(path: string, init: RequestInit): Promise<T> {
   return data;
 }
 
+function formatRazorpayPrefillContact(
+  raw: string | null | undefined,
+): string | undefined {
+  const digits = toInternationalPhoneDigits(raw);
+  if (!digits) return undefined;
+  return `+${digits}`;
+}
+
 export async function createRazorpayPayment(
   params: CreateRazorpayPaymentParams,
 ) {
@@ -123,7 +132,7 @@ export async function createRazorpayPayment(
     prefill: {
       name: String(params.customerName ?? "").trim() || undefined,
       email: String(params.customerEmail ?? "").trim() || undefined,
-      contact: String(params.customerMobile ?? "").trim() || undefined,
+      contact: formatRazorpayPrefillContact(params.customerMobile),
     },
   };
 }

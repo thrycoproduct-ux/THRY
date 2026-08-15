@@ -5,6 +5,8 @@ import {
   creatingOrderProgress,
   openingPaymentProgress,
   preparingPaymentProgress,
+  confirmingPaymentProgress,
+  razorpayModalOpenProgress,
 } from "@/features/checkout/checkout-progress";
 import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
 import {
@@ -70,7 +72,13 @@ export async function startCheckout({
     onProgress?.(preparingPaymentProgress());
     const session = parseRazorpayCheckoutSessionPayload(payload);
     onProgress?.(openingPaymentProgress("razorpay"));
-    const result = await openRazorpayCheckout({ payload: session });
+    const result = await openRazorpayCheckout({
+      payload: session,
+      onOpened: () => {
+        onProgress?.(razorpayModalOpenProgress());
+      },
+    });
+    onProgress?.(confirmingPaymentProgress());
     const verifyRes = await fetchWithTimeout("/api/razorpay/verify", {
       method: "POST",
       headers: { "Content-Type": "application/json" },
