@@ -28,11 +28,13 @@ export function openingPaymentProgress(
   provider?: string,
 ): CheckoutProgressUpdate {
   const label =
-    provider === "cashfree"
-      ? "Cashfree"
-      : provider === "phonepe"
-        ? "PhonePe"
-        : "payment gateway";
+    provider === "razorpay"
+      ? "Razorpay"
+      : provider === "cashfree"
+        ? "Cashfree"
+        : provider === "phonepe"
+          ? "PhonePe"
+          : "payment gateway";
 
   return {
     title: "Almost there",

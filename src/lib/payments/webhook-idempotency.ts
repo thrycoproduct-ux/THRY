@@ -8,6 +8,7 @@ export type { PaymentWebhookProvider } from "@/lib/payments/webhook-idempotency-
 export {
   cashfreeWebhookEventKey,
   phonePeWebhookEventKey,
+  razorpayWebhookEventKey,
   shortPayloadHash,
 } from "@/lib/payments/webhook-idempotency-keys";
 

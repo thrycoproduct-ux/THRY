@@ -2,6 +2,7 @@ import {
   getCashfreeConfig,
   getIntegrationSetting,
   getPhonePeConfig,
+  getRazorpayConfig,
   INTEGRATION_KEYS,
 } from "@/lib/integrations/settings";
 
@@ -34,6 +35,11 @@ export async function shouldDeductStockForPaidOrder(
   }
   if (metaEnvironment === "production") {
     return true;
+  }
+
+  if (provider === "razorpay") {
+    const config = await getRazorpayConfig();
+    return config?.environment === "production";
   }
 
   if (provider === "cashfree") {

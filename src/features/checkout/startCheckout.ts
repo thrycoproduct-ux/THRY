@@ -11,6 +11,10 @@ import {
   openCashfreeCheckout,
   parseCashfreeCheckoutSessionPayload,
 } from "@/lib/payments/cashfree-checkout-client";
+import {
+  openRazorpayCheckout,
+  parseRazorpayCheckoutSessionPayload,
+} from "@/lib/payments/razorpay-checkout-client";
 
 type StartCheckoutParams = {
   order: CartItems;
@@ -58,6 +62,41 @@ export async function startCheckout({
   }
 
   const payload = (await res.json()) as Record<string, unknown>;
+
+  if (payload.provider === "razorpay") {
+    onProgress?.(preparingPaymentProgress());
+    const session = parseRazorpayCheckoutSessionPayload(payload);
+    onProgress?.(openingPaymentProgress("razorpay"));
+    const result = await openRazorpayCheckout({ payload: session });
+    const verifyRes = await fetchWithTimeout("/api/razorpay/verify", {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        orderId: session.orderId,
+        accessToken: session.accessToken ?? null,
+        razorpay_payment_id: result.razorpay_payment_id,
+        razorpay_order_id: result.razorpay_order_id,
+        razorpay_signature: result.razorpay_signature,
+      }),
+      timeoutMs: CHECKOUT_SESSION_TIMEOUT_MS,
+    });
+    const verifyPayload = (await verifyRes.json().catch(() => null)) as {
+      message?: string;
+      redirect?: string;
+    } | null;
+    if (!verifyRes.ok) {
+      throw new Error(
+        verifyPayload?.message || "Could not confirm Razorpay payment.",
+      );
+    }
+    const redirect =
+      String(verifyPayload?.redirect ?? "").trim() ||
+      (session.accessToken
+        ? `/orders/${session.orderId}?token=${encodeURIComponent(session.accessToken)}`
+        : `/orders/${session.orderId}`);
+    window.location.assign(redirect);
+    return;
+  }
 
   if (payload.provider === "cashfree") {
     onProgress?.(preparingPaymentProgress());

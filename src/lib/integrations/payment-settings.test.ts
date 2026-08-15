@@ -5,6 +5,7 @@ import {
   normalizePhonePeIncoming,
   parseEnabledPhonePeValue,
   parseIncomingPhonePeForEnable,
+  parseIncomingRazorpayForEnable,
   resolveCashfreeBaseUrl,
 } from "./payment-settings";
 
@@ -49,6 +50,15 @@ describe("payment-settings", () => {
 
     expect(normalized.merchantId).toBe("");
     expect(parseEnabledPhonePeValue(normalized).success).toBe(false);
+  });
+
+  it("requires a live key for production Razorpay", () => {
+    const parsed = parseIncomingRazorpayForEnable({
+      keyId: "rzp_test_abc123",
+      keySecret: "secretsecretsecret",
+      environment: "production",
+    });
+    expect(parsed.success).toBe(false);
   });
 
   it("requires complete PhonePe credentials when enabling", () => {

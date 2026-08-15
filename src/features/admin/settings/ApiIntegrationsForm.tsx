@@ -43,6 +43,7 @@ type ApiSettingRecord = {
 type IntegrationsPayload = {
   cashfree: ApiSettingRecord;
   phonepe: ApiSettingRecord;
+  razorpay: ApiSettingRecord;
   whatsapp: ApiSettingRecord;
 };
 
@@ -53,6 +54,13 @@ type FormState = {
     clientSecret: string;
     baseUrl: string;
     apiVersion: string;
+    environment: "sandbox" | "production";
+  };
+  razorpay: {
+    enabled: boolean;
+    keyId: string;
+    keySecret: string;
+    webhookSecret: string;
     environment: "sandbox" | "production";
   };
   phonepe: {
@@ -81,6 +89,13 @@ const DEFAULT_FORM: FormState = {
     clientSecret: "",
     baseUrl: "https://sandbox.cashfree.com/pg",
     apiVersion: "2025-01-01",
+    environment: "sandbox",
+  },
+  razorpay: {
+    enabled: false,
+    keyId: "",
+    keySecret: "",
+    webhookSecret: "",
     environment: "sandbox",
   },
   phonepe: {
@@ -124,16 +139,19 @@ export function ApiIntegrationsForm() {
 
         const cashfreeValue = payload.cashfree?.value ?? {};
         const phonepeValue = payload.phonepe?.value ?? {};
+        const razorpayValue = payload.razorpay?.value ?? {};
         const whatsappValue = payload.whatsapp?.value ?? {};
 
         const cashfreeEnabled = payload.cashfree?.isEnabled ?? false;
         const phonepeEnabled = payload.phonepe?.isEnabled ?? false;
-        // Only one checkout gateway at a time — prefer Cashfree if both were on.
-        const bothEnabled = cashfreeEnabled && phonepeEnabled;
+        const razorpayEnabled = payload.razorpay?.isEnabled ?? false;
+        const razorpayOn = razorpayEnabled;
+        const cashfreeOn = !razorpayOn && cashfreeEnabled;
+        const phonepeOn = !razorpayOn && !cashfreeOn && phonepeEnabled;
 
         setForm({
           cashfree: {
-            enabled: bothEnabled ? true : cashfreeEnabled,
+            enabled: cashfreeOn,
             clientId: String(cashfreeValue.clientId ?? ""),
             clientSecret: String(cashfreeValue.clientSecret ?? ""),
             baseUrl: resolveCashfreeBaseUrl({
@@ -153,8 +171,19 @@ export function ApiIntegrationsForm() {
                 ? "production"
                 : "sandbox",
           },
+          razorpay: {
+            enabled: razorpayOn,
+            keyId: String(razorpayValue.keyId ?? ""),
+            keySecret: String(razorpayValue.keySecret ?? ""),
+            webhookSecret: String(razorpayValue.webhookSecret ?? ""),
+            environment:
+              String(razorpayValue.environment ?? "sandbox").toLowerCase() ===
+              "production"
+                ? "production"
+                : "sandbox",
+          },
           phonepe: {
-            enabled: bothEnabled ? false : phonepeEnabled,
+            enabled: phonepeOn,
             merchantId: String(phonepeValue.merchantId ?? ""),
             saltKey: String(phonepeValue.saltKey ?? ""),
             saltIndex: String(phonepeValue.saltIndex ?? ""),
@@ -217,6 +246,16 @@ export function ApiIntegrationsForm() {
     });
   };
 
+  const updateRazorpay = <K extends keyof FormState["razorpay"]>(
+    key: K,
+    value: FormState["razorpay"][K],
+  ) => {
+    setForm((prev) => ({
+      ...prev,
+      razorpay: { ...prev.razorpay, [key]: value },
+    }));
+  };
+
   const updatePhonePe = <K extends keyof FormState["phonepe"]>(
     key: K,
     value: FormState["phonepe"][K],
@@ -237,14 +276,16 @@ export function ApiIntegrationsForm() {
     }));
   };
 
-  const activePaymentGateway = form.cashfree.enabled
-    ? "cashfree"
-    : form.phonepe.enabled
-      ? "phonepe"
-      : null;
+  const activePaymentGateway = form.razorpay.enabled
+    ? "razorpay"
+    : form.cashfree.enabled
+      ? "cashfree"
+      : form.phonepe.enabled
+        ? "phonepe"
+        : null;
 
   const saveKey = async (
-    key: "cashfree" | "phonepe" | "whatsapp",
+    key: "cashfree" | "phonepe" | "razorpay" | "whatsapp",
     body: Record<string, unknown>,
   ) =>
     fetchWithTimeout("/api/admin/integrations", {
@@ -270,6 +311,17 @@ export function ApiIntegrationsForm() {
           baseUrl: form.cashfree.baseUrl.trim(),
           apiVersion: form.cashfree.apiVersion.trim() || "2025-01-01",
           environment: form.cashfree.environment,
+        },
+      });
+
+      await saveKey("razorpay", {
+        key: "razorpay",
+        isEnabled: form.razorpay.enabled,
+        value: {
+          keyId: form.razorpay.keyId.trim(),
+          keySecret: form.razorpay.keySecret.trim(),
+          webhookSecret: form.razorpay.webhookSecret.trim(),
+          environment: form.razorpay.environment,
         },
       });
 
@@ -300,7 +352,8 @@ export function ApiIntegrationsForm() {
 
       toast({
         title: "API settings saved",
-        description: "Cashfree, PhonePe and WhatsApp credentials updated.",
+        description:
+          "Razorpay, Cashfree, PhonePe and WhatsApp credentials updated.",
       });
     } catch (error) {
       toast({
@@ -323,17 +376,104 @@ export function ApiIntegrationsForm() {
           One checkout gateway at a time
         </p>
         <p className="mt-1">
-          Enable either Cashfree or PhonePe — not both. Example: Cashfree off
-          and PhonePe on means checkout uses PhonePe only. Disabled gateways do
-          not need credentials to save other settings on this page.
+          Enable Razorpay, Cashfree, or PhonePe — only one checkout gateway at a
+          time. Paste Key ID and Key Secret from the Razorpay Dashboard.
         </p>
         {activePaymentGateway ? (
           <p className="mt-2 text-xs font-medium text-foreground">
             Active checkout gateway:{" "}
-            {activePaymentGateway === "cashfree" ? "Cashfree" : "PhonePe"}
+            {activePaymentGateway === "razorpay"
+              ? "Razorpay"
+              : activePaymentGateway === "cashfree"
+                ? "Cashfree"
+                : "PhonePe"}
           </p>
         ) : null}
       </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Razorpay Payment Gateway</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="text-xs text-muted-foreground">
+            Docs:{" "}
+            <a
+              className="text-primary underline underline-offset-2"
+              href="https://razorpay.com/docs/payments/payment-gateway/web-integration/standard/"
+              target="_blank"
+              rel="noopener noreferrer"
+            >
+              Razorpay Standard Checkout
+            </a>
+          </div>
+          <label className="flex items-center gap-2 text-sm">
+            <input
+              type="checkbox"
+              checked={form.razorpay.enabled}
+              disabled={form.cashfree.enabled || form.phonepe.enabled}
+              onChange={(e) => updateRazorpay("enabled", e.target.checked)}
+            />
+            Enable Razorpay checkout
+          </label>
+          <p className="text-xs text-muted-foreground">
+            {form.cashfree.enabled || form.phonepe.enabled
+              ? "Turn off Cashfree or PhonePe to switch to Razorpay."
+              : "Storefront checkout uses Razorpay Standard Checkout when this is enabled."}
+          </p>
+          <div className="grid gap-2">
+            <Label htmlFor="razorpay-key-id">Key ID</Label>
+            <Input
+              id="razorpay-key-id"
+              value={form.razorpay.keyId}
+              onChange={(e) => updateRazorpay("keyId", e.target.value)}
+              placeholder="rzp_test_xxxxxxxxxxxx"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="razorpay-key-secret">Key Secret</Label>
+            <Input
+              id="razorpay-key-secret"
+              type="password"
+              value={form.razorpay.keySecret}
+              onChange={(e) => updateRazorpay("keySecret", e.target.value)}
+              placeholder="Leave blank to keep existing"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="razorpay-webhook-secret">Webhook Secret</Label>
+            <Input
+              id="razorpay-webhook-secret"
+              type="password"
+              value={form.razorpay.webhookSecret}
+              onChange={(e) => updateRazorpay("webhookSecret", e.target.value)}
+              placeholder="From Razorpay Dashboard → Webhooks"
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="razorpay-environment">Environment</Label>
+            <select
+              id="razorpay-environment"
+              className="h-10 rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={form.razorpay.environment}
+              onChange={(e) =>
+                updateRazorpay(
+                  "environment",
+                  e.target.value === "production" ? "production" : "sandbox",
+                )
+              }
+            >
+              <option value="sandbox">Test (rzp_test_)</option>
+              <option value="production">Live (rzp_live_)</option>
+            </select>
+            <p className="text-xs text-muted-foreground">
+              Webhook URL: {getCanonicalSiteOrigin()}/api/razorpay/webhook —
+              enable <strong>payment.captured</strong> and{" "}
+              <strong>order.paid</strong>.
+            </p>
+          </div>
+        </CardContent>
+      </Card>
+
       <Card>
         <CardHeader>
           <CardTitle>Cashfree Payment Gateway</CardTitle>
@@ -354,14 +494,14 @@ export function ApiIntegrationsForm() {
             <input
               type="checkbox"
               checked={form.cashfree.enabled}
-              disabled={form.phonepe.enabled}
+              disabled={form.phonepe.enabled || form.razorpay.enabled}
               onChange={(e) => updateCashfree("enabled", e.target.checked)}
             />
             Enable Cashfree checkout
           </label>
           <p className="text-xs text-muted-foreground">
-            {form.phonepe.enabled
-              ? "Turn off PhonePe below to switch to Cashfree."
+            {form.phonepe.enabled || form.razorpay.enabled
+              ? "Turn off PhonePe or Razorpay to switch to Cashfree."
               : "Storefront checkout uses Cashfree when this is enabled."}
           </p>
           <div className="grid gap-2">
@@ -440,14 +580,14 @@ export function ApiIntegrationsForm() {
             <input
               type="checkbox"
               checked={form.phonepe.enabled}
-              disabled={form.cashfree.enabled}
+              disabled={form.cashfree.enabled || form.razorpay.enabled}
               onChange={(e) => updatePhonePe("enabled", e.target.checked)}
             />
             Enable PhonePe checkout
           </label>
           <p className="text-xs text-muted-foreground">
-            {form.cashfree.enabled
-              ? "Turn off Cashfree above to switch to PhonePe."
+            {form.cashfree.enabled || form.razorpay.enabled
+              ? "Turn off Cashfree or Razorpay to switch to PhonePe."
               : "Storefront checkout uses PhonePe when this is enabled."}
           </p>
 

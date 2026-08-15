@@ -7,8 +7,8 @@ import { STOREFRONT_STATIC_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 export const revalidate = 3600;
 
 export const metadata: Metadata = {
-  title: "Payment Methods | Hub of craftss",
-  description: "How to pay for craft supplies at Hub of craftss",
+  title: `Payment Methods | ${siteConfig.name}`,
+  description: `How to pay for products at ${siteConfig.name}`,
 };
 
 export default function PaymentMethodsPage() {
@@ -24,8 +24,8 @@ export default function PaymentMethodsPage() {
         <p>
           When you checkout on our website, you can pay securely using UPI,
           major debit and credit cards, and net banking through our payment
-          partners (Cashfree / PhonePe). All transactions are processed in{" "}
-          <strong>Indian Rupees (INR)</strong>.
+          partners (Razorpay, Cashfree, or PhonePe). All transactions are
+          processed in <strong>Indian Rupees (INR)</strong>.
         </p>
       </section>
 

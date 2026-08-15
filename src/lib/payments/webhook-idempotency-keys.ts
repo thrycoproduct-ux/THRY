@@ -1,6 +1,6 @@
 import { createHash } from "node:crypto";
 
-export type PaymentWebhookProvider = "phonepe" | "cashfree";
+export type PaymentWebhookProvider = "phonepe" | "cashfree" | "razorpay";
 
 export function shortPayloadHash(raw: string): string {
   return createHash("sha256").update(raw).digest("hex").slice(0, 24);
@@ -33,4 +33,17 @@ export function cashfreeWebhookEventKey(input: {
   const paymentId = String(input.paymentId ?? "").trim();
   if (paymentId) return `${type}:${orderId}:${paymentId}`;
   return `${type}:${orderId}:${shortPayloadHash(input.rawBody)}`;
+}
+
+export function razorpayWebhookEventKey(input: {
+  event?: string | null;
+  shopOrderId: string;
+  razorpayPaymentId?: string | null;
+  rawBody: string;
+}): string {
+  const event = String(input.event ?? "webhook").trim() || "webhook";
+  const shopOrderId = String(input.shopOrderId ?? "").trim();
+  const paymentId = String(input.razorpayPaymentId ?? "").trim();
+  if (paymentId) return `${event}:${shopOrderId}:${paymentId}`;
+  return `${event}:${shopOrderId}:${shortPayloadHash(input.rawBody)}`;
 }

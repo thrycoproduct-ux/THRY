@@ -3,15 +3,19 @@ import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
 import {
   normalizeCashfreeIncoming,
   normalizePhonePeIncoming,
+  normalizeRazorpayIncoming,
   normalizeWhatsAppIncoming,
   parseEnabledCashfreeValue,
   parseEnabledPhonePeValue,
+  parseEnabledRazorpayValue,
   parseEnabledWhatsAppValue,
   parseIncomingCashfreeForEnable,
   parseIncomingPhonePeForEnable,
+  parseIncomingRazorpayForEnable,
   parseIncomingWhatsAppForEnable,
 } from "@/lib/integrations/payment-settings";
 import { validateCashfreeRuntimeConfig } from "@/lib/payments/cashfree-standards";
+import { validateRazorpayRuntimeConfig } from "@/lib/payments/razorpay-standards";
 import {
   INTEGRATION_KEYS,
   upsertIntegrationSetting,
@@ -28,6 +32,7 @@ import { withDbAsync } from "@/lib/supabase/db";
 const keySchema = z.enum([
   INTEGRATION_KEYS.cashfree,
   INTEGRATION_KEYS.phonepe,
+  INTEGRATION_KEYS.razorpay,
   INTEGRATION_KEYS.whatsapp,
   INTEGRATION_KEYS.storefrontSocial,
   INTEGRATION_KEYS.storefrontContact,
@@ -48,6 +53,7 @@ const saveSchema = z.object({
 const secretFieldsByKey: Record<string, string[]> = {
   [INTEGRATION_KEYS.cashfree]: ["clientSecret"],
   [INTEGRATION_KEYS.phonepe]: ["saltKey"],
+  [INTEGRATION_KEYS.razorpay]: ["keySecret", "webhookSecret"],
   [INTEGRATION_KEYS.whatsapp]: ["accessToken"],
 };
 
@@ -174,6 +180,7 @@ export async function GET() {
     const [
       cashfree,
       phonepe,
+      razorpay,
       whatsapp,
       storefrontSocial,
       storefrontContact,
@@ -187,6 +194,7 @@ export async function GET() {
       Promise.all([
         getIntegrationSetting(INTEGRATION_KEYS.cashfree),
         getIntegrationSetting(INTEGRATION_KEYS.phonepe),
+        getIntegrationSetting(INTEGRATION_KEYS.razorpay),
         getIntegrationSetting(INTEGRATION_KEYS.whatsapp),
         getIntegrationSetting(INTEGRATION_KEYS.storefrontSocial),
         getIntegrationSetting(INTEGRATION_KEYS.storefrontContact),
@@ -202,6 +210,7 @@ export async function GET() {
     return NextResponse.json({
       cashfree: cashfree ?? null,
       phonepe: phonepe ?? null,
+      razorpay: razorpay ?? null,
       whatsapp: whatsapp ?? null,
       storefrontSocial: storefrontSocial ?? null,
       storefrontContact: storefrontContact ?? null,
@@ -306,6 +315,27 @@ export async function POST(request: NextRequest) {
         Object.assign(
           normalizedValue,
           normalizeCashfreeIncoming(incomingValue),
+        );
+      }
+    }
+
+    if (key === INTEGRATION_KEYS.razorpay) {
+      if (isEnabled) {
+        const razorpayParsed = parseIncomingRazorpayForEnable(incomingValue);
+        if (razorpayParsed.success === false) {
+          return NextResponse.json(
+            publicValidationPayload(
+              "Invalid Razorpay payload",
+              razorpayParsed.error,
+            ),
+            { status: 400 },
+          );
+        }
+        Object.assign(normalizedValue, razorpayParsed.data);
+      } else {
+        Object.assign(
+          normalizedValue,
+          normalizeRazorpayIncoming(incomingValue),
         );
       }
     }
@@ -590,6 +620,28 @@ export async function POST(request: NextRequest) {
       }
     }
 
+    if (key === INTEGRATION_KEYS.razorpay && isEnabled) {
+      const validated = parseEnabledRazorpayValue(mergedValue);
+      if (validated.success === false) {
+        return NextResponse.json(
+          publicValidationPayload(
+            "Razorpay settings are incomplete for enabled mode",
+            validated.error,
+          ),
+          { status: 400 },
+        );
+      }
+
+      const runtimeError = validateRazorpayRuntimeConfig({
+        keyId: validated.data.keyId,
+        keySecret: validated.data.keySecret,
+        environment: validated.data.environment,
+      });
+      if (runtimeError) {
+        return NextResponse.json({ message: runtimeError }, { status: 400 });
+      }
+    }
+
     if (key === INTEGRATION_KEYS.whatsapp && isEnabled) {
       const validated = parseEnabledWhatsAppValue(mergedValue);
       if (validated.success === false) {
@@ -605,22 +657,27 @@ export async function POST(request: NextRequest) {
 
     await upsertIntegrationSetting(key, mergedValue, isEnabled, user.id);
 
+    const checkoutGatewayKeys = [
+      INTEGRATION_KEYS.razorpay,
+      INTEGRATION_KEYS.cashfree,
+      INTEGRATION_KEYS.phonepe,
+    ] as const;
+
     if (
       isEnabled &&
-      (key === INTEGRATION_KEYS.cashfree || key === INTEGRATION_KEYS.phonepe)
+      checkoutGatewayKeys.includes(key as (typeof checkoutGatewayKeys)[number])
     ) {
-      const otherKey =
-        key === INTEGRATION_KEYS.cashfree
-          ? INTEGRATION_KEYS.phonepe
-          : INTEGRATION_KEYS.cashfree;
-      const otherSetting = await getIntegrationSetting(otherKey);
-      if (otherSetting?.isEnabled) {
-        await upsertIntegrationSetting(
-          otherKey,
-          (otherSetting.value ?? {}) as Record<string, unknown>,
-          false,
-          user.id,
-        );
+      for (const otherKey of checkoutGatewayKeys) {
+        if (otherKey === key) continue;
+        const otherSetting = await getIntegrationSetting(otherKey);
+        if (otherSetting?.isEnabled) {
+          await upsertIntegrationSetting(
+            otherKey,
+            (otherSetting.value ?? {}) as Record<string, unknown>,
+            false,
+            user.id,
+          );
+        }
       }
     }
 

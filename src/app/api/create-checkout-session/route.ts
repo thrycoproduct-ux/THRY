@@ -24,6 +24,7 @@ import { sweepExpiredStockReservationsIfEnabled } from "@/lib/orders/lazy-stock-
 import type { CartItems } from "@/features/carts";
 import { createPhonePePayment } from "@/lib/payments/phonepe";
 import { createCashfreePayment } from "@/lib/payments/cashfree";
+import { createRazorpayPayment } from "@/lib/payments/razorpay";
 import { validatePaymentSessionId } from "@/lib/payments/cashfree-standards";
 import { resolveCheckoutPaymentProvider } from "@/lib/payments/resolve-checkout-provider";
 import {
@@ -41,6 +42,7 @@ import {
   getCashfreeConfig,
   getIntegrationSetting,
   getPhonePeConfig,
+  getRazorpayConfig,
   INTEGRATION_KEYS,
   resolveCourierChargesConfig,
   resolveOfferCodesConfig,
@@ -154,15 +156,19 @@ export async function POST(request: Request) {
 
   try {
     const [
+      razorpayConfig,
       cashfreeConfig,
       phonePeConfig,
+      razorpaySetting,
       cashfreeSetting,
       phonepeSetting,
       courierConfig,
       offerCodesConfig,
     ] = await Promise.all([
+      getRazorpayConfig(),
       getCashfreeConfig(),
       getPhonePeConfig(),
+      getIntegrationSetting(INTEGRATION_KEYS.razorpay),
       getIntegrationSetting(INTEGRATION_KEYS.cashfree),
       getIntegrationSetting(INTEGRATION_KEYS.phonepe),
       resolveCourierChargesConfig(),
@@ -177,6 +183,16 @@ export async function POST(request: Request) {
         force: true,
         stockControlEnabled: true,
       });
+    }
+
+    if (razorpaySetting?.isEnabled && !razorpayConfig) {
+      return NextResponse.json(
+        {
+          message:
+            "Razorpay is enabled but configuration is incomplete. Update Key ID and Key Secret in Admin settings.",
+        },
+        { status: 400 },
+      );
     }
 
     if (cashfreeSetting?.isEnabled && !cashfreeConfig) {
@@ -200,6 +216,7 @@ export async function POST(request: Request) {
     }
 
     const checkoutProvider = resolveCheckoutPaymentProvider({
+      razorpayConfig,
       cashfreeConfig,
       phonePeConfig,
     });
@@ -212,6 +229,7 @@ export async function POST(request: Request) {
         { status: 503 },
       );
     }
+    const preferRazorpay = checkoutProvider === "razorpay";
     const preferCashfree = checkoutProvider === "cashfree";
     const preferPhonePe = checkoutProvider === "phonepe";
 
@@ -334,8 +352,10 @@ export async function POST(request: Request) {
     });
     const amount = discountedSubtotal + courierCharge + gstAmount;
     const paymentEnvironment = resolveCheckoutPaymentEnvironment({
+      preferRazorpay,
       preferCashfree,
       preferPhonePe,
+      razorpayConfig,
       cashfreeConfig,
       phonePeConfig,
     });
@@ -470,6 +490,48 @@ export async function POST(request: Request) {
     const order = insertedOrder[0];
     createdOrderId = order.id;
     const accessToken = createOrderAccessToken(order.id, order.createdAt);
+
+    if (preferRazorpay) {
+      const payment = await createRazorpayPayment({
+        orderId: order.id,
+        amountInRupees: amount,
+        customerName: checkout.shipping.fullName,
+        customerMobile: checkout.shipping.mobile,
+        customerEmail: checkout.shipping.email,
+      });
+
+      if (!payment?.razorpayOrderId) {
+        throw new Error("Razorpay order could not be created");
+      }
+
+      const existingMeta =
+        (order.payment_meta as Record<string, unknown> | null) ?? {};
+
+      await db
+        .update(orders)
+        .set({
+          payment_reference: payment.razorpayOrderId,
+          payment_meta: mergePaymentMeta(existingMeta, {
+            razorpayOrderId: payment.razorpayOrderId,
+          }),
+        })
+        .where(eq(orders.id, order.id));
+
+      await extendStockReservationExpiry(order.id);
+
+      return NextResponse.json({
+        provider: "razorpay",
+        orderId: order.id,
+        accessToken,
+        razorpayOrderId: payment.razorpayOrderId,
+        keyId: payment.keyId,
+        amount: payment.amount,
+        currency: payment.currency,
+        name: payment.name,
+        description: payment.description,
+        prefill: payment.prefill,
+      });
+    }
 
     if (preferCashfree) {
       const payment = await createCashfreePayment({

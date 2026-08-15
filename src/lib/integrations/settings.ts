@@ -39,6 +39,7 @@ import { keytoUrl } from "@/lib/utils";
 export const INTEGRATION_KEYS = {
   cashfree: "cashfree",
   phonepe: "phonepe",
+  razorpay: "razorpay",
   whatsapp: "whatsapp",
   storefrontSocial: "storefront_social",
   storefrontContact: "storefront_contact",
@@ -431,6 +432,14 @@ export type CashfreeConfig = {
   enabled: boolean;
 };
 
+export type RazorpayConfig = {
+  keyId: string;
+  keySecret: string;
+  webhookSecret: string;
+  environment: "sandbox" | "production";
+  enabled: boolean;
+};
+
 export type WhatsAppConfig = {
   accessToken: string;
   phoneNumberId: string;
@@ -722,6 +731,31 @@ export async function upsertIntegrationSetting(
         updatedAt: new Date().toISOString(),
       },
     });
+}
+
+export async function getRazorpayConfig(): Promise<RazorpayConfig | null> {
+  const setting = await getIntegrationSetting(INTEGRATION_KEYS.razorpay);
+  if (!setting || !setting.isEnabled) return null;
+
+  const value = setting.value as Record<string, unknown>;
+  const keyId = String(value.keyId ?? "").trim();
+  const keySecret = String(value.keySecret ?? "").trim();
+  const webhookSecret = String(value.webhookSecret ?? "").trim();
+  const environmentRaw = String(value.environment ?? "sandbox")
+    .trim()
+    .toLowerCase();
+  const environment =
+    environmentRaw === "production" ? "production" : "sandbox";
+
+  if (!keyId || !keySecret) return null;
+
+  return {
+    keyId,
+    keySecret,
+    webhookSecret,
+    environment,
+    enabled: true,
+  };
 }
 
 export async function getPhonePeConfig(): Promise<PhonePeConfig | null> {

@@ -18,9 +18,28 @@ const phonePe = {
 };
 
 describe("resolveCheckoutPaymentProvider", () => {
+  const razorpay = {
+    keyId: "rzp_test_abc",
+    keySecret: "secretsecretsecret",
+    webhookSecret: "",
+    environment: "sandbox" as const,
+    enabled: true,
+  };
+
+  it("prefers Razorpay when it is configured", () => {
+    expect(
+      resolveCheckoutPaymentProvider({
+        razorpayConfig: razorpay,
+        cashfreeConfig: cashfree,
+        phonePeConfig: phonePe,
+      }),
+    ).toBe("razorpay");
+  });
+
   it("prefers Cashfree when both gateways are configured", () => {
     expect(
       resolveCheckoutPaymentProvider({
+        razorpayConfig: null,
         cashfreeConfig: cashfree,
         phonePeConfig: phonePe,
       }),
@@ -30,6 +49,7 @@ describe("resolveCheckoutPaymentProvider", () => {
   it("uses PhonePe when Cashfree is unavailable", () => {
     expect(
       resolveCheckoutPaymentProvider({
+        razorpayConfig: null,
         cashfreeConfig: null,
         phonePeConfig: phonePe,
       }),
@@ -39,6 +59,7 @@ describe("resolveCheckoutPaymentProvider", () => {
   it("returns null when no gateway is configured", () => {
     expect(
       resolveCheckoutPaymentProvider({
+        razorpayConfig: null,
         cashfreeConfig: null,
         phonePeConfig: null,
       }),
