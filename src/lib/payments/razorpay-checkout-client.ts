@@ -50,17 +50,42 @@ export async function prepareHostPageForRazorpayModal(): Promise<void> {
   const active = document.activeElement;
   if (active instanceof HTMLElement) active.blur();
 
-  document.querySelectorAll("input, textarea, select, button").forEach((node) => {
+  document
+    .querySelectorAll("input, textarea, select, button")
+    .forEach((node) => {
+      if (node instanceof HTMLElement && node !== document.body) {
+        node.blur();
+      }
+    });
+
+  // Radix Dialog sets body pointer-events:none while open. Razorpay’s iframe
+  // is a body child, so Continue / Exit buttons never receive clicks.
+  document.body.style.removeProperty("pointer-events");
+  document.body.style.pointerEvents = "auto";
+  document.body.style.removeProperty("overflow");
+  document.documentElement.style.removeProperty("overflow");
+  document.body.removeAttribute("data-scroll-locked");
+  document.querySelectorAll("[data-radix-scroll-lock]").forEach((node) => {
+    node.parentElement?.removeChild(node);
+  });
+  document.querySelectorAll("[data-aria-hidden='true']").forEach((node) => {
     if (node instanceof HTMLElement && node !== document.body) {
-      node.blur();
+      node.removeAttribute("aria-hidden");
+      node.removeAttribute("data-aria-hidden");
     }
+  });
+  document.querySelectorAll("[inert]").forEach((node) => {
+    node.removeAttribute("inert");
   });
 
   await new Promise<void>((resolve) => {
     window.requestAnimationFrame(() => resolve());
   });
-  // iOS keeps the keyboard up for ~300ms after blur.
-  await sleep(400);
+  // iOS keeps the keyboard up for ~300ms after blur; Radix needs a tick to unmount.
+  await sleep(450);
+
+  document.body.style.removeProperty("pointer-events");
+  document.body.style.pointerEvents = "auto";
 }
 
 function findCheckoutScript(): HTMLScriptElement | null {
@@ -235,7 +260,12 @@ export async function openRazorpayCheckout(params: {
       // Docs: retry.enabled is for web; max_count is Android/iOS SDK only.
       retry: { enabled: true },
       modal: {
-        confirm_close: true,
+        // Host dialogs must not steal the first click. Do not use confirm_close:
+        // that extra Exit popup was unclickable while body still had pointer-events:none.
+        confirm_close: false,
+        backdropclose: false,
+        escape: true,
+        animation: true,
         ondismiss: () => {
           params.onDismiss?.();
           settle(() => reject(new Error("Payment cancelled.")));

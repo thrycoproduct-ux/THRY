@@ -32,7 +32,7 @@ export function CheckoutProgressOverlay({ open, title, message }: Props) {
 
   return (
     <div
-      className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-[2px]"
+      className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-[2px] pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-busy="true"

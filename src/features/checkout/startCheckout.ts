@@ -17,6 +17,7 @@ import {
   ensureRazorpayCheckoutScript,
   openRazorpayCheckout,
   parseRazorpayCheckoutSessionPayload,
+  prepareHostPageForRazorpayModal,
 } from "@/lib/payments/razorpay-checkout-client";
 
 type StartCheckoutParams = {
@@ -37,6 +38,7 @@ export async function startCheckout({
   onProgress,
 }: StartCheckoutParams) {
   onProgress?.(creatingOrderProgress());
+  await prepareHostPageForRazorpayModal();
   // Official checkout.js from Razorpay CDN — start while the order is created.
   void ensureRazorpayCheckoutScript().catch(() => undefined);
 

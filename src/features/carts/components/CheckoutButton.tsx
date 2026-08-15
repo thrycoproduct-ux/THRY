@@ -81,6 +81,9 @@ function CheckoutButton({
   const handleCheckoutComplete = async (shipping: SavedShippingAddress) => {
     setOpen(false);
     setIsLoading(true);
+    await new Promise<void>((resolve) => {
+      window.setTimeout(() => resolve(), 500);
+    });
     try {
       await startCheckout({
         order,
