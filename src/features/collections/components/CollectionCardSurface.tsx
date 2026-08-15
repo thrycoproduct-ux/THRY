@@ -1,6 +1,6 @@
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { ArrowUpRight } from "lucide-react";
-import { cn, getStorefrontImageProps } from "@/lib/utils";
+import { cn } from "@/lib/utils";
 import { viewTransitionStyle } from "@/lib/view-transitions";
 
 type CollectionCardSurfaceProps = {
@@ -36,7 +36,7 @@ export function CollectionCardSurface({
         className,
       )}
     >
-      <Image
+      <StorefrontImage
         src={imageSrc}
         alt={imageAlt}
         fill
@@ -51,7 +51,6 @@ export function CollectionCardSurface({
             ? viewTransitionStyle(viewTransitionName)
             : undefined
         }
-        {...getStorefrontImageProps(imageSrc)}
       />
 
       <div

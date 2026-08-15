@@ -1,6 +1,6 @@
 import { gql, DocumentType } from "@/gql";
-import { getStorefrontImageProps, keytoUrl } from "@/lib/utils";
-import Image from "next/image";
+import { keytoUrl } from "@/lib/utils";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import React from "react";
 import {
   collectionImageTransitionName,
@@ -33,7 +33,7 @@ function CollectionBanner({
 
   return (
     <div className="relative mx-auto mb-8 h-[220px] w-full overflow-hidden md:container md:h-[280px]">
-      <Image
+      <StorefrontImage
         src={imageSrc}
         alt={imageAlt}
         fill
@@ -41,7 +41,6 @@ function CollectionBanner({
         sizes="100vw"
         className="object-cover object-center"
         style={viewTransitionStyle(collectionImageTransitionName(id))}
-        {...getStorefrontImageProps(imageSrc)}
       />
       <div
         className="absolute inset-0 bg-gradient-to-t from-brand-purple/90 via-brand-teal/40 to-black/20"

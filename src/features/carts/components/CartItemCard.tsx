@@ -2,7 +2,7 @@
 import { DocumentType } from "@/gql";
 import { CartItemCardFragment } from "../fragments/CartItemCardFragment";
 
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import React from "react";
 
 import QuantityInput from "../../../components/layouts/QuantityInput";
@@ -17,7 +17,7 @@ import {
 
 import { ProductPriceDisplay } from "@/features/products/components/ProductPriceDisplay";
 import { formatProductPackLabel } from "@/lib/products/pack";
-import { getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { keytoUrl } from "@/lib/utils";
 import { UseQueryExecute } from "@urql/next";
 import Link from "next/link";
 import { Icons } from "../../../components/layouts/icons";
@@ -80,7 +80,8 @@ function CartItemCard({
           ]
         : [];
   const packLabel = formatProductPackLabel(product);
-  const imageSrc = keytoUrl(product.featuredImage.key);
+  const imageSrc = keytoUrl(product.featuredImage?.key);
+  const imageAlt = product.featuredImage?.alt || product.name;
 
   const missingRequired = groups.some((group) => {
     const selected = String(selections?.[group.id] ?? selectedSize ?? "")
@@ -93,14 +94,15 @@ function CartItemCard({
   return (
     <Card className="flex items-start gap-3 border-0 bg-transparent px-3 py-3 shadow-none md:items-center md:gap-6 md:px-5">
       <CardContent className="relative shrink-0 overflow-hidden p-0">
-        <Image
-          src={imageSrc}
-          alt={product.featuredImage.alt}
-          width={150}
-          height={150}
-          className="aspect-square h-[72px] w-[72px] rounded-md object-cover md:h-[120px] md:w-[120px]"
-          {...getStorefrontImageProps(imageSrc)}
-        />
+        <Link href={`/shop/${product.slug}`} className="block">
+          <StorefrontImage
+            src={imageSrc}
+            alt={imageAlt}
+            width={150}
+            height={150}
+            className="aspect-square h-[72px] w-[72px] rounded-md object-cover md:h-[120px] md:w-[120px]"
+          />
+        </Link>
       </CardContent>
 
       <CardHeader className="min-w-0 flex-1 space-y-2 p-0">

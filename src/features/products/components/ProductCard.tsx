@@ -82,8 +82,8 @@ export function ProductCard({
           className="block"
         >
           <ProductThumbnail
-            imageKey={featuredImage.key}
-            alt={featuredImage.alt || name}
+            imageKey={featuredImage?.key}
+            alt={featuredImage?.alt || name}
             imageClassName={productThumbnailImageHoverClass}
             priority={priorityImage}
           />
@@ -133,10 +133,13 @@ export function ProductCard({
         </div>
       </CardHeader>
 
-      <CardFooter className="gap-x-2 md:gap-x-5 p-0 ">
+      <CardFooter className="relative z-10 gap-x-2 md:gap-x-5 p-0 ">
         <Suspense
           fallback={
-            <Button className="rounded-full p-0 h-8 w-8" disabled>
+            <Button
+              className="rounded-full p-0 min-h-11 min-w-11 h-11 w-11"
+              disabled
+            >
               <Icons.basket className="h-5 w-5 md:h-4 md:w-4" />
             </Button>
           }

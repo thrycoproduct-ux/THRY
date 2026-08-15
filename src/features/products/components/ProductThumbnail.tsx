@@ -1,5 +1,5 @@
-import Image from "next/image";
-import { cn, getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
+import { cn, keytoUrl } from "@/lib/utils";
 import {
   productThumbnailFrameClass,
   productThumbnailImageClass,
@@ -7,7 +7,7 @@ import {
 } from "@/features/products/productThumbnail";
 
 type Props = {
-  imageKey: string;
+  imageKey?: string | null;
   alt: string;
   /** Extra classes on the outer frame (e.g. rounded corners). */
   frameClassName?: string;
@@ -30,7 +30,7 @@ export function ProductThumbnail({
 
   return (
     <div className={cn(productThumbnailFrameClass, frameClassName)}>
-      <Image
+      <StorefrontImage
         src={imageSrc}
         alt={alt}
         fill
@@ -38,7 +38,6 @@ export function ProductThumbnail({
         className={cn(productThumbnailImageClass, imageClassName)}
         priority={priority}
         loading={priority ? undefined : "lazy"}
-        {...getStorefrontImageProps(imageSrc)}
       />
     </div>
   );

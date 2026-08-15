@@ -30,8 +30,8 @@ export function SearchMatchingCollections({
           >
             <CollectionCardSurface
               label={collection.label}
-              imageSrc={keytoUrl(collection.featuredImage.key)}
-              imageAlt={collection.featuredImage.alt || collection.label}
+              imageSrc={keytoUrl(collection.featuredImage?.key)}
+              imageAlt={collection.featuredImage?.alt || collection.label}
               sizes="(max-width: 640px) 92vw, (max-width: 1024px) 48vw, 360px"
             />
           </Link>

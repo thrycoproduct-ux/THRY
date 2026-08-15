@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { Suspense } from "react";
 import { DocumentType, gql } from "@/gql";
 import { ProductCardSkeleton } from "@/features/products";
@@ -12,7 +12,7 @@ import { AddToCartButton } from "@/features/carts";
 import { AddToWishListButton } from "@/features/wishlists";
 import { ViewTransitionLink } from "@/components/ui/ViewTransitionLink";
 import { Badge } from "@/components/ui/badge";
-import { getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { keytoUrl } from "@/lib/utils";
 import {
   productImageTransitionName,
   viewTransitionStyle,
@@ -68,7 +68,7 @@ function FeaturedSlide({
     <article className="group flex h-full flex-col overflow-hidden rounded-2xl border border-brand-teal/15 bg-card shadow-[0_14px_36px_-22px_rgba(72,168,180,0.4)]">
       <div className="relative w-full aspect-[3/4] max-h-[min(72vh,440px)] bg-muted">
         <ViewTransitionLink href={`/shop/${slug}`} className="absolute inset-0">
-          <Image
+          <StorefrontImage
             src={imageSrc}
             alt={featuredImage?.alt || name}
             fill
@@ -76,29 +76,20 @@ function FeaturedSlide({
             className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
             style={viewTransitionStyle(productImageTransitionName(id))}
             loading="lazy"
-            {...getStorefrontImageProps(imageSrc)}
           />
         </ViewTransitionLink>
         <ProductDiscountBadge
           product={product}
-          className="absolute top-3 left-3 z-10"
+          className="absolute top-3 left-3 z-10 pointer-events-none"
         />
         {badge ? (
           <Badge
-            className="absolute top-3 right-3 z-10"
+            className="absolute top-3 right-3 z-10 pointer-events-none"
             variant={badge as "default"}
           >
             {badge}
           </Badge>
         ) : null}
-        <div className="absolute bottom-3 left-1/2 z-10 flex -translate-x-1/2 items-center gap-2 rounded-full border border-primary/15 bg-card/95 px-3 py-1.5 shadow-md backdrop-blur-sm">
-          <Suspense fallback={<span className="inline-block h-9 w-9" />}>
-            <AddToWishListButton productId={id} />
-          </Suspense>
-          <Suspense fallback={<span className="inline-block h-9 w-9" />}>
-            <AddToCartButton productId={id} />
-          </Suspense>
-        </div>
       </div>
       <div className="flex flex-1 flex-col justify-center p-3 sm:p-4">
         <ViewTransitionLink href={`/shop/${slug}`}>
@@ -112,6 +103,14 @@ function FeaturedSlide({
             {packLabel}
           </p>
         ) : null}
+        <div className="relative z-10 mt-3 flex items-center gap-2">
+          <Suspense fallback={<span className="inline-block h-11 w-11" />}>
+            <AddToWishListButton productId={id} />
+          </Suspense>
+          <Suspense fallback={<span className="inline-block h-11 w-11" />}>
+            <AddToCartButton productId={id} />
+          </Suspense>
+        </div>
       </div>
     </article>
   );

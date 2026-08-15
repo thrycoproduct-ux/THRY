@@ -1,9 +1,9 @@
 "use client";
 
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { ViewTransitionLink } from "@/components/ui/ViewTransitionLink";
 import type { ShopByPriceBucket } from "@/lib/storefront/shop-by-price-buckets";
-import { getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { keytoUrl } from "@/lib/utils";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import {
   HomeScrollSnapStrip,
@@ -32,14 +32,13 @@ function PriceCircleCard({ bucket }: { bucket: ShopByPriceBucket }) {
     >
       <div className="relative aspect-square w-full overflow-hidden rounded-full border-2 border-brand-teal/30 bg-muted shadow-[0_14px_36px_-18px_rgba(72,168,180,0.45)] transition-[border-color,box-shadow,transform] duration-300 group-hover:border-brand-magenta/50 group-hover:shadow-[0_20px_44px_-16px_rgba(192,48,120,0.45)] group-active:scale-[0.98]">
         {imageSrc ? (
-          <Image
+          <StorefrontImage
             src={imageSrc}
             alt={bucket.imageAlt}
             fill
             sizes="(max-width: 640px) 46vw, 200px"
             className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
             loading="lazy"
-            {...getStorefrontImageProps(imageSrc)}
           />
         ) : (
           <div className="absolute inset-0 bg-gradient-to-br from-brand-rose/25 via-brand-cream to-brand-gold/30" />

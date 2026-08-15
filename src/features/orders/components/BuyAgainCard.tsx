@@ -1,7 +1,7 @@
 "use client";
 import { DocumentType, gql } from "@/gql";
-import { formatPrice, getStorefrontImageProps, keytoUrl } from "@/lib/utils";
-import Image from "next/image";
+import { formatPrice, keytoUrl } from "@/lib/utils";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
 
@@ -35,17 +35,16 @@ function BuyAgainCard({ products }: BuyAgainCardProps) {
       </CardHeader>
       <CardContent className="flex flex-col gap-y-5 py-5">
         {products.map(({ node }) => {
-          const imageSrc = keytoUrl(node.featuredImage.key);
+          const imageSrc = keytoUrl(node.featuredImage?.key);
           return (
             <div key={node.id} className="grid grid-cols-5">
               <div className="relative col-span-2">
-                <Image
+                <StorefrontImage
                   src={imageSrc}
-                  alt={node.featuredImage.alt}
+                  alt={node.featuredImage?.alt || node.name}
                   className="w-[80px] h-[80px] object-cover"
                   width={80}
                   height={80}
-                  {...getStorefrontImageProps(imageSrc)}
                 />
               </div>
 

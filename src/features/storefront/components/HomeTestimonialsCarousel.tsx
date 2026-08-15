@@ -1,6 +1,5 @@
 "use client";
 
-import Image from "next/image";
 import { BadgeCheck, Quote, Star } from "lucide-react";
 import { DocumentType } from "@/gql";
 import { TestimonialCardFragment } from "@/features/testimonials";
@@ -9,7 +8,8 @@ import {
   testimonialPanelAt,
   type TestimonialPanel,
 } from "@/lib/brand/testimonial-panels";
-import { cn, getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { cn, keytoUrl } from "@/lib/utils";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { HomeSectionHeader } from "./HomeSectionHeader";
 import { HomeScrollSnapStrip, ScrollSnapItem } from "./HomeScrollSnapStrip";
 import {
@@ -89,14 +89,13 @@ function CustomerAvatar({
             : "ring-primary/15 ring-offset-background",
         )}
       >
-        <Image
+        <StorefrontImage
           src={imageSrc}
           alt={imageAlt || name}
           fill
           sizes="44px"
           className="object-cover"
           loading="lazy"
-          {...getStorefrontImageProps(imageSrc)}
         />
       </div>
     );

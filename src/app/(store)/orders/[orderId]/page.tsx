@@ -24,7 +24,7 @@ import {
 } from "@/lib/supabase/schema";
 import { formatDate, formatPrice, keytoUrl } from "@/lib/utils";
 import { eq } from "drizzle-orm";
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 
 type TrackOrderProps = {
   params: Promise<{ orderId: string }>;
@@ -237,19 +237,13 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
                     className="flex items-center gap-3 rounded-md border p-2.5"
                   >
                     <div className="relative h-14 w-14 overflow-hidden rounded-md border bg-muted">
-                      {imageKey ? (
-                        <Image
-                          src={keytoUrl(imageKey)}
-                          alt={imageAlt}
-                          fill
-                          className="object-cover"
-                          sizes="56px"
-                        />
-                      ) : (
-                        <div className="flex h-full w-full items-center justify-center text-[10px] text-muted-foreground">
-                          No image
-                        </div>
-                      )}
+                      <StorefrontImage
+                        src={keytoUrl(imageKey ?? undefined)}
+                        alt={imageAlt}
+                        fill
+                        className="object-cover"
+                        sizes="56px"
+                      />
                     </div>
                     <div className="min-w-0 flex-1">
                       {productSlug ? (

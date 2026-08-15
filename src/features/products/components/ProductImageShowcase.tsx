@@ -2,9 +2,9 @@
 
 import React, { useCallback, useEffect, useState } from "react";
 import { gql, DocumentType } from "@/gql";
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { Icons } from "@/components/layouts/icons";
-import { cn, getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { cn, keytoUrl } from "@/lib/utils";
 import {
   productImageTransitionName,
   viewTransitionStyle,
@@ -132,13 +132,12 @@ function ProductImageShowcase({
                     : "border-border hover:border-foreground/40",
                 )}
               >
-                <Image
+                <StorefrontImage
                   src={imageSrc}
                   alt={image.alt || `Product thumbnail ${index + 1}`}
                   fill
                   sizes="64px"
                   className="object-cover object-top"
-                  {...getStorefrontImageProps(imageSrc)}
                 />
               </button>
             );
@@ -154,7 +153,7 @@ function ProductImageShowcase({
             "aspect-[3/4] max-h-[min(70vh,36rem)]",
           )}
         >
-          <Image
+          <StorefrontImage
             src={activeImageSrc}
             alt={activeImage.alt || "Product image"}
             fill
@@ -162,7 +161,6 @@ function ProductImageShowcase({
             className="object-contain object-center"
             style={viewTransitionStyle(transitionName)}
             priority
-            {...getStorefrontImageProps(activeImageSrc)}
           />
 
           {hasMultiple ? (
@@ -216,13 +214,12 @@ function ProductImageShowcase({
                       : "border-border",
                   )}
                 >
-                  <Image
+                  <StorefrontImage
                     src={imageSrc}
                     alt={image.alt || `Product thumbnail ${index + 1}`}
                     fill
                     sizes="56px"
                     className="object-cover object-top"
-                    {...getStorefrontImageProps(imageSrc)}
                   />
                 </button>
               );

@@ -1,6 +1,6 @@
 "use client";
 
-import Image from "next/image";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { ShoppingBag } from "lucide-react";
 import { DocumentType } from "@/gql";
 import { ViewTransitionLink } from "@/components/ui/ViewTransitionLink";
@@ -17,7 +17,7 @@ import {
   productImageTransitionName,
   viewTransitionStyle,
 } from "@/lib/view-transitions";
-import { cn, getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { cn, keytoUrl } from "@/lib/utils";
 
 type ProductNode = DocumentType<typeof HomeFeaturedProductFragment>;
 
@@ -41,7 +41,7 @@ function ReelProductCard({
   return (
     <ViewTransitionLink href={`/shop/${slug}`} className="group block w-full">
       <article className="relative aspect-[9/16] w-full min-h-[220px] overflow-hidden rounded-2xl border border-brand-teal/25 bg-muted shadow-[0_16px_40px_-20px_rgba(72,168,180,0.4)]">
-        <Image
+        <StorefrontImage
           src={imageSrc}
           alt={featuredImage.alt || name}
           fill
@@ -49,7 +49,6 @@ function ReelProductCard({
           className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.05]"
           style={viewTransitionStyle(productImageTransitionName(id))}
           loading="lazy"
-          {...getStorefrontImageProps(imageSrc)}
         />
         <div className="absolute inset-0 bg-gradient-to-t from-black/85 via-black/20 to-transparent" />
         <div className="absolute inset-x-0 bottom-0 z-[2] p-3 pt-12">

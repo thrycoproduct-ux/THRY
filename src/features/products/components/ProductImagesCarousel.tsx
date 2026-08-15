@@ -9,8 +9,8 @@ import {
   CarouselNext,
   CarouselPrevious,
 } from "@/components/ui/carousel";
-import Image from "next/image";
-import { getStorefrontImageProps, keytoUrl } from "@/lib/utils";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
+import { keytoUrl } from "@/lib/utils";
 
 type ProductImagesCarouselProps = React.ComponentProps<typeof Carousel> & {
   images: DocumentType<typeof CarouselImagesFragment>[];
@@ -33,19 +33,18 @@ export function ProductImagesCarousel({ images }: ProductImagesCarouselProps) {
     <Carousel className="w-full max-w-sm">
       <CarouselContent className="-ml-1">
         {images.map(({ node }) => {
-          const imageSrc = keytoUrl(node.media.key);
+          const imageSrc = keytoUrl(node.media?.key);
           return (
             <CarouselItem
               key={node.id}
               className="relative pl-1 md:basis-1/2 lg:basis-1/3"
             >
-              <Image
+              <StorefrontImage
                 src={imageSrc}
-                alt={node.media.alt}
+                alt={node.media?.alt || "Product image"}
                 width={100}
                 height={100}
                 className="aspect-square object-cover"
-                {...getStorefrontImageProps(imageSrc)}
               />
             </CarouselItem>
           );

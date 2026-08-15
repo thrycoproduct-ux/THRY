@@ -39,6 +39,9 @@ export function r2PublicUrl(key: string) {
   return `${base}/${key.replace(/^\//, "")}`;
 }
 
+/** Local SVG if CDN key is missing or the remote file fails to load. */
+export const STOREFRONT_IMAGE_FALLBACK = "/images/thry-hero-statues.svg";
+
 /** OpenNext on Cloudflare serves `/_next/image` with attachment headers for remote URLs. */
 export function shouldBypassImageOptimization(src: string): boolean {
   if (!src) return false;
@@ -60,7 +63,7 @@ import {
 
 export const keytoUrl = (key?: string) => {
   if (!key) {
-    return DEFAULT_SAREE_PLACEHOLDER;
+    return STOREFRONT_IMAGE_FALLBACK;
   }
 
   if (key.startsWith("http://") || key.startsWith("https://")) {

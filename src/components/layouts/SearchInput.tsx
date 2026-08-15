@@ -19,8 +19,8 @@ import {
   PRODUCT_SUGGEST_MIN_CHARS,
   type ProductNameSuggestion,
 } from "@/lib/storefront/product-name-suggest-shared";
-import { cn, getStorefrontImageProps, keytoUrl } from "@/lib/utils";
-import Image from "next/image";
+import { cn, keytoUrl } from "@/lib/utils";
+import { StorefrontImage } from "@/components/media/StorefrontImage";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Icons } from "./icons";
 import { Input } from "../ui/input";
@@ -327,9 +327,7 @@ function SearchInput({
             ) : (
               <ul className="max-h-80 overflow-y-auto py-1">
                 {suggestions.map((suggestion, index) => {
-                  const imageSrc = suggestion.featuredImage?.key
-                    ? keytoUrl(suggestion.featuredImage.key)
-                    : null;
+                  const imageSrc = keytoUrl(suggestion.featuredImage?.key);
                   const active = index === activeIndex;
                   return (
                     <li key={suggestion.id} role="presentation">
@@ -347,18 +345,15 @@ function SearchInput({
                         onClick={() => goToProduct(suggestion)}
                       >
                         <span className="relative h-10 w-10 shrink-0 overflow-hidden rounded-md bg-muted">
-                          {imageSrc ? (
-                            <Image
-                              src={imageSrc}
-                              alt={
-                                suggestion.featuredImage?.alt || suggestion.name
-                              }
-                              fill
-                              sizes="40px"
-                              className="object-cover"
-                              {...getStorefrontImageProps(imageSrc)}
-                            />
-                          ) : null}
+                          <StorefrontImage
+                            src={imageSrc}
+                            alt={
+                              suggestion.featuredImage?.alt || suggestion.name
+                            }
+                            fill
+                            sizes="40px"
+                            className="object-cover"
+                          />
                         </span>
                         <span className="min-w-0 flex-1 truncate font-medium">
                           {suggestion.name}

@@ -8,6 +8,7 @@ import { Suspense, useState } from "react";
 
 import { Icons } from "@/components/layouts/icons";
 import { Button, ButtonProps } from "@/components/ui/button";
+import { cn } from "@/lib/utils";
 import BulkOrderGuardDialog from "./BulkOrderGuardDialog";
 import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartActions from "../hooks/useCartActions";
@@ -24,6 +25,7 @@ function AddToCartButton({
   quantity = 1,
   stock,
   disabled,
+  className,
 }: AddToCartButtonProps) {
   const { user } = useAuth();
   const { toast } = useToast();
@@ -37,9 +39,16 @@ function AddToCartButton({
   return (
     <Suspense>
       <Button
-        className="rounded-full p-0 h-8 w-8"
+        type="button"
+        aria-label="Add to cart"
+        className={cn(
+          "relative z-10 rounded-full p-0 min-h-11 min-w-11 h-11 w-11",
+          className,
+        )}
         disabled={disabled || isOutOfStock}
-        onClick={async () => {
+        onClick={async (event) => {
+          event.preventDefault();
+          event.stopPropagation();
           if (isOutOfStock) return;
           const sizeConfigRes = await fetch(
             `/api/products/size-config?productId=${encodeURIComponent(productId)}`,
