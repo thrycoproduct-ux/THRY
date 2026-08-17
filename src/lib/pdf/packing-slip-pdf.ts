@@ -9,7 +9,10 @@ import {
   type PackingSlipOrder,
 } from "@/lib/pdf/packing-slip-format";
 
-export type { PackingSlipItem, PackingSlipOrder } from "@/lib/pdf/packing-slip-format";
+export type {
+  PackingSlipItem,
+  PackingSlipOrder,
+} from "@/lib/pdf/packing-slip-format";
 
 const A4_W = 210;
 const A4_H = 297;
@@ -111,7 +114,11 @@ async function fetchImageAsJpeg(url: string): Promise<string | null> {
     if (!response.ok) return null;
     const blob = await response.blob();
     const type = blob.type || "";
-    if (type && !type.startsWith("image/") && type !== "application/octet-stream") {
+    if (
+      type &&
+      !type.startsWith("image/") &&
+      type !== "application/octet-stream"
+    ) {
       return null;
     }
     return blobToSquareJpeg(blob);

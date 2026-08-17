@@ -112,8 +112,7 @@ function AdminOrderRow({
         description: "Packing slip saved to your downloads.",
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
+      const message = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Failed to generate PDF",
         description: message,

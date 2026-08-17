@@ -146,8 +146,7 @@ export function AdminOrdersSegmentTabs({
         description: `Packing slips for ${paid.rows.length} paid order${paid.rows.length === 1 ? "" : "s"} on this page.`,
       });
     } catch (error) {
-      const message =
-        error instanceof Error ? error.message : "Unknown error";
+      const message = error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Failed to generate PDF",
         description: message,
