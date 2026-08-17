@@ -65,3 +65,5 @@ export function BulkOrderGuardDialog({
     </Dialog>
   );
 }
+
+export default BulkOrderGuardDialog;
