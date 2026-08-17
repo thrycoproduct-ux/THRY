@@ -6,6 +6,7 @@ import {
   formatPackingSlipQuantity,
   buildPackingSlipRecipientLines,
   buildPackingSlipShopFooter,
+  resolvePackingSlipShopAddressLines,
 } from "./packing-slip-format";
 
 describe("packing slip format (THRY CO. reference)", () => {
@@ -77,5 +78,31 @@ describe("packing slip format (THRY CO. reference)", () => {
       "355/1, Balaji Nagar Bedrapalii, Sipcot-1, 635126 Hosur TN, India",
     );
     expect(footer.mobile).toBe("");
+  });
+
+  it("prints the admin shop-contact address on the packing slip footer", () => {
+    const lines = resolvePackingSlipShopAddressLines({
+      isEnabled: true,
+      value: {
+        addressLines: [
+          "12, Factory Road",
+          "Hosur-635109",
+          "Tamil Nadu",
+          "India",
+        ],
+      },
+    });
+    const footer = buildPackingSlipShopFooter(lines);
+    expect(footer.address).toBe("12, Factory Road, 635109 Hosur TN, India");
+  });
+
+  it("falls back to the code address when admin shop contact is off", () => {
+    const lines = resolvePackingSlipShopAddressLines({
+      isEnabled: false,
+      value: { addressLines: ["Should not print"] },
+    });
+    expect(buildPackingSlipShopFooter(lines).address).toContain(
+      "Balaji Nagar Bedrapalii",
+    );
   });
 });

@@ -1,4 +1,5 @@
 import { siteConfig } from "@/config/site";
+import { parseAddressLines } from "@/lib/admin/shop-contact";
 import { INDIA_TIME_ZONE } from "@/lib/datetime/india";
 import type { ShippingAddressFields } from "@/lib/orders/shipping-address-text";
 
@@ -130,18 +131,40 @@ export function buildPackingSlipRecipientLines(order: {
   return lines;
 }
 
+/** Shop address for the packing-slip footer: admin setting, else code default. */
+export function resolvePackingSlipShopAddressLines(
+  adminSetting?: {
+    isEnabled?: boolean;
+    value?: { addressLines?: unknown } | null;
+  } | null,
+): string[] {
+  const fallback = [...siteConfig.addressLines];
+  if (!adminSetting?.isEnabled) return fallback;
+  const parsed = parseAddressLines(
+    adminSetting.value?.addressLines,
+    fallback,
+  );
+  if (parsed.some((line) => /coming soon/i.test(line))) return fallback;
+  return parsed;
+}
+
 /**
  * Footer address like the printed sheet:
  * `Devi nagar hosur, No:1, 635109 Hosur TN, India`
  * Live shop data: street, then `pincode city ST`, then country.
  */
-export function buildPackingSlipShopFooter(): {
+export function buildPackingSlipShopFooter(
+  addressLines?: readonly string[] | null,
+): {
   brand: string;
   address: string;
   mobile: string;
 } {
-  const [street = "", cityLine = "", stateLine = "", country = "India"] =
-    siteConfig.addressLines;
+  const lines =
+    addressLines && addressLines.length > 0
+      ? addressLines
+      : siteConfig.addressLines;
+  const [street = "", cityLine = "", stateLine = "", country = "India"] = lines;
   const pinMatch = cityLine.match(/(\d{6})/);
   const city = cityLine
     .replace(/[-,]?\s*\d{6}/, "")

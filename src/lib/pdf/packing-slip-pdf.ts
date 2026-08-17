@@ -6,6 +6,7 @@ import {
   formatPackingSlipDate,
   formatPackingSlipOrderHeading,
   formatPackingSlipQuantity,
+  resolvePackingSlipShopAddressLines,
   type PackingSlipOrder,
 } from "@/lib/pdf/packing-slip-format";
 
@@ -220,8 +221,31 @@ function ensureSpace(doc: Doc, y: number, need: number): number {
   return 22;
 }
 
-function drawFooter(doc: Doc, y: number) {
-  const footer = buildPackingSlipShopFooter();
+async function fetchAdminShopAddressLines(): Promise<readonly string[]> {
+  try {
+    const response = await fetch("/api/admin/integrations", {
+      cache: "no-store",
+      credentials: "same-origin",
+    });
+    if (!response.ok) return resolvePackingSlipShopAddressLines(null);
+    const payload = (await response.json()) as {
+      storefrontContact?: {
+        isEnabled?: boolean;
+        value?: { addressLines?: unknown } | null;
+      } | null;
+    };
+    return resolvePackingSlipShopAddressLines(payload.storefrontContact);
+  } catch {
+    return resolvePackingSlipShopAddressLines(null);
+  }
+}
+
+function drawFooter(
+  doc: Doc,
+  y: number,
+  shopAddressLines?: readonly string[] | null,
+) {
+  const footer = buildPackingSlipShopFooter(shopAddressLines);
   const contentW = A4_W - MARGIN * 2;
   let cursor = y + 4;
   cursor = ensureSpace(doc, cursor, 36);
@@ -245,7 +269,11 @@ function drawFooter(doc: Doc, y: number) {
   }
 }
 
-async function drawPackingSlip(doc: Doc, order: PackingSlipOrder) {
+async function drawPackingSlip(
+  doc: Doc,
+  order: PackingSlipOrder,
+  shopAddressLines?: readonly string[] | null,
+) {
   const thumbs = await loadItemImages(order);
   let y = drawHeader(doc, order, 22);
   y = drawAddresses(doc, order, y);
@@ -282,7 +310,7 @@ async function drawPackingSlip(doc: Doc, order: PackingSlipOrder) {
     y += rowH;
   }
 
-  drawFooter(doc, y);
+  drawFooter(doc, y, shopAddressLines);
 }
 
 export async function downloadOrderPdf(order: PackingSlipOrder) {
@@ -290,8 +318,9 @@ export async function downloadOrderPdf(order: PackingSlipOrder) {
     throw new Error("Packing slip PDF is only available in the browser.");
   }
   const { jsPDF } = await import("jspdf");
+  const shopAddressLines = await fetchAdminShopAddressLines();
   const doc = new jsPDF({ unit: "mm", format: "a4" }) as unknown as Doc;
-  await drawPackingSlip(doc, order);
+  await drawPackingSlip(doc, order, shopAddressLines);
   const blob = doc.output("blob");
   forceDownloadPdf(blob, buildTimestampedFilename("THRY_Order"));
 }
@@ -302,10 +331,11 @@ export async function downloadOrdersPdf(orders: PackingSlipOrder[]) {
   }
   if (orders.length === 0) return;
   const { jsPDF } = await import("jspdf");
+  const shopAddressLines = await fetchAdminShopAddressLines();
   const doc = new jsPDF({ unit: "mm", format: "a4" }) as unknown as Doc;
   for (let i = 0; i < orders.length; i++) {
     if (i > 0) doc.addPage();
-    await drawPackingSlip(doc, orders[i]);
+    await drawPackingSlip(doc, orders[i], shopAddressLines);
   }
   const blob = doc.output("blob");
   forceDownloadPdf(blob, buildTimestampedFilename("THRY_Orders"));
