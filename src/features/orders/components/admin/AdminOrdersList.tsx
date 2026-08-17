@@ -16,11 +16,8 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
-import { adminOrderToPdfLabel } from "@/lib/pdf/admin-order-pdf-label";
-import {
-  downloadOrderPdf,
-  PdfAddressTooLongError,
-} from "@/lib/pdf/shipping-label-pdf";
+import { adminOrderToPackingSlip } from "@/lib/pdf/admin-order-pdf-label";
+import { downloadOrderPdf } from "@/lib/pdf/packing-slip-pdf";
 import { cn, formatPrice } from "@/lib/utils";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 
@@ -39,7 +36,7 @@ type Props = {
   resetPageParams?: string[];
   pageSizeOptions?: number[];
   emptyMessage?: string;
-  /** Paid section only — shipping-label PDF (Software-Saree-order). */
+  /** Paid section only — packing slip PDF matching the printed THRY CO. sheet. */
   enablePdf?: boolean;
 };
 
@@ -109,18 +106,14 @@ function AdminOrderRow({
 
     setDownloadingPdf(true);
     try {
-      await downloadOrderPdf(adminOrderToPdfLabel(order));
+      await downloadOrderPdf(adminOrderToPackingSlip(order));
       toast({
         title: "PDF downloaded",
-        description: "Shipping label PDF saved to your downloads.",
+        description: "Packing slip saved to your downloads.",
       });
     } catch (error) {
       const message =
-        error instanceof PdfAddressTooLongError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : "Unknown error";
+        error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Failed to generate PDF",
         description: message,
@@ -203,7 +196,7 @@ function AdminOrderRow({
               className="w-full sm:w-auto"
               disabled={downloadingPdf}
               onClick={(event) => void downloadPdf(event)}
-              title="Download shipping label PDF"
+              title="Download packing slip PDF"
             >
               {downloadingPdf ? (
                 <Loader2 className="mr-2 h-4 w-4 animate-spin" />

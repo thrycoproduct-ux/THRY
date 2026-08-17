@@ -5,6 +5,14 @@ import { fileURLToPath } from "node:url";
 import { buildNextSecurityHeaders } from "./security-headers.mjs";
 
 const __dirname = path.dirname(fileURLToPath(import.meta.url));
+const packingSlipPdf = path.resolve(
+  __dirname,
+  "src/lib/pdf/packing-slip-pdf.ts",
+);
+const packingSlipPdfStub = path.resolve(
+  __dirname,
+  "src/lib/pdf/packing-slip-pdf.stub.ts",
+);
 const shippingLabelPdf = path.resolve(
   __dirname,
   "src/lib/pdf/shipping-label-pdf.ts",
@@ -70,6 +78,11 @@ const nextConfig = {
         : []),
       {
         protocol: "https",
+        hostname: "media.thryco.com",
+        pathname: "/**",
+      },
+      {
+        protocol: "https",
         hostname: "source.unsplash.com",
       },
       {
@@ -123,6 +136,7 @@ const nextConfig = {
             jspdf: false,
             // Shipping-label PDF + jsPDF are browser-only; stub on SSR/Worker.
             [shippingLabelPdf]: shippingLabelPdfStub,
+            [packingSlipPdf]: packingSlipPdfStub,
           }
         : {}),
     };

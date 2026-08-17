@@ -16,11 +16,8 @@ import { Badge } from "@/components/ui/badge";
 import { Checkbox } from "@/components/ui/checkbox";
 import { useToast } from "@/components/ui/use-toast";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
-import { adminOrderToPdfLabel } from "@/lib/pdf/admin-order-pdf-label";
-import {
-  downloadOrderPdf,
-  PdfAddressTooLongError,
-} from "@/lib/pdf/shipping-label-pdf";
+import { adminOrderToPackingSlip } from "@/lib/pdf/admin-order-pdf-label";
+import { downloadOrderPdf } from "@/lib/pdf/packing-slip-pdf";
 import { formatPrice } from "@/lib/utils";
 
 type OrderItemView = {
@@ -127,22 +124,29 @@ export function AdminOrderDetailView({
     setDownloadingPdf(true);
     try {
       await downloadOrderPdf(
-        adminOrderToPdfLabel({
+        adminOrderToPackingSlip({
           id: order.id,
-          copyAddressText,
+          createdAt: order.createdAt,
+          customerName: order.customerName,
+          customerMobile: order.customerMobile,
+          shippingAddress: order.shippingAddress,
+          lines: items.map((item) => ({
+            id: item.id,
+            quantity: item.quantity,
+            productName: item.productName,
+            productCode: item.productCode,
+            imageUrl: item.imageUrl,
+            imageAlt: item.imageAlt,
+          })),
         }),
       );
       toast({
         title: "PDF downloaded",
-        description: "Shipping label PDF saved to your downloads.",
+        description: "Packing slip saved to your downloads.",
       });
     } catch (error) {
       const message =
-        error instanceof PdfAddressTooLongError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : "Unknown error";
+        error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Failed to generate PDF",
         description: message,
@@ -163,7 +167,7 @@ export function AdminOrderDetailView({
           <Button
             onClick={() => void downloadPdf()}
             disabled={downloadingPdf}
-            title="Download shipping label PDF"
+            title="Download packing slip PDF"
           >
             {downloadingPdf ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />

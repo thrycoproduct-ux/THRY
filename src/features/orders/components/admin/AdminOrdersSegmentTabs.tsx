@@ -11,11 +11,8 @@ import { clampAdminOrdersPageSize } from "@/lib/admin/admin-orders-pagination";
 import { Button } from "@/components/ui/button";
 import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { adminOrdersToPdfLabels } from "@/lib/pdf/admin-order-pdf-label";
-import {
-  downloadOrdersPdf,
-  PdfAddressTooLongError,
-} from "@/lib/pdf/shipping-label-pdf";
+import { adminOrdersToPackingSlips } from "@/lib/pdf/admin-order-pdf-label";
+import { downloadOrdersPdf } from "@/lib/pdf/packing-slip-pdf";
 import { cn } from "@/lib/utils";
 
 export type OrdersSegment = "paid" | "unpaid";
@@ -143,18 +140,14 @@ export function AdminOrdersSegmentTabs({
     if (downloadingBulkPdf || paid.rows.length === 0) return;
     setDownloadingBulkPdf(true);
     try {
-      await downloadOrdersPdf(adminOrdersToPdfLabels(paid.rows));
+      await downloadOrdersPdf(adminOrdersToPackingSlips(paid.rows));
       toast({
         title: "PDF downloaded",
-        description: `Shipping labels for ${paid.rows.length} paid order${paid.rows.length === 1 ? "" : "s"} on this page.`,
+        description: `Packing slips for ${paid.rows.length} paid order${paid.rows.length === 1 ? "" : "s"} on this page.`,
       });
     } catch (error) {
       const message =
-        error instanceof PdfAddressTooLongError
-          ? error.message
-          : error instanceof Error
-            ? error.message
-            : "Unknown error";
+        error instanceof Error ? error.message : "Unknown error";
       toast({
         title: "Failed to generate PDF",
         description: message,
@@ -284,7 +277,7 @@ export function AdminOrdersSegmentTabs({
             variant="outline"
             onClick={() => void downloadBulkPdf()}
             disabled={downloadingBulkPdf || paid.rows.length === 0}
-            title="Download shipping label PDF for paid orders on this page"
+            title="Download packing slips PDF for paid orders on this page"
           >
             {downloadingBulkPdf ? (
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
