@@ -4,7 +4,7 @@ export const ORDER_SHIPPING = {
   title: "Order & shipping",
   /** Sidebar + page: main timings */
   processingLabel: "Processing time",
-  processing: "4–5 working days",
+  processing: "2–3 days",
   processingNote: "Large orders may take a little longer.",
   deliveryLabel: "Delivery",
   regions: [
@@ -17,11 +17,6 @@ export const ORDER_SHIPPING = {
       place: "Other states in India",
       placeShort: "Other India",
       time: "5–6 working days",
-    },
-    {
-      place: "Outside India",
-      placeShort: "Outside India",
-      time: "15–20 working days",
     },
   ] as const,
   readyStock: "In-stock items usually ship sooner after we confirm.",
