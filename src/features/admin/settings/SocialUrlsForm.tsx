@@ -121,7 +121,7 @@ export function SocialUrlsForm() {
       toast({
         title: "Social URLs saved",
         description:
-          "Footer, menu, WhatsApp button, and contact page now use these links.",
+          "Footer and menu now use Instagram, YouTube, and Facebook links. WhatsApp is not shown on the shop.",
       });
     } catch (error) {
       toast({
@@ -152,8 +152,8 @@ export function SocialUrlsForm() {
                 setForm((prev) => ({ ...prev, enabled: e.target.checked }))
               }
             />
-            Use these URLs on the storefront (footer, side menu, WhatsApp
-            button, contact page)
+            Use these URLs on the storefront (footer and side menu). WhatsApp is
+            not shown to customers.
           </label>
           <p className="text-xs text-muted-foreground">
             Leave a field empty to keep the default link from site settings for

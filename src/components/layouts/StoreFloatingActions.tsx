@@ -1,15 +1,11 @@
 "use client";
 
-import { useState, useCallback } from "react";
 import Link from "next/link";
-import { PhoneCall, ShoppingBag } from "lucide-react";
-import { Icons } from "@/components/layouts/icons";
+import { Mail, ShoppingBag } from "lucide-react";
 import { useCartCount } from "@/features/carts/hooks/useCartCount";
+import { shopMailtoHref } from "@/lib/contact/links";
+import { useStorefrontContact } from "@/providers/ShopContactProvider";
 import { useMobileMenu } from "./MobileMenuContext";
-import {
-  FloatingContactPicker,
-  type ContactPickerMode,
-} from "./FloatingContactPicker";
 
 function CartBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -27,58 +23,34 @@ const floatingActionButtonClass =
 export function StoreFloatingActions() {
   const { isOpen: menuOpen } = useMobileMenu();
   const cartCount = useCartCount();
-  const [openPicker, setOpenPicker] = useState<ContactPickerMode | null>(null);
-
-  const handlePickerChange = useCallback(
-    (mode: ContactPickerMode, open: boolean) => {
-      setOpenPicker(open ? mode : null);
-    },
-    [],
-  );
+  const contact = useStorefrontContact();
+  const mailHref = shopMailtoHref(contact.email);
 
   if (menuOpen) return null;
 
   return (
-    <>
-      {openPicker ? (
-        <div
-          className="fixed inset-0 z-[225] bg-black/10 backdrop-blur-[1px] md:pointer-events-none md:bg-transparent md:backdrop-blur-none"
-          aria-hidden
-          onClick={() => setOpenPicker(null)}
-        />
+    <div
+      className="fixed right-4 z-[230] flex flex-col items-end gap-3 bottom-[calc(var(--mobile-nav-height)+1rem)] md:bottom-6"
+      aria-label="Quick actions"
+    >
+      {mailHref ? (
+        <a
+          href={mailHref}
+          className={`${floatingActionButtonClass} bg-primary text-white ring-2 ring-primary/40`}
+          aria-label={`Email THRY at ${contact.email}`}
+        >
+          <Mail className="h-5 w-5" strokeWidth={2} />
+        </a>
       ) : null}
 
-      <div
-        className="fixed right-4 z-[230] flex flex-col items-end gap-3 bottom-[calc(var(--mobile-nav-height)+1rem)] md:bottom-6"
-        aria-label="Quick actions"
+      <Link
+        href="/cart"
+        className={`relative ${floatingActionButtonClass} border border-border bg-card text-foreground shadow-[0_4px_16px_rgba(192,48,120,0.12)]`}
+        aria-label={`Cart${cartCount > 0 ? `, ${cartCount} items` : ""}`}
       >
-        <FloatingContactPicker
-          mode="call"
-          isOpen={openPicker === "call"}
-          onOpenChange={(open) => handlePickerChange("call", open)}
-          triggerLabel="Call THRY"
-          triggerClassName={`animate-phone-glow ${floatingActionButtonClass} bg-primary text-white ring-2 ring-primary/40`}
-          triggerIcon={<PhoneCall className="h-5 w-5" strokeWidth={2} />}
-        />
-
-        <Link
-          href="/cart"
-          className={`relative ${floatingActionButtonClass} border border-border bg-card text-foreground shadow-[0_4px_16px_rgba(192,48,120,0.12)]`}
-          aria-label={`Cart${cartCount > 0 ? `, ${cartCount} items` : ""}`}
-        >
-          <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
-          <CartBadge count={cartCount} />
-        </Link>
-
-        <FloatingContactPicker
-          mode="whatsapp"
-          isOpen={openPicker === "whatsapp"}
-          onOpenChange={(open) => handlePickerChange("whatsapp", open)}
-          triggerLabel="Chat on WhatsApp"
-          triggerClassName={`animate-whatsapp-glow ${floatingActionButtonClass} bg-[#25D366] text-white ring-2 ring-[#25D366]/40`}
-          triggerIcon={<Icons.whatsapp className="h-5 w-5" />}
-        />
-      </div>
-    </>
+        <ShoppingBag className="h-5 w-5" strokeWidth={1.75} />
+        <CartBadge count={cartCount} />
+      </Link>
+    </div>
   );
 }

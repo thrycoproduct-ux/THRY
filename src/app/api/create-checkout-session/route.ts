@@ -225,7 +225,7 @@ export async function POST(request: Request) {
       return NextResponse.json(
         {
           message:
-            "Online payment is temporarily unavailable. Please contact us on WhatsApp to complete your order.",
+            "Online payment is temporarily unavailable. Please email us to complete your order.",
         },
         { status: 503 },
       );

@@ -21,10 +21,18 @@ export default function AboutPage() {
         tools, customised gifts, and home essentials.
       </p>
       <p>
-        Based in Hosur, Tamil Nadu. Visit us at {siteConfig.address}, or call{" "}
-        <a href={siteConfig.phoneHref} className="text-primary hover:underline">
-          {siteConfig.phone}
-        </a>
+        Based in Hosur, Tamil Nadu. Visit us at {siteConfig.address}
+        {siteConfig.email ? (
+          <>
+            , or email{" "}
+            <a
+              href={`mailto:${siteConfig.email}`}
+              className="text-primary hover:underline"
+            >
+              {siteConfig.email}
+            </a>
+          </>
+        ) : null}
         .
       </p>
       <p>

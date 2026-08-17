@@ -18,6 +18,7 @@ import type {
   StorefrontAnnouncement,
 } from "@/lib/announcements/types";
 import {
+  hideShopPhoneOnStorefront,
   resolveShopContact,
   type ResolvedShopContact,
   type ShopContactPayload,
@@ -69,15 +70,16 @@ export type ResolvedStorefrontSocial = {
   whatsapp: string;
 };
 
-const defaultShopContact = (): ResolvedShopContact => ({
-  addressLines: siteConfig.addressLines,
-  address: siteConfig.address,
-  gstin: siteConfig.gstin,
-  email: siteConfig.email,
-  contacts: siteConfig.contacts,
-  phone: siteConfig.phone,
-  phoneHref: siteConfig.phoneHref,
-});
+const defaultShopContact = (): ResolvedShopContact =>
+  hideShopPhoneOnStorefront({
+    addressLines: siteConfig.addressLines,
+    address: siteConfig.address,
+    gstin: siteConfig.gstin,
+    email: siteConfig.email,
+    contacts: siteConfig.contacts,
+    phone: siteConfig.phone,
+    phoneHref: siteConfig.phoneHref,
+  });
 
 /** Merges admin-managed contact over site defaults for the whole storefront. */
 export async function resolveStorefrontContact(): Promise<ResolvedShopContact> {
@@ -116,7 +118,7 @@ export async function resolveStorefrontSocial(): Promise<ResolvedStorefrontSocia
       instagram: admin.instagram || base.instagram,
       youtube: admin.youtube || base.youtube,
       facebook: admin.facebook || base.facebook,
-      whatsapp: admin.whatsapp || base.whatsapp,
+      whatsapp: "",
     };
   } catch (error) {
     console.error("[settings] resolveStorefrontSocial failed:", error);
@@ -538,7 +540,7 @@ function parseSocialFromRow(
     instagram: String(value.instagram ?? "").trim() || base.instagram,
     youtube: String(value.youtube ?? "").trim() || base.youtube,
     facebook: String(value.facebook ?? "").trim() || base.facebook,
-    whatsapp: String(value.whatsapp ?? "").trim() || base.whatsapp,
+    whatsapp: "",
   };
 }
 

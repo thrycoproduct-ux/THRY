@@ -318,9 +318,9 @@ async function ProductDetailPage({ params }: Props) {
                 <AccordionTrigger>Ship & Returns</AccordionTrigger>
                 <AccordionContent>
                   Shipping across Tamil Nadu and India. Free delivery on
-                  selected orders — contact us on WhatsApp for details. Returns
-                  or exchanges may be accepted within 7 days for unused items
-                  with packaging; please call before returning.
+                  selected orders — email us for details. Returns or exchanges
+                  may be accepted within 7 days for unused items with packaging;
+                  please email before returning.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

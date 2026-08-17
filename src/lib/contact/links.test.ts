@@ -1,4 +1,8 @@
-import { contactActionHref, whatsAppHrefFromPhone } from "@/lib/contact/links";
+import {
+  contactActionHref,
+  shopMailtoHref,
+  whatsAppHrefFromPhone,
+} from "@/lib/contact/links";
 
 describe("contact links", () => {
   it("builds WhatsApp href with country code from tel link", () => {
@@ -40,5 +44,13 @@ describe("contact links", () => {
       "https://wa.me/918870669160",
     );
     expect(contactActionHref(contact, "call")).toBe("tel:+918870669160");
+  });
+
+  it("builds mailto only for a usable shop email", () => {
+    expect(shopMailtoHref("thrycoproduct@gmail.com")).toBe(
+      "mailto:thrycoproduct@gmail.com",
+    );
+    expect(shopMailtoHref("")).toBeNull();
+    expect(shopMailtoHref("not-an-email")).toBeNull();
   });
 });

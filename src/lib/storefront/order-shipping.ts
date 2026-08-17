@@ -36,5 +36,4 @@ export const ORDER_SHIPPING = {
 
 export const ORDER_SHIPPING_FALLBACK = {
   email: "",
-  whatsappPhoneDigits: "919790049838",
 } as const;

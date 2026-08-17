@@ -153,14 +153,14 @@ const offerCodesPayloadSchema = z.object({
 
 const shopContactPersonSchema = z.object({
   name: z.string().trim().min(1).max(80),
-  phone: z.string().trim().min(5).max(32),
+  phone: z.string().trim().max(32),
 });
 
 const shopContactPayloadSchema = z.object({
   addressLines: z.array(z.string().trim().min(1)).min(1).max(10),
   gstin: z.string().trim().max(20),
   email: z.union([z.string().trim().email(), z.literal("")]),
-  contacts: z.array(shopContactPersonSchema).min(1).max(8),
+  contacts: z.array(shopContactPersonSchema).max(8),
 });
 
 async function ensureAdmin() {

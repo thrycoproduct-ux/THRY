@@ -170,10 +170,10 @@ export function ShopContactForm() {
       return;
     }
 
-    if (contacts.length === 0) {
+    if (!form.email.trim()) {
       toast({
-        title: "Contact required",
-        description: "Add at least one contact person with name and phone.",
+        title: "Email required",
+        description: "Shop email is shown on the storefront and mail button.",
         variant: "destructive",
       });
       return;
@@ -206,7 +206,7 @@ export function ShopContactForm() {
       toast({
         title: "Shop contact saved",
         description:
-          "Footer, contact page, and call/WhatsApp buttons now use these details.",
+          "Footer, contact page, and the mail floating button now use these details.",
       });
     } catch (error) {
       toast({
@@ -225,8 +225,9 @@ export function ShopContactForm() {
         <CardHeader>
           <CardTitle>Shop contact</CardTitle>
           <CardDescription>
-            Address, GSTIN, email, and phone numbers shown on the storefront
-            footer, contact page, and floating call/WhatsApp buttons.
+            Address, GSTIN, and email shown on the storefront footer, contact
+            page, and mail floating button. Shop phone numbers are not shown to
+            customers.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">

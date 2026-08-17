@@ -10,25 +10,19 @@ const ADDRESS_LINES = [
   "India",
 ] as const;
 
-const PHONE_DISPLAY = "+91 97900 49838";
-const PHONE_HREF = "tel:+919790049838";
-const WHATSAPP_HREF = "https://wa.me/919790049838";
-
-const CONTACTS = [
-  {
-    name: "THRY",
-    phone: PHONE_DISPLAY,
-    phoneHref: PHONE_HREF,
-  },
-] as const;
-const EMAIL = "";
+const CONTACTS: readonly {
+  name: string;
+  phone: string;
+  phoneHref: string;
+}[] = [];
+const EMAIL = "thrycoproduct@gmail.com";
 const GSTIN = "";
 
 const SOCIAL = {
   instagram: "",
   youtube: "",
   facebook: "",
-  whatsapp: WHATSAPP_HREF,
+  whatsapp: "",
 } as const;
 
 export const siteConfig = {
@@ -43,8 +37,8 @@ export const siteConfig = {
   url: "https://thryco.com",
   addressLines: ADDRESS_LINES,
   address: ADDRESS_LINES.join(", "),
-  phone: PHONE_DISPLAY,
-  phoneHref: PHONE_HREF,
+  phone: "",
+  phoneHref: "",
   contacts: CONTACTS,
   email: EMAIL,
   gstin: GSTIN,

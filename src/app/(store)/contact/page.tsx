@@ -1,29 +1,24 @@
 import InfoPage from "@/components/layouts/InfoPage";
-import {
-  resolveStorefrontContact,
-  resolveStorefrontSocial,
-} from "@/lib/integrations/settings";
+import { resolveStorefrontContact } from "@/lib/integrations/settings";
+import { shopMailtoHref } from "@/lib/contact/links";
 import Link from "next/link";
 import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact | THRY",
-  description:
-    "Contact THRY — phone, WhatsApp, and store address in Hosur, Tamil Nadu",
+  description: "Contact THRY by email, or visit our store in Hosur, Tamil Nadu",
 };
 
 export const revalidate = 60;
 
 export default async function ContactPage() {
-  const [social, contact] = await Promise.all([
-    resolveStorefrontSocial(),
-    resolveStorefrontContact(),
-  ]);
+  const contact = await resolveStorefrontContact();
+  const mailHref = shopMailtoHref(contact.email);
 
   return (
     <InfoPage
       heading="Contact Us"
-      description="Reach THRY by phone, WhatsApp, or visit our store in Hosur."
+      description="Reach THRY by email, or visit our store in Hosur."
     >
       <section id="store" className="space-y-3">
         <h2 className="text-base font-semibold text-foreground">
@@ -39,112 +34,24 @@ export default async function ContactPage() {
               {contact.gstin}
             </p>
           ) : null}
-          {contact.email ? (
-            <p>
-              <Link
-                href={`mailto:${contact.email}`}
-                className="text-primary hover:underline"
-              >
-                {contact.email}
-              </Link>
-            </p>
-          ) : null}
         </address>
       </section>
 
       <section className="space-y-3">
-        <h2 className="text-base font-semibold text-foreground">Phone</h2>
-        {contact.contacts.some((person) => person.phone) ? (
-          <ul className="space-y-1.5">
-            {contact.contacts
-              .filter((person) => person.phone)
-              .map((person) => (
-                <li key={`${person.name}-${person.phone}`}>
-                  <span className="font-medium text-foreground">
-                    {person.name}
-                  </span>
-                  {" — "}
-                  <Link
-                    href={person.phoneHref || "#"}
-                    className="text-primary hover:underline"
-                  >
-                    {person.phone}
-                  </Link>
-                </li>
-              ))}
-          </ul>
-        ) : (
-          <p className="text-muted-foreground">
-            Phone number coming soon. Message us on WhatsApp for orders and
-            queries.
-          </p>
-        )}
-      </section>
-
-      <section className="space-y-3">
-        <h2 className="text-base font-semibold text-foreground">WhatsApp</h2>
-        {social.whatsapp ? (
+        <h2 className="text-base font-semibold text-foreground">Email</h2>
+        {mailHref ? (
           <p>
-            Fastest way to ask about stock or delivery —{" "}
-            <Link
-              href={social.whatsapp}
-              className="text-primary hover:underline"
-              target="_blank"
-              rel="noopener noreferrer"
-            >
-              Chat on WhatsApp
+            <Link href={mailHref} className="text-primary hover:underline">
+              {contact.email}
             </Link>
           </p>
         ) : (
           <p className="text-muted-foreground">
-            WhatsApp link coming soon. Call us meanwhile.
+            Email coming soon. Use the contact form on this site when it is
+            available.
           </p>
         )}
       </section>
-
-      {social.instagram || social.facebook || social.youtube ? (
-        <section className="space-y-3">
-          <h2 className="text-base font-semibold text-foreground">Follow us</h2>
-          <ul className="space-y-1">
-            {social.instagram ? (
-              <li>
-                <Link
-                  href={social.instagram}
-                  className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Instagram
-                </Link>
-              </li>
-            ) : null}
-            {social.facebook ? (
-              <li>
-                <Link
-                  href={social.facebook}
-                  className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  Facebook
-                </Link>
-              </li>
-            ) : null}
-            {social.youtube ? (
-              <li>
-                <Link
-                  href={social.youtube}
-                  className="text-primary hover:underline"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                >
-                  YouTube
-                </Link>
-              </li>
-            ) : null}
-          </ul>
-        </section>
-      ) : null}
     </InfoPage>
   );
 }

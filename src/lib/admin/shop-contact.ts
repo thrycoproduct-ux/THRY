@@ -91,7 +91,7 @@ export function resolveShopContact(
   const gstin = String(admin.gstin ?? "").trim() || defaults.gstin;
   const email = String(admin.email ?? "").trim() || defaults.email;
 
-  return {
+  return hideShopPhoneOnStorefront({
     addressLines,
     address: addressLines.join(", "),
     gstin,
@@ -99,5 +99,17 @@ export function resolveShopContact(
     contacts: resolvedContacts,
     phone: primary?.phone ?? defaults.phone,
     phoneHref: primary?.phoneHref ?? defaults.phoneHref,
+  });
+}
+
+/** Shop phone/WhatsApp stay off the public site even if admin still has numbers saved. */
+export function hideShopPhoneOnStorefront(
+  contact: ResolvedShopContact,
+): ResolvedShopContact {
+  return {
+    ...contact,
+    phone: "",
+    phoneHref: "",
+    contacts: [],
   };
 }

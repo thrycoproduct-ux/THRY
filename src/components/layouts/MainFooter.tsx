@@ -102,22 +102,6 @@ function MainFooter() {
                   Contact
                 </h3>
                 <ul className="space-y-2 text-sm text-muted-foreground">
-                  {contact.contacts.map((person) => (
-                    <li
-                      key={person.phoneHref}
-                      className="flex flex-col gap-0.5 sm:flex-row sm:gap-2"
-                    >
-                      <span className="shrink-0 font-medium text-foreground/80 sm:w-20">
-                        {person.name}
-                      </span>
-                      <Link
-                        href={person.phoneHref}
-                        className="hover:text-primary hover:underline"
-                      >
-                        {person.phone}
-                      </Link>
-                    </li>
-                  ))}
                   {contact.email ? (
                     <li className="flex flex-col gap-0.5 sm:flex-row sm:gap-2">
                       <span className="shrink-0 font-medium text-foreground/80 sm:w-20">

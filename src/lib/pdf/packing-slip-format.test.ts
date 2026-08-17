@@ -68,7 +68,7 @@ describe("packing slip format (THRY CO. reference)", () => {
     expect(lines.at(-1)).toBe("India");
   });
 
-  it("prints shop footer as street, pincode city ST, country + Mobile", () => {
+  it("prints shop footer as street, pincode city ST, country without shop mobile", () => {
     const footer = buildPackingSlipShopFooter();
     expect(footer.brand).toBe(PACKING_SLIP_BRAND);
     expect(footer.brand).toBe("THRY CO.");
@@ -76,6 +76,6 @@ describe("packing slip format (THRY CO. reference)", () => {
     expect(footer.address).toBe(
       "355/1, Balaji Nagar Bedrapalii, Sipcot-1, 635126 Hosur TN, India",
     );
-    expect(footer.mobile).toBe("Mobile: +91 97900 49838");
+    expect(footer.mobile).toBe("");
   });
 });

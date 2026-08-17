@@ -40,16 +40,13 @@ export default function PaymentMethodsPage() {
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-foreground">
-          WhatsApp orders
+          Custom orders
         </h2>
         <p>
           For large or custom orders, you may arrange payment via UPI or bank
-          transfer after confirming details on{" "}
-          <Link
-            href={siteConfig.social.whatsapp}
-            className="text-primary hover:underline"
-          >
-            WhatsApp
+          transfer after confirming details by{" "}
+          <Link href="/contact" className="text-primary hover:underline">
+            email
           </Link>
           .
         </p>

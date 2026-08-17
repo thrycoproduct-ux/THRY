@@ -84,9 +84,6 @@ export default async function Home() {
       ),
     ]);
 
-  // Contact comes from store layout providers; use site default for this section only.
-  const phone = siteConfig.phone;
-
   // Without the draft list we cannot prove a product is publishable, so the
   // reels section stays empty rather than risking an unfinished listing.
   const draftIds = draftProductIds === null ? null : new Set(draftProductIds);
@@ -162,13 +159,13 @@ export default async function Home() {
         ) : null}
 
         <HomeExploreLinks />
-        <TrustFeatures phone={phone} />
+        <TrustFeatures />
       </Shell>
     </main>
   );
 }
 
-function TrustFeatures({ phone }: { phone: string }) {
+function TrustFeatures() {
   const features = [
     {
       Icon: Icons.package,
@@ -179,7 +176,9 @@ function TrustFeatures({ phone }: { phone: string }) {
     {
       Icon: Icons.cart,
       title: "Contact Support",
-      description: `Call ${phone} or email us anytime.`,
+      description: siteConfig.email
+        ? `Email ${siteConfig.email} anytime.`
+        : "Email us anytime from the contact page.",
       iconClass: "text-brand-gold",
     },
     {

@@ -9,8 +9,7 @@ export const revalidate = 3600;
 
 export const metadata: Metadata = {
   title: "Terms & Conditions | THRY",
-  description:
-    "Terms and Conditions and Terms of Use for shopping at THRY.",
+  description: "Terms and Conditions and Terms of Use for shopping at THRY.",
   alternates: {
     canonical: "/terms-and-conditions",
   },
@@ -89,7 +88,7 @@ export default async function TermsAndConditionsPage() {
         <p>
           Placing an order is an offer to purchase. We accept your order when
           payment is successfully received and confirmed, or when we explicitly
-          confirm the order by phone, WhatsApp, or email.
+          confirm the order by email.
         </p>
         <p>
           We reserve the right to cancel or refuse any order due to stock
@@ -229,15 +228,6 @@ export default async function TermsAndConditionsPage() {
           {contact.addressLines.map((line) => (
             <li key={line}>{line}</li>
           ))}
-          <li>
-            Phone:{" "}
-            <Link
-              href={contact.phoneHref}
-              className="text-primary hover:underline"
-            >
-              {contact.phone}
-            </Link>
-          </li>
           {contact.email ? (
             <li>
               Email:{" "}

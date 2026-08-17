@@ -162,15 +162,6 @@ export default async function PrivacyPolicyPage() {
         <h2 className="text-base font-semibold text-foreground">9. Contact</h2>
         <p>For privacy-related questions, contact us:</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>
-            Phone:{" "}
-            <Link
-              href={contact.phoneHref}
-              className="text-primary hover:underline"
-            >
-              {contact.phone}
-            </Link>
-          </li>
           {contact.email ? (
             <li>
               Email:{" "}

@@ -15,6 +15,15 @@ export type StoreContact = {
   phoneHref: string;
 };
 
+/** Storefront mail link; null when email is missing or invalid. */
+export function shopMailtoHref(
+  email: string | null | undefined,
+): string | null {
+  const value = String(email ?? "").trim();
+  if (!value || !value.includes("@") || value.includes(" ")) return null;
+  return `mailto:${value}`;
+}
+
 export function contactActionHref(
   contact: StoreContact,
   mode: "call" | "whatsapp",
