@@ -11,6 +11,7 @@ import {
   FileDown,
   Loader2,
   PackageCheck,
+  Plus,
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
@@ -36,6 +37,14 @@ import { parseTrackingNumberFromBarcodeText } from "@/lib/dispatch/barcode-parsi
 import { buildCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
 import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
 import type { OrderDispatchInfo } from "@/lib/dispatch/get-order-dispatch-info";
+
+const ADD_NEW_COURIER_VALUE = "__add_new_courier__";
+
+type DispatchCourierOption = {
+  id: string;
+  name: string;
+  trackingUrlTemplate: string | null;
+};
 
 type OrderItemView = {
   id: string;
@@ -76,11 +85,7 @@ type Props = {
   items: OrderItemView[];
   copyAddressText: string;
   courierCopyText: string;
-  dispatchCouriers: {
-    id: string;
-    name: string;
-    trackingUrlTemplate: string | null;
-  }[];
+  dispatchCouriers: DispatchCourierOption[];
   dispatchInfo: OrderDispatchInfo | null;
   dispatchNotificationText: string | null;
   adminUserId: string;
@@ -123,9 +128,17 @@ export function AdminOrderDetailView({
   const router = useRouter();
 
   const [dispatchOpen, setDispatchOpen] = useState(false);
+  const [courierOptions, setCourierOptions] =
+    useState<DispatchCourierOption[]>(dispatchCouriers);
   const [dispatchCourierId, setDispatchCourierId] = useState<
     string | undefined
   >(dispatchCouriers[0]?.id);
+  const [showAddCourier, setShowAddCourier] = useState(false);
+  const [newCourierName, setNewCourierName] = useState("");
+  const [newCourierTrackingTemplate, setNewCourierTrackingTemplate] =
+    useState("");
+  const [newCourierError, setNewCourierError] = useState<string | null>(null);
+  const [savingCourier, setSavingCourier] = useState(false);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [dispatchTrackingInput, setDispatchTrackingInput] = useState("");
   const [dispatchSubmitting, setDispatchSubmitting] = useState(false);
@@ -156,14 +169,18 @@ export function AdminOrderDetailView({
     }
   }, [dispatchLastCourierKey]);
 
+  useEffect(() => {
+    setCourierOptions(dispatchCouriers);
+  }, [dispatchCouriers]);
+
   // Apply remembered courier when modal opens or courier list changes.
   useEffect(() => {
     if (!memoryLoaded) return;
     if (!lastCourierId) return;
-    if (dispatchCouriers.some((c) => c.id === lastCourierId)) {
+    if (courierOptions.some((c) => c.id === lastCourierId)) {
       setDispatchCourierId(lastCourierId);
     }
-  }, [dispatchCouriers, lastCourierId, memoryLoaded]);
+  }, [courierOptions, lastCourierId, memoryLoaded]);
 
   const packedCount = useMemo(
     () => Object.values(packedMap).filter(Boolean).length,
@@ -176,12 +193,11 @@ export function AdminOrderDetailView({
     order.paymentStatus.trim().toLowerCase(),
   );
 
-  const canDispatch =
-    isPaid && orderStatusNorm === "preparing" && dispatchCouriers.length > 0;
+  const canDispatch = isPaid && orderStatusNorm === "preparing";
 
   const selectedCourier = useMemo(
-    () => dispatchCouriers.find((c) => c.id === dispatchCourierId) ?? null,
-    [dispatchCouriers, dispatchCourierId],
+    () => courierOptions.find((c) => c.id === dispatchCourierId) ?? null,
+    [courierOptions, dispatchCourierId],
   );
 
   const previewTrackingUrl = useMemo(() => {
@@ -196,26 +212,102 @@ export function AdminOrderDetailView({
 
   const activeDispatchInfo = dispatchSuccess ?? dispatchInfo;
 
+  function resetAddCourierForm() {
+    setShowAddCourier(false);
+    setNewCourierName("");
+    setNewCourierTrackingTemplate("");
+    setNewCourierError(null);
+  }
+
   function resetDispatchModalState() {
     setDispatchError(null);
     setDispatchSuccess(null);
     setDispatchTrackingInput("");
-    const fallback = dispatchCouriers[0]?.id;
-    if (lastCourierId && dispatchCouriers.some((c) => c.id === lastCourierId)) {
+    resetAddCourierForm();
+    const fallback = courierOptions[0]?.id;
+    if (lastCourierId && courierOptions.some((c) => c.id === lastCourierId)) {
       setDispatchCourierId(lastCourierId);
     } else {
       setDispatchCourierId(fallback);
     }
+    if (courierOptions.length === 0) {
+      setShowAddCourier(true);
+    }
     setScannerOpen(false);
+  }
+
+  async function saveNewCourier() {
+    if (savingCourier) return;
+
+    const name = newCourierName.trim();
+    if (name.length < 2) {
+      setNewCourierError("Courier name must be at least 2 characters.");
+      return;
+    }
+
+    setSavingCourier(true);
+    setNewCourierError(null);
+
+    try {
+      const res = await fetch("/api/admin/dispatch-couriers", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          name,
+          trackingUrlTemplate:
+            newCourierTrackingTemplate.trim() === ""
+              ? null
+              : newCourierTrackingTemplate.trim(),
+        }),
+      });
+
+      const payload = await res
+        .json()
+        .catch(() => ({ message: "Could not save courier." }));
+
+      if (!res.ok) {
+        throw new Error(
+          typeof payload?.message === "string"
+            ? payload.message
+            : "Could not save courier.",
+        );
+      }
+
+      const savedCourier = payload.courier as DispatchCourierOption | undefined;
+      if (!savedCourier?.id) {
+        throw new Error("Courier saved but response was incomplete.");
+      }
+
+      setCourierOptions((prev) => {
+        const withoutDuplicate = prev.filter((c) => c.id !== savedCourier.id);
+        return [...withoutDuplicate, savedCourier].sort((a, b) =>
+          a.name.localeCompare(b.name),
+        );
+      });
+      setDispatchCourierId(savedCourier.id);
+      resetAddCourierForm();
+      toast({
+        title: payload.reactivated ? "Courier restored" : "Courier saved",
+        description: `"${savedCourier.name}" is ready for dispatch.`,
+      });
+    } catch (error) {
+      const message =
+        error instanceof Error
+          ? error.message
+          : "Could not save courier. Please retry.";
+      setNewCourierError(message);
+    } finally {
+      setSavingCourier(false);
+    }
   }
 
   // Keep default courier in sync when courier list changes.
   useEffect(() => {
     if (!dispatchOpen) return;
-    if (!dispatchCourierId && dispatchCouriers[0]?.id) {
-      setDispatchCourierId(dispatchCouriers[0]?.id);
+    if (!dispatchCourierId && courierOptions[0]?.id) {
+      setDispatchCourierId(courierOptions[0]?.id);
     }
-  }, [dispatchOpen, dispatchCourierId, dispatchCouriers]);
+  }, [dispatchOpen, dispatchCourierId, courierOptions]);
 
   // Persist courier selection for next dispatch (best-effort).
   useEffect(() => {
@@ -527,21 +619,114 @@ export function AdminOrderDetailView({
                     <div className="space-y-2">
                       <Label htmlFor="dispatch-courier">Courier</Label>
                       <Select
-                        value={dispatchCourierId}
-                        onValueChange={setDispatchCourierId}
+                        value={
+                          showAddCourier
+                            ? undefined
+                            : dispatchCourierId ?? undefined
+                        }
+                        onValueChange={(value) => {
+                          if (value === ADD_NEW_COURIER_VALUE) {
+                            setShowAddCourier(true);
+                            setNewCourierError(null);
+                            return;
+                          }
+                          resetAddCourierForm();
+                          setDispatchCourierId(value);
+                        }}
                       >
                         <SelectTrigger id="dispatch-courier">
-                          <SelectValue placeholder="Select courier" />
+                          <SelectValue
+                            placeholder={
+                              courierOptions.length === 0
+                                ? "Add a courier to continue"
+                                : "Select courier"
+                            }
+                          />
                         </SelectTrigger>
                         <SelectContent className="z-[200]">
-                          {dispatchCouriers.map((c) => (
+                          {courierOptions.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               {c.name}
                             </SelectItem>
                           ))}
+                          <SelectItem value={ADD_NEW_COURIER_VALUE}>
+                            <span className="inline-flex items-center gap-1.5">
+                              <Plus className="h-3.5 w-3.5" />
+                              Add new courier
+                            </span>
+                          </SelectItem>
                         </SelectContent>
                       </Select>
                     </div>
+
+                    {showAddCourier ? (
+                      <div className="space-y-3 rounded-md border bg-muted/20 p-3">
+                        <div className="space-y-1">
+                          <p className="text-sm font-medium">New courier</p>
+                          <p className="text-xs text-muted-foreground">
+                            Save the courier name once and reuse it on future
+                            dispatches.
+                          </p>
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="new-courier-name">Courier name</Label>
+                          <Input
+                            id="new-courier-name"
+                            value={newCourierName}
+                            placeholder="e.g. Ekart, Local courier"
+                            onChange={(e) => setNewCourierName(e.target.value)}
+                            disabled={savingCourier || dispatchSubmitting}
+                          />
+                        </div>
+                        <div className="space-y-2">
+                          <Label htmlFor="new-courier-tracking-template">
+                            Tracking URL (optional)
+                          </Label>
+                          <Input
+                            id="new-courier-tracking-template"
+                            value={newCourierTrackingTemplate}
+                            placeholder="https://track.example.com/{tracking}"
+                            onChange={(e) =>
+                              setNewCourierTrackingTemplate(e.target.value)
+                            }
+                            disabled={savingCourier || dispatchSubmitting}
+                          />
+                          <p className="text-xs text-muted-foreground">
+                            Use {"{tracking}"} where the tracking number should
+                            go.
+                          </p>
+                        </div>
+                        {newCourierError ? (
+                          <p className="text-sm text-destructive">
+                            {newCourierError}
+                          </p>
+                        ) : null}
+                        <div className="flex flex-wrap gap-2">
+                          <Button
+                            type="button"
+                            onClick={() => void saveNewCourier()}
+                            disabled={savingCourier || dispatchSubmitting}
+                          >
+                            {savingCourier ? (
+                              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                            ) : (
+                              <Plus className="mr-2 h-4 w-4" />
+                            )}
+                            {savingCourier ? "Saving…" : "Save courier"}
+                          </Button>
+                          {courierOptions.length > 0 ? (
+                            <Button
+                              type="button"
+                              variant="outline"
+                              onClick={resetAddCourierForm}
+                              disabled={savingCourier || dispatchSubmitting}
+                            >
+                              Cancel
+                            </Button>
+                          ) : null}
+                        </div>
+                      </div>
+                    ) : null}
 
                     <div className="space-y-2">
                       <Label htmlFor="dispatch-tracking">
@@ -726,7 +911,12 @@ export function AdminOrderDetailView({
                             }
                           })();
                         }}
-                        disabled={dispatchSubmitting || !dispatchCourierId}
+                        disabled={
+                          dispatchSubmitting ||
+                          !dispatchCourierId ||
+                          showAddCourier ||
+                          savingCourier
+                        }
                       >
                         {dispatchSubmitting ? (
                           <Loader2 className="mr-2 h-4 w-4 animate-spin" />
