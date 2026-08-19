@@ -1,7 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import { BrowserMultiFormatReader, NotFoundException } from "@zxing/browser";
+import { BrowserMultiFormatReader, type IScannerControls } from "@zxing/browser";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -61,7 +61,7 @@ export default function BarcodeScannerModal({
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
-  const zxingReaderRef = useRef<BrowserMultiFormatReader | null>(null);
+  const scannerControlsRef = useRef<IScannerControls | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
   const [status, setStatus] = useState<
     "idle" | "requesting" | "streaming" | "scanning"
@@ -79,11 +79,11 @@ export default function BarcodeScannerModal({
       cancelled = true;
       if (timer) window.clearTimeout(timer);
       try {
-        zxingReaderRef.current?.reset();
+        scannerControlsRef.current?.stop();
       } catch {
         // ignore
       }
-      zxingReaderRef.current = null;
+      scannerControlsRef.current = null;
       stopStream(streamRef.current);
       streamRef.current = null;
     };
@@ -150,28 +150,20 @@ export default function BarcodeScannerModal({
         }
 
         const reader = new BrowserMultiFormatReader();
-        zxingReaderRef.current = reader;
+        scannerControlsRef.current = await reader.decodeFromVideoElement(
+          video,
+          (result) => {
+            if (cancelled) return;
 
-        await reader.decodeFromVideoElement(video, (result, error) => {
-          if (cancelled) return;
-
-          if (result) {
-            const text = result.getText()?.trim();
-            if (text) {
-              onDetected(text);
-              onOpenChange(false);
+            if (result) {
+              const text = result.getText()?.trim();
+              if (text) {
+                onDetected(text);
+                onOpenChange(false);
+              }
             }
-            return;
-          }
-
-          if (
-            error &&
-            !(error instanceof NotFoundException) &&
-            error.name !== "NotFoundException"
-          ) {
-            // NotFoundException is expected while scanning; ignore it.
-          }
-        });
+          },
+        );
       } catch (error) {
         const message =
           error instanceof Error && error.message.trim()
@@ -191,11 +183,11 @@ export default function BarcodeScannerModal({
     if (open) return;
 
     try {
-      zxingReaderRef.current?.reset();
+      scannerControlsRef.current?.stop();
     } catch {
       // ignore
     }
-    zxingReaderRef.current = null;
+    scannerControlsRef.current = null;
     stopStream(streamRef.current);
     streamRef.current = null;
     setStatus("idle");
