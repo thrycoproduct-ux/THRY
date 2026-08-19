@@ -411,6 +411,72 @@ export const ordersRelations = relations(orders, ({ one }) => ({
   }),
 }));
 
+// Dispatch workflow (admin-only)
+export const dispatchCouriers = pgTable("dispatch_couriers", {
+  id: text("id").notNull().primaryKey(),
+  name: varchar("name", { length: 191 }).notNull().unique(),
+  trackingUrlTemplate: varchar("tracking_url_template", { length: 512 }),
+  isActive: boolean("is_active").notNull().default(true),
+  createdAt: timestamp("created_at", { withTimezone: true, mode: "string" })
+    .defaultNow()
+    .notNull(),
+});
+
+export type SelectDispatchCouriers = InferSelectModel<
+  typeof dispatchCouriers
+>;
+export type InsertDispatchCouriers = InferInsertModel<
+  typeof dispatchCouriers
+>;
+
+export const orderDispatchEvents = pgTable(
+  "order_dispatch_events",
+  {
+    id: text("id").notNull().primaryKey(),
+    orderId: text("order_id")
+      .notNull()
+      .references(() => orders.id, { onDelete: "cascade" }),
+    courierId: text("courier_id").references(() => dispatchCouriers.id, {
+      onDelete: "set null",
+    }),
+    courierName: varchar("courier_name", { length: 191 }).notNull(),
+    trackingUrlTemplate: varchar("tracking_url_template", { length: 512 }),
+    trackingNumber: text("tracking_number"),
+    dispatchStatus: varchar("dispatch_status", { length: 64 })
+      .notNull()
+      .default("DISPATCHED"),
+    dispatchedAt: timestamp("dispatched_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .notNull()
+      .defaultNow(),
+    createdBy: uuid("created_by").references(() => profiles.id, {
+      onDelete: "set null",
+    }),
+    createdAt: timestamp("created_at", {
+      withTimezone: true,
+      mode: "string",
+    })
+      .defaultNow()
+      .notNull(),
+  },
+  (table) => {
+    return {
+      orderUnique: uniqueIndex("order_dispatch_events_order_id_unique").on(
+        table.orderId,
+      ),
+    };
+  },
+);
+
+export type SelectOrderDispatchEvents = InferSelectModel<
+  typeof orderDispatchEvents
+>;
+export type InsertOrderDispatchEvents = InferInsertModel<
+  typeof orderDispatchEvents
+>;
+
 export const orderLines = pgTable(
   "order_lines",
   {

@@ -53,11 +53,6 @@ export function CollectionCardSurface({
         }
       />
 
-      <div
-        className="absolute inset-0 bg-gradient-to-t from-brand-purple/95 via-brand-teal/40 to-transparent"
-        aria-hidden
-      />
-
       <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
         <div className="inline-flex max-w-full flex-col gap-1 rounded-xl border border-white/25 bg-white/15 px-2.5 py-2 sm:px-3">
           <p className="font-[family-name:var(--font-hero-serif)] text-sm font-semibold leading-snug text-white drop-shadow-md sm:text-base lg:text-lg">
