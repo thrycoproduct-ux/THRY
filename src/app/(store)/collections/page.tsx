@@ -15,8 +15,7 @@ export const metadata: Metadata = {
   },
   openGraph: {
     title: "All Collections | THRY",
-    description:
-      "Browse terracotta and art & craft collections at THRY.",
+    description: "Browse terracotta and art & craft collections at THRY.",
     url: "/collections",
   },
 };
@@ -29,7 +28,6 @@ export default async function AllCollectionsPage() {
     <Shell>
       <Header
         heading="Product Categories"
-        description="Browse craft supplies by collection"
       />
 
       {collections.length === 0 ? (

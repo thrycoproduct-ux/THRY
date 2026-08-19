@@ -94,10 +94,7 @@ async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   return (
     <Shell>
       <CollectionBanner collectionBannerData={collection} />
-      <SectionHeading
-        heading={collection.label}
-        description={collection.description}
-      />
+      <SectionHeading heading={collection.label} />
 
       <Suspense
         fallback={
