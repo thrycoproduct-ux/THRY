@@ -61,8 +61,11 @@ export async function POST(
     await request.json().catch(() => null),
   );
   if (!parsedBody.success) {
+    const parseError = parsedBody as z.SafeParseError<
+      z.infer<typeof dispatchPayloadSchema>
+    >;
     return NextResponse.json(
-      publicValidationPayload("Invalid dispatch payload", parsedBody.error),
+      publicValidationPayload("Invalid dispatch payload", parseError.error),
       { status: 400 },
     );
   }
