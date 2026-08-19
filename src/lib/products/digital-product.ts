@@ -157,8 +157,7 @@ export function resolveDigitalProductFields(input: {
   }
 
   const contentType =
-    String(input.digitalContentType ?? "").trim() ||
-    "application/octet-stream";
+    String(input.digitalContentType ?? "").trim() || "application/octet-stream";
 
   return {
     isDigital: true,

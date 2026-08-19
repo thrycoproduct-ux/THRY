@@ -140,10 +140,7 @@ export function resolvePackingSlipShopAddressLines(
 ): string[] {
   const fallback = [...siteConfig.addressLines];
   if (!adminSetting?.isEnabled) return fallback;
-  const parsed = parseAddressLines(
-    adminSetting.value?.addressLines,
-    fallback,
-  );
+  const parsed = parseAddressLines(adminSetting.value?.addressLines, fallback);
   if (parsed.some((line) => /coming soon/i.test(line))) return fallback;
   return parsed;
 }

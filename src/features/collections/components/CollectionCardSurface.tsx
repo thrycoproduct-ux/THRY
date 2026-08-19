@@ -53,12 +53,14 @@ export function CollectionCardSurface({
         }
       />
 
+      <div className="pointer-events-none absolute inset-x-0 bottom-0 h-2/5 bg-gradient-to-t from-black/80 via-black/45 to-transparent" />
+
       <div className="absolute inset-x-0 bottom-0 p-3 sm:p-4">
         <div className="inline-flex max-w-full flex-col gap-1">
-          <p className="font-[family-name:var(--font-hero-serif)] text-sm font-semibold leading-snug text-white drop-shadow-md sm:text-base lg:text-lg">
+          <p className="font-[family-name:var(--font-hero-serif)] text-sm font-semibold leading-snug text-white drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-base lg:text-lg">
             {label}
           </p>
-          <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-yellow sm:text-[11px]">
+          <p className="inline-flex items-center gap-1 text-[10px] font-semibold uppercase tracking-[0.14em] text-brand-yellow drop-shadow-[0_1px_2px_rgba(0,0,0,0.8)] sm:text-[11px]">
             View collection
             <ArrowUpRight className="h-3 w-3 transition-transform duration-300 group-hover:translate-x-0.5 group-hover:-translate-y-0.5" />
           </p>

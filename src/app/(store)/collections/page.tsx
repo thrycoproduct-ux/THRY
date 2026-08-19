@@ -26,9 +26,7 @@ export default async function AllCollectionsPage() {
 
   return (
     <Shell>
-      <Header
-        heading="Product Categories"
-      />
+      <Header heading="Product Categories" />
 
       {collections.length === 0 ? (
         <p className="py-12 text-center text-muted-foreground">

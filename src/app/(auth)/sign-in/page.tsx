@@ -31,9 +31,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
           <h1 className="text-2xl font-semibold tracking-tight text-foreground">
             Sign in
           </h1>
-          <p className="text-sm text-muted-foreground">
-            Welcome back to THRY
-          </p>
+          <p className="text-sm text-muted-foreground">Welcome back to THRY</p>
         </div>
       </div>
 

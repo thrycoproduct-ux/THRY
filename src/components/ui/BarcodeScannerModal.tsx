@@ -1,10 +1,7 @@
 "use client";
 
 import React, { useEffect, useRef, useState } from "react";
-import {
-  BrowserMultiFormatReader,
-  NotFoundException,
-} from "@zxing/browser";
+import { BrowserMultiFormatReader, NotFoundException } from "@zxing/browser";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,

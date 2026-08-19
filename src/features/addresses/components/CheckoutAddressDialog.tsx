@@ -26,9 +26,7 @@ import {
 } from "../lib/userAddress";
 import type { UserAddressRecord } from "../lib/userAddress";
 import type { CheckoutProgressUpdate } from "@/features/checkout/checkout-progress";
-import {
-  savingAddressProgress,
-} from "@/features/checkout/checkout-progress";
+import { savingAddressProgress } from "@/features/checkout/checkout-progress";
 import CheckoutTermsNotice from "@/components/layouts/CheckoutTermsNotice";
 
 type Props = {

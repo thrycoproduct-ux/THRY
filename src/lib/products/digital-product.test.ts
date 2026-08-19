@@ -9,9 +9,9 @@ import {
 
 describe("digital product files", () => {
   it("accepts zip uploads and rejects html", () => {
-    expect(assertDigitalUploadLimits({ fileName: "app.zip", fileSize: 10 }).ext).toBe(
-      "zip",
-    );
+    expect(
+      assertDigitalUploadLimits({ fileName: "app.zip", fileSize: 10 }).ext,
+    ).toBe("zip");
     expect(() =>
       assertDigitalUploadLimits({ fileName: "page.html", fileSize: 10 }),
     ).toThrow(/software file/i);

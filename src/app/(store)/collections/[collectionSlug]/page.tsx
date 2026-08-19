@@ -1,4 +1,3 @@
-import SectionHeading from "@/components/layouts/SectionHeading";
 import { Shell } from "@/components/layouts/Shell";
 import { Skeleton } from "@/components/ui/skeleton";
 import { CollectionBanner } from "@/features/collections";
@@ -94,7 +93,6 @@ async function CategoryPage({ params, searchParams }: CategoryPageProps) {
   return (
     <Shell>
       <CollectionBanner collectionBannerData={collection} />
-      <SectionHeading heading={collection.label} />
 
       <Suspense
         fallback={
