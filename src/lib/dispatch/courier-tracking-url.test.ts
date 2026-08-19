@@ -23,9 +23,9 @@ describe("buildCourierTrackingUrl", () => {
   });
 
   it("appends tracking when template has no placeholder", () => {
-    expect(
-      buildCourierTrackingUrl("https://example.com/track", "ABC123"),
-    ).toBe("https://example.com/track/ABC123");
+    expect(buildCourierTrackingUrl("https://example.com/track", "ABC123")).toBe(
+      "https://example.com/track/ABC123",
+    );
   });
 
   it("returns null without tracking when template needs it", () => {

@@ -1,5 +1,8 @@
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
-import { publicValidationPayload, logServerError } from "@/lib/api/public-error";
+import {
+  publicValidationPayload,
+  logServerError,
+} from "@/lib/api/public-error";
 import { sanitizeTrackingNumber } from "@/lib/dispatch/tracking-sanitizer";
 import { resolveCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
 import db from "@/lib/supabase/db";
@@ -33,11 +36,15 @@ async function ensureAdmin() {
 }
 
 function normalizeOrderStatus(raw: unknown) {
-  return String(raw ?? "").trim().toLowerCase();
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 function normalizePaymentStatus(raw: unknown) {
-  return String(raw ?? "").trim().toLowerCase();
+  return String(raw ?? "")
+    .trim()
+    .toLowerCase();
 }
 
 export async function POST(
@@ -55,10 +62,7 @@ export async function POST(
   );
   if (!parsedBody.success) {
     return NextResponse.json(
-      publicValidationPayload(
-        "Invalid dispatch payload",
-        parsedBody.error,
-      ),
+      publicValidationPayload("Invalid dispatch payload", parsedBody.error),
       { status: 400 },
     );
   }
@@ -203,4 +207,3 @@ export async function POST(
     dispatchedAt: dispatchedAtIso,
   });
 }
-

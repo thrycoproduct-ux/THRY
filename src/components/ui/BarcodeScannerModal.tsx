@@ -46,9 +46,9 @@ export default function BarcodeScannerModal({
     if (typeof window === "undefined") return null;
     return (window as any).BarcodeDetector as
       | (new (formats?: string[]) => {
-          detect: (input: VideoFrame | HTMLVideoElement) => Promise<
-            Array<{ rawValue?: string | null }>
-          >;
+          detect: (
+            input: VideoFrame | HTMLVideoElement,
+          ) => Promise<Array<{ rawValue?: string | null }>>;
         })
       | undefined;
   }, []);
@@ -99,7 +99,8 @@ export default function BarcodeScannerModal({
         // Ensure metadata is loaded before scanning.
         await new Promise<void>((resolve, reject) => {
           video.onloadedmetadata = () => resolve();
-          video.onerror = () => reject(new Error("Video metadata failed to load."));
+          video.onerror = () =>
+            reject(new Error("Video metadata failed to load."));
         });
         await video.play();
 
@@ -188,7 +189,9 @@ export default function BarcodeScannerModal({
           ) : null}
 
           <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            {status === "requesting" || status === "streaming" || status === "scanning" ? (
+            {status === "requesting" ||
+            status === "streaming" ||
+            status === "scanning" ? (
               <>
                 <Loader2 className="h-4 w-4 animate-spin" />
                 <span>
@@ -203,7 +206,11 @@ export default function BarcodeScannerModal({
           </div>
 
           <div className="flex justify-end">
-            <Button type="button" variant="outline" onClick={() => onOpenChange(false)}>
+            <Button
+              type="button"
+              variant="outline"
+              onClick={() => onOpenChange(false)}
+            >
               Close
             </Button>
           </div>
@@ -212,4 +219,3 @@ export default function BarcodeScannerModal({
     </Dialog>
   );
 }
-

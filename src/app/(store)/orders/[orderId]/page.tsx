@@ -230,7 +230,9 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
               </p>
               {dispatchInfo.trackingNumber ? (
                 <p className="break-all">
-                  <span className="text-muted-foreground">Tracking number:</span>{" "}
+                  <span className="text-muted-foreground">
+                    Tracking number:
+                  </span>{" "}
                   {dispatchInfo.trackingNumber}
                 </p>
               ) : null}

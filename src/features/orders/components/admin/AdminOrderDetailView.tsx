@@ -440,7 +440,9 @@ export function AdminOrderDetailView({
                 {dispatchSuccess ? (
                   <>
                     <div className="space-y-1">
-                      <h2 className="text-lg font-semibold">Order dispatched</h2>
+                      <h2 className="text-lg font-semibold">
+                        Order dispatched
+                      </h2>
                       <p className="text-sm text-muted-foreground">
                         Courier and tracking details are saved. Share the link
                         with the customer if needed.
@@ -515,213 +517,225 @@ export function AdminOrderDetailView({
                   </>
                 ) : (
                   <>
-                <div className="space-y-1">
-                  <h2 className="text-lg font-semibold">Dispatch order</h2>
-                  <p className="text-sm text-muted-foreground">
-                    Choose a courier and optionally enter a tracking number.
-                  </p>
-                </div>
+                    <div className="space-y-1">
+                      <h2 className="text-lg font-semibold">Dispatch order</h2>
+                      <p className="text-sm text-muted-foreground">
+                        Choose a courier and optionally enter a tracking number.
+                      </p>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="dispatch-courier">Courier</Label>
-                  <Select
-                    value={dispatchCourierId}
-                    onValueChange={setDispatchCourierId}
-                  >
-                    <SelectTrigger id="dispatch-courier">
-                      <SelectValue placeholder="Select courier" />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {dispatchCouriers.map((c) => (
-                        <SelectItem key={c.id} value={c.id}>
-                          {c.name}
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dispatch-courier">Courier</Label>
+                      <Select
+                        value={dispatchCourierId}
+                        onValueChange={setDispatchCourierId}
+                      >
+                        <SelectTrigger id="dispatch-courier">
+                          <SelectValue placeholder="Select courier" />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {dispatchCouriers.map((c) => (
+                            <SelectItem key={c.id} value={c.id}>
+                              {c.name}
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
 
-                <div className="space-y-2">
-                  <Label htmlFor="dispatch-tracking">
-                    Tracking number (optional)
-                  </Label>
-                  <Input
-                    id="dispatch-tracking"
-                    value={dispatchTrackingInput}
-                    placeholder="e.g. AB-12345"
-                    onChange={(e) => setDispatchTrackingInput(e.target.value)}
-                    disabled={dispatchSubmitting}
-                  />
-                </div>
+                    <div className="space-y-2">
+                      <Label htmlFor="dispatch-tracking">
+                        Tracking number (optional)
+                      </Label>
+                      <Input
+                        id="dispatch-tracking"
+                        value={dispatchTrackingInput}
+                        placeholder="e.g. AB-12345"
+                        onChange={(e) =>
+                          setDispatchTrackingInput(e.target.value)
+                        }
+                        disabled={dispatchSubmitting}
+                      />
+                    </div>
 
-                <div className="flex items-center justify-between gap-2">
-                  <p className="text-xs text-muted-foreground">
-                    Optional scan to fill tracking quickly.
-                  </p>
-                  <Button
-                    type="button"
-                    variant="outline"
-                    onClick={() => setScannerOpen(true)}
-                    disabled={dispatchSubmitting}
-                  >
-                    Scan barcode
-                  </Button>
-                </div>
+                    <div className="flex items-center justify-between gap-2">
+                      <p className="text-xs text-muted-foreground">
+                        Optional scan to fill tracking quickly.
+                      </p>
+                      <Button
+                        type="button"
+                        variant="outline"
+                        onClick={() => setScannerOpen(true)}
+                        disabled={dispatchSubmitting}
+                      >
+                        Scan barcode
+                      </Button>
+                    </div>
 
-                {previewTrackingUrl ? (
-                  <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-sm">
-                    <p className="font-medium text-emerald-900">
-                      Tracking link ready
-                    </p>
-                    <a
-                      href={previewTrackingUrl}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="mt-1 inline-flex items-center gap-1 break-all text-emerald-800 underline-offset-2 hover:underline"
-                    >
-                      <ExternalLink className="h-3.5 w-3.5 shrink-0" />
-                      {previewTrackingUrl}
-                    </a>
-                  </div>
-                ) : selectedCourier?.trackingUrlTemplate &&
-                  dispatchTrackingInput.trim() === "" ? (
-                  <p className="text-xs text-muted-foreground">
-                    Add a tracking number to generate the courier tracking link.
-                  </p>
-                ) : null}
+                    {previewTrackingUrl ? (
+                      <div className="rounded-md border border-emerald-200 bg-emerald-50/70 px-3 py-2 text-sm">
+                        <p className="font-medium text-emerald-900">
+                          Tracking link ready
+                        </p>
+                        <a
+                          href={previewTrackingUrl}
+                          target="_blank"
+                          rel="noopener noreferrer"
+                          className="mt-1 inline-flex items-center gap-1 break-all text-emerald-800 underline-offset-2 hover:underline"
+                        >
+                          <ExternalLink className="h-3.5 w-3.5 shrink-0" />
+                          {previewTrackingUrl}
+                        </a>
+                      </div>
+                    ) : selectedCourier?.trackingUrlTemplate &&
+                      dispatchTrackingInput.trim() === "" ? (
+                      <p className="text-xs text-muted-foreground">
+                        Add a tracking number to generate the courier tracking
+                        link.
+                      </p>
+                    ) : null}
 
-                <BarcodeScannerModal
-                  open={scannerOpen}
-                  onOpenChange={(next) => {
-                    setScannerOpen(next);
-                    if (!next) return;
-                    setDispatchError(null);
-                  }}
-                  onDetected={(raw) => {
-                    const parsed =
-                      parseTrackingNumberFromBarcodeText(raw) ?? null;
+                    <BarcodeScannerModal
+                      open={scannerOpen}
+                      onOpenChange={(next) => {
+                        setScannerOpen(next);
+                        if (!next) return;
+                        setDispatchError(null);
+                      }}
+                      onDetected={(raw) => {
+                        const parsed =
+                          parseTrackingNumberFromBarcodeText(raw) ?? null;
 
-                    if (parsed) {
-                      setDispatchTrackingInput(parsed);
-                      setDispatchError(null);
-                      return;
-                    }
-
-                    setDispatchTrackingInput(raw.trim());
-                    setDispatchError(
-                      "Scanned code could not be parsed. Please review/edit before confirming.",
-                    );
-                  }}
-                />
-
-                {dispatchError ? (
-                  <p className="text-sm text-destructive">{dispatchError}</p>
-                ) : null}
-
-                <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
-                  <DialogClose asChild>
-                    <Button
-                      type="button"
-                      variant="outline"
-                      disabled={dispatchSubmitting}
-                    >
-                      Cancel
-                    </Button>
-                  </DialogClose>
-
-                  <Button
-                    type="button"
-                    onClick={() => {
-                      void (async () => {
-                        if (dispatchSubmitting) return;
-                        if (!dispatchCourierId) {
-                          setDispatchError("Please select a courier.");
+                        if (parsed) {
+                          setDispatchTrackingInput(parsed);
+                          setDispatchError(null);
                           return;
                         }
-                        setDispatchSubmitting(true);
-                        setDispatchError(null);
-                        try {
-                          const res = await fetch(
-                            `/api/admin/orders/${order.id}/dispatch`,
-                            {
-                              method: "POST",
-                              headers: {
-                                "Content-Type": "application/json",
-                              },
-                              body: JSON.stringify({
-                                courierId: dispatchCourierId,
-                                trackingNumber:
-                                  dispatchTrackingInput.trim() === ""
-                                    ? null
-                                    : dispatchTrackingInput,
-                              }),
-                            },
-                          );
 
-                          const payload = await res
-                            .json()
-                            .catch(() => ({ message: "Dispatch failed" }));
+                        setDispatchTrackingInput(raw.trim());
+                        setDispatchError(
+                          "Scanned code could not be parsed. Please review/edit before confirming.",
+                        );
+                      }}
+                    />
 
-                          if (!res.ok) {
-                            throw new Error(
-                              typeof payload?.message === "string"
-                                ? payload.message
-                                : "Dispatch failed. Please retry.",
-                            );
-                          }
-
-                          const courierName =
-                            payload.courier?.name ??
-                            selectedCourier?.name ??
-                            "Courier";
-                          const dispatchedAt =
-                            payload.dispatchedAt ?? new Date().toISOString();
-
-                          setDispatchSuccess({
-                            courierName,
-                            trackingNumber: payload.trackingNumber ?? null,
-                            trackingUrl: payload.trackingUrl ?? null,
-                            dispatchedAt,
-                            notificationText: buildDispatchNotificationText({
-                              orderId: order.id,
-                              customerName: order.customerName,
-                              courierName,
-                              trackingNumber: payload.trackingNumber ?? null,
-                              dispatchedAt,
-                              trackingUrlTemplate:
-                                selectedCourier?.trackingUrlTemplate ?? null,
-                            }),
-                          });
-                          toast({
-                            title: "Order dispatched",
-                            description: payload.trackingUrl
-                              ? "Tracking link is ready."
-                              : "Order marked as dispatched.",
-                          });
-                        } catch (error) {
-                          const message =
-                            error instanceof Error
-                              ? error.message
-                              : "Dispatch failed. Please retry.";
-                          setDispatchError(message);
-                          toast({
-                            title: "Dispatch failed",
-                            description: message,
-                            variant: "destructive",
-                          });
-                        } finally {
-                          setDispatchSubmitting(false);
-                        }
-                      })();
-                    }}
-                    disabled={dispatchSubmitting || !dispatchCourierId}
-                  >
-                    {dispatchSubmitting ? (
-                      <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                    {dispatchError ? (
+                      <p className="text-sm text-destructive">
+                        {dispatchError}
+                      </p>
                     ) : null}
-                    {dispatchSubmitting ? "Dispatching…" : "Confirm dispatch"}
-                  </Button>
-                </div>
+
+                    <div className="flex flex-col gap-2 sm:flex-row sm:justify-end">
+                      <DialogClose asChild>
+                        <Button
+                          type="button"
+                          variant="outline"
+                          disabled={dispatchSubmitting}
+                        >
+                          Cancel
+                        </Button>
+                      </DialogClose>
+
+                      <Button
+                        type="button"
+                        onClick={() => {
+                          void (async () => {
+                            if (dispatchSubmitting) return;
+                            if (!dispatchCourierId) {
+                              setDispatchError("Please select a courier.");
+                              return;
+                            }
+                            setDispatchSubmitting(true);
+                            setDispatchError(null);
+                            try {
+                              const res = await fetch(
+                                `/api/admin/orders/${order.id}/dispatch`,
+                                {
+                                  method: "POST",
+                                  headers: {
+                                    "Content-Type": "application/json",
+                                  },
+                                  body: JSON.stringify({
+                                    courierId: dispatchCourierId,
+                                    trackingNumber:
+                                      dispatchTrackingInput.trim() === ""
+                                        ? null
+                                        : dispatchTrackingInput,
+                                  }),
+                                },
+                              );
+
+                              const payload = await res
+                                .json()
+                                .catch(() => ({ message: "Dispatch failed" }));
+
+                              if (!res.ok) {
+                                throw new Error(
+                                  typeof payload?.message === "string"
+                                    ? payload.message
+                                    : "Dispatch failed. Please retry.",
+                                );
+                              }
+
+                              const courierName =
+                                payload.courier?.name ??
+                                selectedCourier?.name ??
+                                "Courier";
+                              const dispatchedAt =
+                                payload.dispatchedAt ??
+                                new Date().toISOString();
+
+                              setDispatchSuccess({
+                                courierName,
+                                trackingNumber: payload.trackingNumber ?? null,
+                                trackingUrl: payload.trackingUrl ?? null,
+                                dispatchedAt,
+                                notificationText: buildDispatchNotificationText(
+                                  {
+                                    orderId: order.id,
+                                    customerName: order.customerName,
+                                    courierName,
+                                    trackingNumber:
+                                      payload.trackingNumber ?? null,
+                                    dispatchedAt,
+                                    trackingUrlTemplate:
+                                      selectedCourier?.trackingUrlTemplate ??
+                                      null,
+                                  },
+                                ),
+                              });
+                              toast({
+                                title: "Order dispatched",
+                                description: payload.trackingUrl
+                                  ? "Tracking link is ready."
+                                  : "Order marked as dispatched.",
+                              });
+                            } catch (error) {
+                              const message =
+                                error instanceof Error
+                                  ? error.message
+                                  : "Dispatch failed. Please retry.";
+                              setDispatchError(message);
+                              toast({
+                                title: "Dispatch failed",
+                                description: message,
+                                variant: "destructive",
+                              });
+                            } finally {
+                              setDispatchSubmitting(false);
+                            }
+                          })();
+                        }}
+                        disabled={dispatchSubmitting || !dispatchCourierId}
+                      >
+                        {dispatchSubmitting ? (
+                          <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+                        ) : null}
+                        {dispatchSubmitting
+                          ? "Dispatching…"
+                          : "Confirm dispatch"}
+                      </Button>
+                    </div>
                   </>
                 )}
               </div>

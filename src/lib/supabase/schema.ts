@@ -422,12 +422,8 @@ export const dispatchCouriers = pgTable("dispatch_couriers", {
     .notNull(),
 });
 
-export type SelectDispatchCouriers = InferSelectModel<
-  typeof dispatchCouriers
->;
-export type InsertDispatchCouriers = InferInsertModel<
-  typeof dispatchCouriers
->;
+export type SelectDispatchCouriers = InferSelectModel<typeof dispatchCouriers>;
+export type InsertDispatchCouriers = InferInsertModel<typeof dispatchCouriers>;
 
 export const orderDispatchEvents = pgTable(
   "order_dispatch_events",

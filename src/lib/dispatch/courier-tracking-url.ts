@@ -52,8 +52,5 @@ export function resolveCourierTrackingUrl(input: {
   );
   if (fromSnapshot) return fromSnapshot;
 
-  return buildCourierTrackingUrl(
-    input.templateFallback,
-    input.trackingNumber,
-  );
+  return buildCourierTrackingUrl(input.templateFallback, input.trackingNumber);
 }
