@@ -9,7 +9,7 @@ describe("security headers", () => {
     const byKey = Object.fromEntries(headers.map((h) => [h.key, h.value]));
 
     expect(byKey["Strict-Transport-Security"]).toContain("max-age=63072000");
-    expect(byKey["Permissions-Policy"]).toContain("camera=()");
+    expect(byKey["Permissions-Policy"]).toContain("camera=(self)");
     expect(byKey["X-Content-Type-Options"]).toBe("nosniff");
     expect(byKey["Content-Security-Policy-Report-Only"]).toBe(
       CONTENT_SECURITY_POLICY,

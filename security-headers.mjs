@@ -19,7 +19,7 @@ export const SECURITY_HEADERS = [
   },
   {
     key: "Permissions-Policy",
-    value: "camera=(), microphone=(), geolocation=(), payment=(self)",
+    value: "camera=(self), microphone=(), geolocation=(), payment=(self)",
   },
   {
     key: "X-DNS-Prefetch-Control",

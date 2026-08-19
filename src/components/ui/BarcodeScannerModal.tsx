@@ -1,6 +1,10 @@
 "use client";
 
-import React, { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useRef, useState } from "react";
+import {
+  BrowserMultiFormatReader,
+  NotFoundException,
+} from "@zxing/browser";
 import { Button } from "@/components/ui/button";
 import {
   Dialog,
@@ -16,9 +20,14 @@ type Props = {
   onOpenChange: (open: boolean) => void;
   /**
    * Called once when a barcode/QR code is detected.
-   * `value` is the raw decoded string from `BarcodeDetector`.
    */
   onDetected: (value: string) => void;
+};
+
+type BarcodeDetectorLike = {
+  detect: (
+    input: HTMLVideoElement,
+  ) => Promise<Array<{ rawValue?: string | null }>>;
 };
 
 function stopStream(stream: MediaStream | null) {
@@ -30,54 +39,67 @@ function stopStream(stream: MediaStream | null) {
   }
 }
 
+function createNativeBarcodeDetector(): BarcodeDetectorLike | null {
+  if (typeof window === "undefined") return null;
+
+  const ctor = (
+    window as Window & {
+      BarcodeDetector?: new () => BarcodeDetectorLike;
+    }
+  ).BarcodeDetector;
+
+  if (!ctor) return null;
+
+  try {
+    return new ctor();
+  } catch {
+    return null;
+  }
+}
+
 export default function BarcodeScannerModal({
   open,
   onOpenChange,
   onDetected,
 }: Props) {
   const videoRef = useRef<HTMLVideoElement | null>(null);
+  const streamRef = useRef<MediaStream | null>(null);
+  const zxingReaderRef = useRef<BrowserMultiFormatReader | null>(null);
   const [cameraError, setCameraError] = useState<string | null>(null);
-  const [activeStream, setActiveStream] = useState<MediaStream | null>(null);
   const [status, setStatus] = useState<
-    "idle" | "requesting" | "streaming" | "scanning" | "unsupported"
+    "idle" | "requesting" | "streaming" | "scanning"
   >("idle");
-
-  const BarcodeDetectorCtor = useMemo(() => {
-    if (typeof window === "undefined") return null;
-    return (window as any).BarcodeDetector as
-      | (new (formats?: string[]) => {
-          detect: (
-            input: VideoFrame | HTMLVideoElement,
-          ) => Promise<Array<{ rawValue?: string | null }>>;
-        })
-      | undefined;
-  }, []);
 
   useEffect(() => {
     if (!open) return;
 
-    // Reset UI per open.
     setCameraError(null);
 
-    const detectorCtor = (window as any).BarcodeDetector as
-      | undefined
-      | (new (...args: any[]) => { detect: (...args: any[]) => Promise<any> });
-
-    if (!detectorCtor) {
-      setStatus("unsupported");
-      setCameraError(
-        "Barcode scanning is not supported in this browser. Please enter the tracking number manually.",
-      );
-      return;
-    }
-
     let cancelled = false;
-    let detector: any = null;
     let timer: number | null = null;
+
+    const cleanup = () => {
+      cancelled = true;
+      if (timer) window.clearTimeout(timer);
+      try {
+        zxingReaderRef.current?.reset();
+      } catch {
+        // ignore
+      }
+      zxingReaderRef.current = null;
+      stopStream(streamRef.current);
+      streamRef.current = null;
+    };
 
     const run = async () => {
       try {
         setStatus("requesting");
+
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error(
+            "Camera access is not available in this browser. Please enter the tracking number manually.",
+          );
+        }
 
         const stream = await navigator.mediaDevices.getUserMedia({
           video: { facingMode: { ideal: "environment" } },
@@ -89,14 +111,13 @@ export default function BarcodeScannerModal({
           return;
         }
 
-        setActiveStream(stream);
+        streamRef.current = stream;
         setStatus("streaming");
 
         const video = videoRef.current;
         if (!video) throw new Error("Video element not ready.");
 
         video.srcObject = stream;
-        // Ensure metadata is loaded before scanning.
         await new Promise<void>((resolve, reject) => {
           video.onloadedmetadata = () => resolve();
           video.onerror = () =>
@@ -104,32 +125,56 @@ export default function BarcodeScannerModal({
         });
         await video.play();
 
-        detector = new detectorCtor();
         setStatus("scanning");
 
-        const scanLoop = async () => {
-          if (cancelled) return;
-          try {
-            const input = videoRef.current;
-            if (!input) return;
-            const barcodes = await detector.detect(input);
-            const first = barcodes?.[0];
-            const raw = first?.rawValue ?? null;
+        const nativeDetector = createNativeBarcodeDetector();
+        if (nativeDetector) {
+          const scanLoop = async () => {
+            if (cancelled) return;
+            try {
+              const input = videoRef.current;
+              if (!input) return;
+              const barcodes = await nativeDetector.detect(input);
+              const raw = barcodes?.[0]?.rawValue ?? null;
 
-            if (typeof raw === "string" && raw.trim()) {
-              // Stop immediately after first success.
-              onDetected(raw);
-              onOpenChange(false);
-              return;
+              if (typeof raw === "string" && raw.trim()) {
+                onDetected(raw);
+                onOpenChange(false);
+                return;
+              }
+            } catch {
+              // Ignore scan errors; keep scanning.
             }
-          } catch {
-            // Ignore scan errors; keep scanning.
-          } finally {
             timer = window.setTimeout(scanLoop, 250);
-          }
-        };
+          };
 
-        timer = window.setTimeout(scanLoop, 250);
+          timer = window.setTimeout(scanLoop, 250);
+          return;
+        }
+
+        const reader = new BrowserMultiFormatReader();
+        zxingReaderRef.current = reader;
+
+        await reader.decodeFromVideoElement(video, (result, error) => {
+          if (cancelled) return;
+
+          if (result) {
+            const text = result.getText()?.trim();
+            if (text) {
+              onDetected(text);
+              onOpenChange(false);
+            }
+            return;
+          }
+
+          if (
+            error &&
+            !(error instanceof NotFoundException) &&
+            error.name !== "NotFoundException"
+          ) {
+            // NotFoundException is expected while scanning; ignore it.
+          }
+        });
       } catch (error) {
         const message =
           error instanceof Error && error.message.trim()
@@ -142,25 +187,27 @@ export default function BarcodeScannerModal({
 
     void run();
 
-    return () => {
-      cancelled = true;
-      if (timer) window.clearTimeout(timer);
-      stopStream(activeStream);
-    };
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [open, onDetected, onOpenChange, BarcodeDetectorCtor]);
+    return cleanup;
+  }, [open, onDetected, onOpenChange]);
 
-  // Cleanup stream when modal closes.
   useEffect(() => {
     if (open) return;
-    stopStream(activeStream);
-    setActiveStream(null);
+
+    try {
+      zxingReaderRef.current?.reset();
+    } catch {
+      // ignore
+    }
+    zxingReaderRef.current = null;
+    stopStream(streamRef.current);
+    streamRef.current = null;
     setStatus("idle");
-  }, [open, activeStream]);
+    setCameraError(null);
+  }, [open]);
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-xl">
+      <DialogContent className="z-[210] max-w-xl">
         <DialogHeader>
           <DialogTitle>Scan barcode</DialogTitle>
           <DialogDescription>
@@ -170,18 +217,12 @@ export default function BarcodeScannerModal({
 
         <div className="space-y-3">
           <div className="relative aspect-video w-full overflow-hidden rounded-md border bg-black">
-            {status === "unsupported" ? (
-              <div className="flex h-full w-full items-center justify-center p-4 text-sm text-muted-foreground">
-                Scanner unsupported
-              </div>
-            ) : (
-              <video
-                ref={videoRef}
-                className="h-full w-full object-cover"
-                playsInline
-                muted
-              />
-            )}
+            <video
+              ref={videoRef}
+              className="h-full w-full object-cover"
+              playsInline
+              muted
+            />
           </div>
 
           {cameraError ? (

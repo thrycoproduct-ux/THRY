@@ -123,9 +123,9 @@ export function AdminOrderDetailView({
   const router = useRouter();
 
   const [dispatchOpen, setDispatchOpen] = useState(false);
-  const [dispatchCourierId, setDispatchCourierId] = useState(
-    dispatchCouriers[0]?.id ?? "",
-  );
+  const [dispatchCourierId, setDispatchCourierId] = useState<
+    string | undefined
+  >(dispatchCouriers[0]?.id);
   const [scannerOpen, setScannerOpen] = useState(false);
   const [dispatchTrackingInput, setDispatchTrackingInput] = useState("");
   const [dispatchSubmitting, setDispatchSubmitting] = useState(false);
@@ -200,7 +200,7 @@ export function AdminOrderDetailView({
     setDispatchError(null);
     setDispatchSuccess(null);
     setDispatchTrackingInput("");
-    const fallback = dispatchCouriers[0]?.id ?? "";
+    const fallback = dispatchCouriers[0]?.id;
     if (lastCourierId && dispatchCouriers.some((c) => c.id === lastCourierId)) {
       setDispatchCourierId(lastCourierId);
     } else {
@@ -533,7 +533,7 @@ export function AdminOrderDetailView({
                         <SelectTrigger id="dispatch-courier">
                           <SelectValue placeholder="Select courier" />
                         </SelectTrigger>
-                        <SelectContent>
+                        <SelectContent className="z-[200]">
                           {dispatchCouriers.map((c) => (
                             <SelectItem key={c.id} value={c.id}>
                               {c.name}

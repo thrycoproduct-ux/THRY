@@ -93,6 +93,7 @@
     "@urql/exchange-graphcache": "^6.4.1",
     "@urql/exchange-retry": "^1.2.1",
     "@urql/next": "^1.1.0",
+    "@zxing/browser": "^0.2.1",
     "aws4fetch": "^1.0.20",
     "class-variance-authority": "^0.7.0",
     "clsx": "^2.1.0",
