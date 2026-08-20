@@ -3,10 +3,15 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { siteConfig } from "@/config/site";
 import { brandSans, heroSerif } from "@/lib/fonts";
+import {
+  SOCIAL_IMAGE_FALLBACK_PATH,
+  absoluteSocialFallbackUrl,
+} from "@/lib/seo/social-image";
 import { getURL } from "@/lib/utils";
 import CustomProvider from "../providers/CustomProvider";
 
 const siteUrl = getURL();
+const defaultSocialImageUrl = absoluteSocialFallbackUrl();
 
 export const metadata: Metadata = {
   metadataBase: new URL(siteUrl),
@@ -40,11 +45,20 @@ export const metadata: Metadata = {
     siteName: siteConfig.name,
     title: `${siteConfig.name} | ${siteConfig.tagline}`,
     description: siteConfig.description,
+    images: [
+      {
+        url: SOCIAL_IMAGE_FALLBACK_PATH,
+        width: 1200,
+        height: 630,
+        alt: siteConfig.name,
+      },
+    ],
   },
   twitter: {
     card: "summary_large_image",
     title: `${siteConfig.name} | ${siteConfig.tagline}`,
     description: siteConfig.description,
+    images: [defaultSocialImageUrl],
   },
   robots: {
     index: true,

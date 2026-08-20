@@ -22,6 +22,7 @@ import {
   getProductSizeConfig,
 } from "@/lib/products/sizeConfig";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo/json-ld";
+import { buildSocialImages } from "@/lib/seo/social-image";
 import { getCartProductPricingByIds } from "@/lib/storefront/cart-pricing";
 import { getPublishedProductDetailCached } from "@/lib/storefront/product-detail";
 import {
@@ -59,13 +60,15 @@ type Props = {
 export async function generateMetadata({ params }: Props): Promise<Metadata> {
   const resolvedParams = await params;
   const data = await getPublishedProductDetailCached(resolvedParams.slug);
-  const productName = data?.productsCollection?.edges?.[0]?.node?.name;
+  const product = data?.productsCollection?.edges?.[0]?.node;
+  const productName = product?.name;
   const path = `/shop/${resolvedParams.slug}`;
 
   if (productName) {
     const productDescription =
-      data?.productsCollection?.edges?.[0]?.node?.description?.trim() ||
+      product?.description?.trim() ||
       `Buy ${productName} online from THRY. Creative 3D printed products with secure checkout.`;
+    const social = buildSocialImages(product?.featuredImage?.key, productName);
     return {
       title: productName,
       description: productDescription,
@@ -76,6 +79,12 @@ export async function generateMetadata({ params }: Props): Promise<Metadata> {
         title: `${productName} | THRY`,
         description: productDescription,
         url: path,
+        ...social.openGraph,
+      },
+      twitter: {
+        ...social.twitter,
+        title: `${productName} | THRY`,
+        description: productDescription,
       },
     };
   }

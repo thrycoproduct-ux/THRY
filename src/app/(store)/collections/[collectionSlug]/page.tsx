@@ -17,7 +17,9 @@ import {
 } from "@/lib/storefront/product-queries";
 import { buildShopSearchVariables } from "@/lib/storefront/search-params";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
+import { buildSocialImages } from "@/lib/seo/social-image";
 import { toTitleCase, unslugify } from "@/lib/utils";
+import type { Metadata } from "next";
 import { notFound, redirect } from "next/navigation";
 import { Suspense } from "react";
 
@@ -32,21 +34,41 @@ interface CategoryPageProps {
   }>;
 }
 
-export async function generateMetadata({ params }: CategoryPageProps) {
+export async function generateMetadata({
+  params,
+}: CategoryPageProps): Promise<Metadata> {
   const resolvedParams = await params;
-  const collectionName = toTitleCase(unslugify(resolvedParams.collectionSlug));
   const path = `/collections/${resolvedParams.collectionSlug}`;
+  const data = await getCollectionPageCached(resolvedParams.collectionSlug);
+  const collection = data?.collectionsCollection?.edges?.[0]?.node;
+  const collectionName =
+    collection?.label?.trim() ||
+    collection?.title?.trim() ||
+    toTitleCase(unslugify(resolvedParams.collectionSlug));
+  const description =
+    collection?.description?.trim() ||
+    `Shop ${collectionName} craft supplies at THRY. Premium terracotta and craft supplies with secure online ordering.`;
+  const social = buildSocialImages(
+    collection?.featuredImage?.key,
+    collectionName,
+  );
 
   return {
-    title: `${collectionName} Sarees`,
-    description: `Shop ${collectionName} craft supplies at THRY. Premium terracotta and craft supplies with secure online ordering.`,
+    title: collectionName,
+    description,
     alternates: {
       canonical: path,
     },
     openGraph: {
-      title: `${collectionName} Sarees | THRY`,
-      description: `Shop ${collectionName} craft supplies at THRY.`,
+      title: `${collectionName} | THRY`,
+      description,
       url: path,
+      ...social.openGraph,
+    },
+    twitter: {
+      ...social.twitter,
+      title: `${collectionName} | THRY`,
+      description,
     },
   };
 }
