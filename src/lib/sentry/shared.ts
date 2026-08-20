@@ -14,6 +14,9 @@ export const SENTRY_CLIENT_IGNORE_ERRORS: Array<string | RegExp> = [
   /Failed to fetch/i,
   /Load failed/i,
   /Network request failed/i,
+  // Browser extensions / translators mutating the DOM during React reconcile
+  /Failed to execute 'removeChild' on 'Node'/i,
+  /Failed to execute 'insertBefore' on 'Node'/i,
   // Residual crawler / extension noise around structured data
   /@context.*toLowerCase/i,
 ];
@@ -24,7 +27,7 @@ export const SENTRY_CLIENT_DENY_URLS: RegExp[] = [
 ];
 
 const SENTRY_CLIENT_NOISE_MESSAGE =
-  /Java object is gone|Java exception was raised|webkit\.messageHandlers|enableDidUserTypeOnKeyboardLogging|Error invoking postMessage|NetworkError|Failed to fetch|Load failed|Network request failed|@context.*toLowerCase/i;
+  /Java object is gone|Java exception was raised|webkit\.messageHandlers|enableDidUserTypeOnKeyboardLogging|Error invoking postMessage|NetworkError|Failed to fetch|Load failed|Network request failed|Failed to execute 'removeChild' on 'Node'|Failed to execute 'insertBefore' on 'Node'|@context.*toLowerCase/i;
 
 export function isSentryClientNoiseMessage(
   message: string | undefined | null,

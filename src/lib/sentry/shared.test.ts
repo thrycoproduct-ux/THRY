@@ -83,6 +83,11 @@ describe("sentry shared helpers", () => {
       isSentryClientNoiseMessage("NetworkError: A network error occurred."),
     ).toBe(true);
     expect(isSentryClientNoiseMessage("Checkout failed")).toBe(false);
+    expect(
+      isSentryClientNoiseMessage(
+        "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
+      ),
+    ).toBe(true);
   });
 
   it("drops noisy Sentry events via beforeSend helper", () => {
