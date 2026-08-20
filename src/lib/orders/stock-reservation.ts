@@ -135,10 +135,10 @@ async function lockAndDecrementOptionStock(
 ) {
   const key = getProductSizeConfigKey(productId);
   const locked = await tx.execute(
-    sql`SELECT id, value FROM api_settings WHERE key = ${key} FOR UPDATE`,
+    sql`SELECT key, value FROM api_settings WHERE key = ${key} FOR UPDATE`,
   );
 
-  const row = locked.at(0) as { id?: string; value?: unknown } | undefined;
+  const row = locked.at(0) as { key?: string; value?: unknown } | undefined;
   if (!row) {
     return false;
   }
@@ -216,9 +216,9 @@ async function incrementOptionStock(
 ) {
   const key = getProductSizeConfigKey(productId);
   const locked = await tx.execute(
-    sql`SELECT id, value FROM api_settings WHERE key = ${key} FOR UPDATE`,
+    sql`SELECT key, value FROM api_settings WHERE key = ${key} FOR UPDATE`,
   );
-  const row = locked.at(0) as { id?: string; value?: unknown } | undefined;
+  const row = locked.at(0) as { key?: string; value?: unknown } | undefined;
   const config = normalizeProductSizeConfig(row?.value);
   if (!config.enabled || getActiveOptionGroups(config).length === 0) {
     return;
