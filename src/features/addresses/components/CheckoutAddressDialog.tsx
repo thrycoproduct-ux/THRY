@@ -27,6 +27,7 @@ import {
 import type { UserAddressRecord } from "../lib/userAddress";
 import type { CheckoutProgressUpdate } from "@/features/checkout/checkout-progress";
 import { savingAddressProgress } from "@/features/checkout/checkout-progress";
+import { formatCheckoutErrorMessage } from "@/features/checkout/format-checkout-error";
 import CheckoutTermsNotice from "@/components/layouts/CheckoutTermsNotice";
 
 type Props = {
@@ -140,9 +141,10 @@ export function CheckoutAddressDialog({
       onCheckoutError?.();
       toast({
         title: "Checkout failed",
-        description: err instanceof Error ? err.message : "Please try again.",
+        description: formatCheckoutErrorMessage(err),
         variant: "destructive",
       });
+      // Handled via toast — do not rethrow (avoids Sentry unhandledrejection noise).
     } finally {
       setIsSubmitting(false);
     }
@@ -163,10 +165,10 @@ export function CheckoutAddressDialog({
       onCheckoutError?.();
       toast({
         title: "Checkout failed",
-        description: err instanceof Error ? err.message : "Please try again.",
+        description: formatCheckoutErrorMessage(err),
         variant: "destructive",
       });
-      throw err;
+      // Handled via toast — do not rethrow (avoids Sentry unhandledrejection noise).
     } finally {
       setIsSubmitting(false);
     }

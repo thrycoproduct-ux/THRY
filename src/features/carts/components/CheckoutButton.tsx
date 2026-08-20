@@ -10,6 +10,7 @@ import { CheckoutAddressDialog } from "@/features/addresses";
 import type { SavedShippingAddress } from "@/features/addresses";
 import { clearCheckoutAddressDraft } from "@/features/addresses/lib/checkoutAddressDraft";
 import { clearClaimedOfferCode } from "@/features/offers/lib/welcomeOffer";
+import { formatCheckoutErrorMessage } from "@/features/checkout/format-checkout-error";
 import { startCheckout } from "@/features/checkout/startCheckout";
 import {
   preconnectRazorpayCheckout,
@@ -98,10 +99,10 @@ function CheckoutButton({
       clearProgress();
       toast({
         title: "Checkout failed",
-        description: err instanceof Error ? err.message : "Please try again.",
+        description: formatCheckoutErrorMessage(err),
         variant: "destructive",
       });
-      throw err;
+      // Handled via toast — do not rethrow (avoids Sentry unhandledrejection noise).
     } finally {
       setIsLoading(false);
     }

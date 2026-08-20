@@ -4,6 +4,9 @@ import {
   getSentryEnvironment,
   getTracesSampleRate,
   isSentryEnabled,
+  SENTRY_CLIENT_DENY_URLS,
+  SENTRY_CLIENT_IGNORE_ERRORS,
+  shouldDropSentryClientEvent,
 } from "@/lib/sentry/shared";
 
 Sentry.init({
@@ -16,15 +19,12 @@ Sentry.init({
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 0,
   sendDefaultPii: false,
-  ignoreErrors: [
-    // Android / iOS in-app browsers (WhatsApp, Instagram, etc.)
-    "Java object is gone",
-    "Java exception was raised during method invocation",
-    "webkit.messageHandlers",
-    "enableDidUserTypeOnKeyboardLogging",
-    // Residual crawler / extension noise around structured data
-    /@context.*toLowerCase/i,
-  ],
+  ignoreErrors: SENTRY_CLIENT_IGNORE_ERRORS,
+  denyUrls: SENTRY_CLIENT_DENY_URLS,
+  beforeSend(event) {
+    if (shouldDropSentryClientEvent(event)) return null;
+    return event;
+  },
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;

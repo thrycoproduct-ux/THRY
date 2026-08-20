@@ -3,6 +3,8 @@ import {
   getSentryEnvironment,
   getTracesSampleRate,
   isSentryEnabled,
+  isSentryClientNoiseMessage,
+  shouldDropSentryClientEvent,
 } from "@/lib/sentry/shared";
 
 function setEnv(key: string, value: string | undefined) {
@@ -69,5 +71,37 @@ describe("sentry shared helpers", () => {
   it("prefers explicit environment labels", () => {
     setEnv("NEXT_PUBLIC_SENTRY_ENVIRONMENT", "staging");
     expect(getSentryEnvironment()).toBe("staging");
+  });
+
+  it("detects WebView and network noise messages", () => {
+    expect(
+      isSentryClientNoiseMessage(
+        "Error invoking postMessage: Java object is gone",
+      ),
+    ).toBe(true);
+    expect(
+      isSentryClientNoiseMessage("NetworkError: A network error occurred."),
+    ).toBe(true);
+    expect(isSentryClientNoiseMessage("Checkout failed")).toBe(false);
+  });
+
+  it("drops noisy Sentry events via beforeSend helper", () => {
+    expect(
+      shouldDropSentryClientEvent({
+        exception: {
+          values: [
+            {
+              type: "Error",
+              value: "Error invoking postMessage: Java object is gone",
+            },
+          ],
+        },
+      }),
+    ).toBe(true);
+    expect(
+      shouldDropSentryClientEvent({
+        exception: { values: [{ type: "Error", value: "Real checkout bug" }] },
+      }),
+    ).toBe(false);
   });
 });
