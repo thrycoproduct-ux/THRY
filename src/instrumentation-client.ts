@@ -16,6 +16,15 @@ Sentry.init({
   replaysSessionSampleRate: 0,
   replaysOnErrorSampleRate: 0,
   sendDefaultPii: false,
+  ignoreErrors: [
+    // Android / iOS in-app browsers (WhatsApp, Instagram, etc.)
+    "Java object is gone",
+    "Java exception was raised during method invocation",
+    "webkit.messageHandlers",
+    "enableDidUserTypeOnKeyboardLogging",
+    // Residual crawler / extension noise around structured data
+    /@context.*toLowerCase/i,
+  ],
 });
 
 export const onRouterTransitionStart = Sentry.captureRouterTransitionStart;
