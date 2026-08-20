@@ -4,6 +4,10 @@ import { cn, formatPrice } from "@/lib/utils";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import type { CourierChargeBreakdown } from "@/lib/courier/calculate";
+import {
+  formatCartGstLabel,
+  shouldShowCartDiscountRows,
+} from "@/features/carts/lib/cart-order-summary-display";
 
 export type CartOrderSummaryFieldsProps = {
   productCount: number;
@@ -26,6 +30,7 @@ export type CartOrderSummaryFieldsProps = {
   discountedSubtotal: number;
   courierBreakdown: CourierChargeBreakdown | null;
   gstEnabled: boolean;
+  gstPercentage: number;
   gstAmount: number;
   totalAmount: number;
 };
@@ -51,9 +56,16 @@ export function CartOrderSummaryFields({
   discountedSubtotal,
   courierBreakdown,
   gstEnabled,
+  gstPercentage,
   gstAmount,
   totalAmount,
 }: CartOrderSummaryFieldsProps) {
+  const showDiscountRows = shouldShowCartDiscountRows({
+    discountAmount,
+    promoPercentage,
+  });
+  const gstLabel = formatCartGstLabel({ gstEnabled, gstPercentage });
+
   return (
     <>
       {courierEnabled ? (
@@ -148,15 +160,14 @@ export function CartOrderSummaryFields({
             <span>Subtotal</span>
             <span>{formatPrice(subtotal)}</span>
           </div>
-          {offerCodesEnabled ? (
+          {showDiscountRows ? (
             <>
               <div className="flex items-center justify-between">
-                <span>Discount</span>
                 <span>
-                  {promoPercentage > 0
-                    ? `- ${formatPrice(discountAmount)}`
-                    : formatPrice(0)}
+                  Discount
+                  {promoPercentage > 0 ? ` (${promoPercentage}%)` : ""}
                 </span>
+                <span>{`- ${formatPrice(discountAmount)}`}</span>
               </div>
               <div className="flex items-center justify-between">
                 <span>Subtotal after discount</span>
@@ -177,7 +188,7 @@ export function CartOrderSummaryFields({
             </div>
           ) : null}
           <div className="flex items-center justify-between">
-            <span>GST</span>
+            <span>{gstLabel}</span>
             <span>{gstEnabled ? formatPrice(gstAmount) : "Not applied"}</span>
           </div>
           <div className="flex items-center justify-between border-t pt-2 font-semibold">

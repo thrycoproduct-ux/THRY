@@ -521,6 +521,7 @@ function UserCartSection({
     discountedSubtotal,
     courierBreakdown,
     gstEnabled: courierConfig.gstEnabled,
+    gstPercentage: courierConfig.gstPercentage,
     gstAmount,
     totalAmount,
   };
