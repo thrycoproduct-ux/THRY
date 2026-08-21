@@ -32,6 +32,7 @@ import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 import { adminOrderToPackingSlip } from "@/lib/pdf/admin-order-pdf-label";
 import { downloadOrderPdf } from "@/lib/pdf/packing-slip-pdf";
 import { formatPrice } from "@/lib/utils";
+import type { OrderPaymentBreakdown } from "@/lib/orders/order-payment-breakdown";
 import BarcodeScannerModal from "@/components/ui/BarcodeScannerModal";
 import { parseTrackingNumberFromBarcodeText } from "@/lib/dispatch/barcode-parsing";
 import { buildCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
@@ -81,6 +82,7 @@ type Props = {
       postalCode: string | null;
       country: string | null;
     } | null;
+    paymentBreakdown: OrderPaymentBreakdown;
   };
   items: OrderItemView[];
   copyAddressText: string;
@@ -1000,10 +1002,38 @@ export function AdminOrderDetailView({
                 <span className="text-muted-foreground">Placed:</span>{" "}
                 {formatOrderDateTimeIst(order.createdAt)}
               </p>
-              <p>
-                <span className="text-muted-foreground">Amount:</span>{" "}
-                {formatPrice(order.amount, order.currency.toUpperCase())}
-              </p>
+              <div className="space-y-1.5 border-t pt-2">
+                {order.paymentBreakdown.lines.map((line) => {
+                  const currency = order.currency.toUpperCase();
+                  let value: string;
+                  if (line.valueKind === "free") value = "Free";
+                  else if (line.valueKind === "not_applied")
+                    value = "Not applied";
+                  else if (line.key === "discount")
+                    value = `- ${formatPrice(line.amount, currency)}`;
+                  else value = formatPrice(line.amount, currency);
+
+                  return (
+                    <div
+                      key={line.key}
+                      className={
+                        line.emphasize
+                          ? "flex items-center justify-between border-t pt-2 font-semibold"
+                          : "flex items-center justify-between"
+                      }
+                    >
+                      <span
+                        className={
+                          line.emphasize ? undefined : "text-muted-foreground"
+                        }
+                      >
+                        {line.label}
+                      </span>
+                      <span>{value}</span>
+                    </div>
+                  );
+                })}
+              </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Badge variant="outline" className="capitalize">
                   {order.orderStatus ?? "pending"}

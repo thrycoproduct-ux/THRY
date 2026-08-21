@@ -7,6 +7,7 @@ import {
   resolveOrderLineProductName,
   resolveOrderLineProductSlug,
 } from "@/lib/orders/order-line-display";
+import { buildOrderPaymentBreakdown } from "@/lib/orders/order-payment-breakdown";
 import { buildShippingAddressCopyText } from "@/lib/orders/shipping-address-text";
 import { getOrderDispatchInfo } from "@/lib/dispatch/get-order-dispatch-info";
 import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
@@ -107,6 +108,7 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
       paymentProvider: orders.payment_provider,
       paymentMethod: orders.payment_method,
       paymentReference: orders.payment_reference,
+      paymentMeta: orders.payment_meta,
       customerName: orders.name,
       customerEmail: orders.email,
       customerMobile: orders.customer_mobile,
@@ -189,6 +191,14 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
     customerEmail: order.customerEmail,
     customerMobile: order.customerMobile,
     shippingAddress,
+    paymentBreakdown: buildOrderPaymentBreakdown({
+      paymentMeta: order.paymentMeta,
+      orderAmount: Number(order.amount),
+      lineItems: itemViews.map((item) => ({
+        unitPrice: item.unitPrice,
+        quantity: item.quantity,
+      })),
+    }),
   };
 
   const dispatchInfo = await getOrderDispatchInfo(orderId);
