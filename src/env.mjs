@@ -31,6 +31,9 @@ export const env = createEnv({
     SENTRY_ORG: optionalNonEmpty,
     SENTRY_PROJECT: optionalNonEmpty,
     SENTRY_AUTH_TOKEN: optionalNonEmpty,
+    /** Resend — order confirmation emails (optional until domain + key are set). */
+    RESEND_API_KEY: optionalNonEmpty,
+    RESEND_FROM_EMAIL: optionalNonEmpty,
   },
 
   /**
@@ -75,6 +78,8 @@ export const env = createEnv({
     SENTRY_ORG: process.env.SENTRY_ORG,
     SENTRY_PROJECT: process.env.SENTRY_PROJECT,
     SENTRY_AUTH_TOKEN: process.env.SENTRY_AUTH_TOKEN,
+    RESEND_API_KEY: process.env.RESEND_API_KEY,
+    RESEND_FROM_EMAIL: process.env.RESEND_FROM_EMAIL,
   },
   /**
    * Run `build` or `dev` with `SKIP_ENV_VALIDATION` to skip env validation.

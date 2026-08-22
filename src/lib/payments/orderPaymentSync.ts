@@ -1,5 +1,6 @@
 import db from "@/lib/supabase/db";
 import { carts, orders, type SelectOrders } from "@/lib/supabase/schema";
+import { notifyOrderConfirmationEmail } from "@/lib/email/order-confirmation-email";
 import { notifyVeloOrderPushSafe } from "@/lib/integrations/velo-order-push";
 import {
   notifyOrderWhatsAppTargets,
@@ -33,6 +34,7 @@ type SyncInput =
  * - WhatsApp confirmations  -> whatsapp_notified / whatsapp_seller_notified
  * - Cart clear              -> plain DELETE, naturally idempotent
  * - Inventory fulfillment   -> payment_meta.inventoryFulfilled
+ * - Order confirmation email -> payment_meta.emailNotified
  * - Velo push               -> payment_meta.veloPushNotified
  *
  * Every effect is attempted even if an earlier one fails; if anything failed
@@ -83,6 +85,16 @@ async function runPaidOrderSideEffects(order: SelectOrders) {
   } catch (error) {
     console.error("[payments] inventory fulfillment failed:", error);
     failures.push("inventory");
+  }
+
+  try {
+    const emailResult = await notifyOrderConfirmationEmail(order);
+    if (emailResult.skipped === "error") {
+      throw new Error(emailResult.error ?? "Order confirmation email failed");
+    }
+  } catch (error) {
+    console.error("[payments] order confirmation email failed:", error);
+    failures.push("email");
   }
 
   try {
