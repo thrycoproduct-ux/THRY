@@ -11,63 +11,31 @@ import {
   type OrderEmailLineItem,
   type OrderEmailShippingAddress,
 } from "@/lib/email/order-email-shared";
-import {
-  buildOrderPaymentBreakdown,
-  type OrderPaymentBreakdownLine,
-} from "@/lib/orders/order-payment-breakdown";
 import { buildShippingAddressLines } from "@/lib/orders/shipping-address-text";
-import { formatInr } from "@/lib/utils";
 
-export type OrderConfirmationLineItem = OrderEmailLineItem;
-
-export type OrderConfirmationEmailInput = {
+export type OrderDispatchEmailInput = {
   orderId: string;
   customerName: string | null;
   customerEmail: string;
-  orderAmount: number;
-  currency: string;
   createdAt: string | Date;
-  paymentMeta: unknown;
-  paymentMethod: string | null;
   customerPhone: string | null;
-  lineItems: OrderConfirmationLineItem[];
+  lineItems: OrderEmailLineItem[];
   shippingAddress: OrderEmailShippingAddress | null;
   orderUrl: string;
+  courierName: string;
+  trackingNumber: string | null;
+  trackingUrl: string | null;
+  dispatchedAt: string;
 };
 
-export function formatBreakdownLineValue(
-  line: OrderPaymentBreakdownLine,
-): string {
-  if (line.valueKind === "free") return "Free";
-  if (line.valueKind === "not_applied") return "Not applied";
-  return formatInr(line.amount);
+export function buildOrderDispatchSubject(orderId: string): string {
+  return `Your order has shipped — #${orderId} · ${siteConfig.name}`;
 }
 
-export function buildOrderConfirmationSubject(orderId: string): string {
-  return `Order confirmed — #${orderId} · ${siteConfig.name}`;
-}
-
-function buildBreakdownLines(input: OrderConfirmationEmailInput) {
-  return buildOrderPaymentBreakdown({
-    paymentMeta: input.paymentMeta,
-    orderAmount: input.orderAmount,
-    lineItems: input.lineItems.map((line) => ({
-      unitPrice: line.unitPrice,
-      quantity: line.quantity,
-    })),
-  });
-}
-
-export function buildOrderConfirmationPlainText(
-  input: OrderConfirmationEmailInput,
+export function buildOrderDispatchPlainText(
+  input: OrderDispatchEmailInput,
 ): string {
   const greeting = input.customerName?.trim() || "there";
-  const placedAt = formatOrderDateTimeIst(input.createdAt);
-  const breakdown = buildBreakdownLines(input);
-  const summaryLines = breakdown.lines.map(
-    (line) => `${line.label}: ${formatBreakdownLineValue(line)}`,
-  );
-
   const addressLines = buildShippingAddressLines(
     input.shippingAddress
       ? {
@@ -84,18 +52,17 @@ export function buildOrderConfirmationPlainText(
   return [
     `Hi ${greeting},`,
     "",
-    `Thanks for your order at ${siteConfig.name}!`,
+    `Good news — your THRY order has been dispatched.`,
     "",
     `Order #${input.orderId}`,
-    `Placed: ${placedAt}`,
-    input.paymentMethod ? `Payment: ${input.paymentMethod}` : null,
+    `Dispatched: ${formatOrderDateTimeIst(input.dispatchedAt)}`,
+    `Courier: ${input.courierName}`,
+    input.trackingNumber ? `Tracking number: ${input.trackingNumber}` : null,
+    input.trackingUrl ? `Track package: ${input.trackingUrl}` : null,
     input.customerPhone ? `Phone: ${input.customerPhone}` : null,
     "",
-    "Items",
+    "Items in this order",
     ...buildLineItemsPlainText(input.lineItems),
-    "",
-    "Order summary",
-    ...summaryLines,
     "",
     "Shipping address",
     ...addressLines,
@@ -113,24 +80,22 @@ export function buildOrderConfirmationPlainText(
     .join("\n");
 }
 
-export function buildOrderConfirmationHtml(
-  input: OrderConfirmationEmailInput,
-): string {
+export function buildOrderDispatchHtml(input: OrderDispatchEmailInput): string {
   const greeting = escapeHtml(input.customerName?.trim() || "there");
   const orderUrl = escapeHtml(input.orderUrl);
-  const breakdown = buildBreakdownLines(input);
+  const courierName = escapeHtml(input.courierName);
+  const dispatchedAt = escapeHtml(formatOrderDateTimeIst(input.dispatchedAt));
 
-  const summaryRows = breakdown.lines
-    .map((line) => {
-      const label = escapeHtml(line.label);
-      const value = escapeHtml(formatBreakdownLineValue(line));
-      const weight = line.emphasize ? "font-weight:700;" : "";
-      return `<tr>
-        <td style="padding:6px 0;${weight}">${label}</td>
-        <td style="padding:6px 0;text-align:right;${weight}">${value}</td>
-      </tr>`;
-    })
-    .join("");
+  const trackingBlock = [
+    input.trackingNumber
+      ? `<div><strong>Tracking number:</strong> ${escapeHtml(input.trackingNumber)}</div>`
+      : "",
+    input.trackingUrl
+      ? `<p style="margin:16px 0 0;">
+          <a href="${escapeHtml(input.trackingUrl)}" style="display:inline-block;background:#111;color:#fff;text-decoration:none;padding:12px 18px;border-radius:6px;font-weight:600;">Track package</a>
+        </p>`
+      : "",
+  ].join("");
 
   const addressLines = buildShippingAddressLines(
     input.shippingAddress
@@ -153,21 +118,21 @@ export function buildOrderConfirmationHtml(
 
   const bodyHtml = `
     ${buildEmailBrandHeaderHtml()}
-    <div style="font-size:14px;color:#555;margin-bottom:20px;">Order confirmed</div>
+    <div style="font-size:14px;color:#555;margin-bottom:20px;">Order dispatched</div>
     <p style="margin:0 0 16px;">Hi ${greeting},</p>
-    <p style="margin:0 0 16px;">Thanks for shopping with us. Your payment was received and your order is being prepared.</p>
+    <p style="margin:0 0 16px;">Your order is on its way. We have handed it over to the courier below.</p>
     ${buildOrderMetaBlockHtml({
       orderId: input.orderId,
       placedAt: input.createdAt,
-      paymentMethod: input.paymentMethod,
       customerPhone: input.customerPhone,
     })}
-    <h2 style="font-size:16px;margin:0 0 8px;">Items</h2>
+    <div style="margin:0 0 20px;padding:16px;background:#f8f8f8;border-radius:8px;line-height:1.6;">
+      <div><strong>Courier:</strong> ${courierName}</div>
+      <div><strong>Dispatched:</strong> ${dispatchedAt}</div>
+      ${trackingBlock}
+    </div>
+    <h2 style="font-size:16px;margin:0 0 8px;">Items in this order</h2>
     ${buildLineItemsTableHtml(input.lineItems)}
-    <h2 style="font-size:16px;margin:0 0 8px;">Order summary</h2>
-    <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
-      ${summaryRows}
-    </table>
     <h2 style="font-size:16px;margin:0 0 8px;">Shipping address</h2>
     <div style="margin-bottom:20px;color:#333;line-height:1.5;">
       ${addressLines}
@@ -180,7 +145,7 @@ export function buildOrderConfirmationHtml(
   `;
 
   return buildEmailLayoutHtml({
-    preheader: `Your THRY order #${input.orderId} is confirmed.`,
+    preheader: `Your THRY order #${input.orderId} has been dispatched.`,
     bodyHtml,
   });
 }

@@ -5,10 +5,13 @@ import {
   buildOrderConfirmationPlainText,
   buildOrderConfirmationSubject,
   type OrderConfirmationEmailInput,
-  type OrderConfirmationLineItem,
 } from "@/lib/email/order-confirmation-content";
+import {
+  formatOrderPaymentMethodLabel,
+  formatOrderPhoneLabel,
+  mapOrderLineRowToEmailItem,
+} from "@/lib/email/order-email-shared";
 import { getResendConfig } from "@/lib/email/resend-config";
-import { resolveOrderLineProductName } from "@/lib/orders/order-line-display";
 import { mergePaymentMeta, readPaymentMeta } from "@/lib/orders/payment-meta";
 import db from "@/lib/supabase/db";
 import {
@@ -37,7 +40,7 @@ function buildOrderUrl(order: Pick<SelectOrders, "id" | "createdAt">): string {
   return `${base}/orders/${order.id}?token=${encodeURIComponent(token)}`;
 }
 
-async function loadOrderConfirmationInput(
+export async function loadOrderConfirmationInput(
   order: SelectOrders,
 ): Promise<OrderConfirmationEmailInput | null> {
   const email = order.email?.trim();
@@ -61,17 +64,13 @@ async function loadOrderConfirmationInput(
   const lineRows = await db
     .select({
       productNameSnapshot: orderLines.productNameSnapshot,
+      productCodeSnapshot: orderLines.productCodeSnapshot,
+      productImageKeySnapshot: orderLines.productImageKeySnapshot,
       quantity: orderLines.quantity,
       price: orderLines.price,
     })
     .from(orderLines)
     .where(eq(orderLines.orderId, order.id));
-
-  const lineItems: OrderConfirmationLineItem[] = lineRows.map((row) => ({
-    name: resolveOrderLineProductName(row),
-    quantity: Number(row.quantity ?? 0),
-    unitPrice: Number(row.price ?? 0),
-  }));
 
   return {
     orderId: order.id,
@@ -81,7 +80,9 @@ async function loadOrderConfirmationInput(
     currency: order.currency,
     createdAt: order.createdAt,
     paymentMeta: order.payment_meta,
-    lineItems,
+    paymentMethod: formatOrderPaymentMethodLabel(order),
+    customerPhone: formatOrderPhoneLabel(order.customer_mobile),
+    lineItems: lineRows.map(mapOrderLineRowToEmailItem),
     shippingAddress: addressRow
       ? {
           line1: addressRow.addressLine1,
@@ -148,7 +149,9 @@ export async function notifyOrderConfirmationEmail(
     return { sent: true };
   } catch (error) {
     const message =
-      error instanceof Error ? error.message : "Order confirmation email failed";
+      error instanceof Error
+        ? error.message
+        : "Order confirmation email failed";
     console.warn("[email] order confirmation failed:", message);
 
     await db

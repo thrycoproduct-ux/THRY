@@ -5,6 +5,7 @@ import {
 } from "@/lib/api/public-error";
 import { sanitizeTrackingNumber } from "@/lib/dispatch/tracking-sanitizer";
 import { resolveCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
+import { notifyOrderDispatchEmail } from "@/lib/email/order-dispatch-email";
 import db from "@/lib/supabase/db";
 import {
   dispatchCouriers,
@@ -198,6 +199,23 @@ export async function POST(
     trackingNumber,
     templateSnapshot: courier.trackingUrlTemplate,
   });
+
+  const fullOrder = await db.query.orders.findFirst({
+    where: eq(orders.id, orderId),
+  });
+
+  if (fullOrder) {
+    try {
+      await notifyOrderDispatchEmail(fullOrder, {
+        courierName: courier.name,
+        trackingNumber,
+        trackingUrl,
+        dispatchedAt: dispatchedAtIso,
+      });
+    } catch (error) {
+      logServerError("admin/orders/[orderId]/dispatch email", error);
+    }
+  }
 
   return NextResponse.json({
     ok: true,
