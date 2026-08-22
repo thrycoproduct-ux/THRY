@@ -82,7 +82,9 @@
       "required": ["teamSlug", "projectSlug", "productionHost"],
       "properties": {
         "teamSlug": { "type": "string" },
+        "teamId": { "type": "string", "pattern": "^team_" },
         "projectSlug": { "type": "string" },
+        "projectId": { "type": "string", "pattern": "^prj_" },
         "productionHost": { "type": "string" }
       }
     },

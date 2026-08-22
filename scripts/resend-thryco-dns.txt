@@ -1,0 +1,24 @@
+# Resend DNS for thryco.com (add in Cloudflare → thryco.com → DNS)
+
+| Type | Name | Content / Value | Priority |
+|------|------|-----------------|----------|
+| TXT | `resend._domainkey` | `p=MIGfMA0GCSqGSIb3DQEBAQUAA4GNADCBiQKBgQDEQM4u2MhnMeddV0D39cLXW0r3kl6u8AJiTAGeYJyEZU5MXCK2+VUsR5nydh2FIpmeMmrOnCyGMO2DHxMGDZULUVjtQbbRqqhg29yC/AO/QaBfva2Upfd1NrNxEIh2hjchWUNVd1DcNkPJttPUqwVgQ6srJ4F9PDW0IlUwiyS2xwIDAQAB` | — |
+| MX | `send` | `feedback-smtp.us-east-1.amazonses.com` | 10 |
+| TXT | `send` | `v=spf1 include:amazonses.com ~all` | — |
+
+After adding records, verify:
+
+```powershell
+& "$env:USERPROFILE\.resend\bin\resend.exe" domains verify ef23a9b0-9145-4f59-84fc-0c3a795a06b6
+```
+
+Then set Vercel production env (after `vercel login`):
+
+```powershell
+cd e:\THRY\HiyoRi-Ecommerce-Nextjs-Supabase
+echo re_YOUR_KEY | vercel env add RESEND_API_KEY production --force
+echo "THRY <orders@thryco.com>" | vercel env add RESEND_FROM_EMAIL production --force
+vercel deploy --prod
+```
+
+Or: `$env:VERCEL_TOKEN='...'; node scripts/push-resend-env-to-vercel.mjs`
