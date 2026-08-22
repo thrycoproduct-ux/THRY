@@ -1,19 +1,46 @@
 /**
- * Add Resend DNS records to thryco.com via Cloudflare OAuth (wrangler login).
- * Requires zone:edit on the token — re-run `npx wrangler login` with DNS scope if this fails.
+ * Add Resend DNS records to thryco.com.
+ *
+ * Auth (first match wins):
+ *   1. CLOUDFLARE_API_TOKEN env or .env.local (Zone DNS Edit on thryco.com)
+ *   2. Wrangler OAuth — read-only for DNS; will fail on create
+ *
+ * Usage:
+ *   node scripts/add-resend-dns-cloudflare.mjs
  */
 import fs from "node:fs";
-import path from "node:path";
 import os from "node:os";
+import path from "node:path";
 
-const wranglerConfig = path.join(
-  os.homedir(),
-  "AppData/Roaming/xdg.config/.wrangler/config/default.toml",
-);
-const cfg = fs.readFileSync(wranglerConfig, "utf8");
-const token = cfg.match(/oauth_token = "([^"]+)"/)?.[1];
+const ZONE_ID = "1b7976cc6df1e48295b653f94822ce56";
+
+function loadEnvLocal() {
+  const envPath = path.join(process.cwd(), ".env.local");
+  if (!fs.existsSync(envPath)) return;
+  for (const line of fs.readFileSync(envPath, "utf8").split(/\r?\n/)) {
+    if (!line || line.startsWith("#")) continue;
+    const i = line.indexOf("=");
+    if (i < 1) continue;
+    const key = line.slice(0, i);
+    if (process.env[key] == null) process.env[key] = line.slice(i + 1);
+  }
+}
+
+loadEnvLocal();
+
+function readWranglerOAuth() {
+  const wranglerConfig = path.join(
+    os.homedir(),
+    "AppData/Roaming/xdg.config/.wrangler/config/default.toml",
+  );
+  if (!fs.existsSync(wranglerConfig)) return null;
+  const cfg = fs.readFileSync(wranglerConfig, "utf8");
+  return cfg.match(/oauth_token = "([^"]+)"/)?.[1] ?? null;
+}
+
+const token = process.env.CLOUDFLARE_API_TOKEN?.trim() || readWranglerOAuth();
 if (!token) {
-  console.error("Wrangler OAuth token not found. Run: npx wrangler login");
+  console.error("Set CLOUDFLARE_API_TOKEN in .env.local (Zone DNS Edit) or run: npx wrangler login");
   process.exit(1);
 }
 
@@ -21,18 +48,6 @@ const headers = {
   Authorization: `Bearer ${token}`,
   "Content-Type": "application/json",
 };
-
-const zoneRes = await fetch(
-  "https://api.cloudflare.com/client/v4/zones?name=thryco.com",
-  { headers },
-);
-const zoneJson = await zoneRes.json();
-const zoneId = zoneJson.result?.[0]?.id;
-if (!zoneId) {
-  console.error("Zone lookup failed:", zoneJson.errors ?? zoneJson);
-  process.exit(1);
-}
-console.log("zoneId", zoneId);
 
 const records = [
   {
@@ -59,7 +74,7 @@ const records = [
 
 for (const rec of records) {
   const listRes = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records?type=${rec.type}&name=${encodeURIComponent(rec.name)}`,
+    `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records?type=${rec.type}&name=${encodeURIComponent(rec.name)}`,
     { headers },
   );
   const listJson = await listRes.json();
@@ -69,7 +84,7 @@ for (const rec of records) {
   }
 
   const res = await fetch(
-    `https://api.cloudflare.com/client/v4/zones/${zoneId}/dns_records`,
+    `https://api.cloudflare.com/client/v4/zones/${ZONE_ID}/dns_records`,
     { method: "POST", headers, body: JSON.stringify(rec) },
   );
   const json = await res.json();

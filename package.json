@@ -48,6 +48,8 @@
     "db:setup-addresses": "node scripts/setup-supabase-addresses.mjs",
     "db:seed-testimonials": "tsx --env-file=.env.local ./scripts/seed-sakthi-testimonials.ts",
     "db:setup-velo-order-push": "node --env-file=.env.local ./scripts/setup-velo-order-push.mjs",
+    "resend:dns": "node scripts/add-resend-dns-cloudflare.mjs",
+    "resend:verify-domain": "resend domains verify ef23a9b0-9145-4f59-84fc-0c3a795a06b6",
     "db:migrate-product-lifecycle": "node ./scripts/apply-product-lifecycle.mjs",
     "db:migrate-api-settings-rls": "node scripts/apply-api-settings-rls.mjs",
     "db:migrate-medias-gallery-index": "node scripts/apply-medias-gallery-index.mjs",
