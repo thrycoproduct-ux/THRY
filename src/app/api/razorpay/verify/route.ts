@@ -76,9 +76,22 @@ export async function POST(request: NextRequest) {
       token: body.accessToken,
     });
 
+    if (!result.isPaid) {
+      return NextResponse.json(
+        {
+          ok: false,
+          isPaid: false,
+          message:
+            "Payment signature is valid, but this order is held for review (amount mismatch or gateway status). Contact support with your order id.",
+          redirect: redirectPath,
+        },
+        { status: 409 },
+      );
+    }
+
     return NextResponse.json({
       ok: true,
-      isPaid: result.isPaid,
+      isPaid: true,
       redirect: redirectPath,
     });
   } catch (error) {

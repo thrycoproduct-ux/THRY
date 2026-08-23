@@ -1,4 +1,8 @@
 import { z } from "zod";
+import {
+  isLikelyRazorpayWebhookSecret,
+  razorpayWebhookSecretValidationMessage,
+} from "@/lib/payments/razorpay-webhook-secret";
 
 export const CASHFREE_SANDBOX_BASE_URL = "https://sandbox.cashfree.com/pg";
 export const CASHFREE_PRODUCTION_BASE_URL = "https://api.cashfree.com/pg";
@@ -41,6 +45,22 @@ export const cashfreePayloadSchema = z.object({
 
 export const RAZORPAY_KEY_ID_PATTERN = /^rzp_(test|live)_[A-Za-z0-9]+$/;
 
+function refineRazorpayWebhookSecret(
+  value: { webhookSecret?: string },
+  ctx: z.RefinementCtx,
+) {
+  const secret = String(value.webhookSecret ?? "").trim();
+  if (!secret) return;
+  if (isLikelyRazorpayWebhookSecret(secret)) return;
+  ctx.addIssue({
+    code: z.ZodIssueCode.custom,
+    message:
+      razorpayWebhookSecretValidationMessage(secret) ??
+      "Invalid Razorpay webhook secret.",
+    path: ["webhookSecret"],
+  });
+}
+
 export const razorpayPayloadBaseSchema = z.object({
   keyId: z
     .string()
@@ -68,6 +88,7 @@ export const razorpayPayloadSchema = razorpayPayloadBaseSchema.superRefine(
         path: ["keyId"],
       });
     }
+    refineRazorpayWebhookSecret(value, ctx);
   },
 );
 
@@ -219,6 +240,7 @@ export function parseIncomingRazorpayForEnable(
           path: ["keyId"],
         });
       }
+      refineRazorpayWebhookSecret(value, ctx);
     })
     .safeParse(forParse);
 }

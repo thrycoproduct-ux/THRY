@@ -96,10 +96,18 @@ export async function startCheckout({
     const verifyPayload = (await verifyRes.json().catch(() => null)) as {
       message?: string;
       redirect?: string;
+      isPaid?: boolean;
+      ok?: boolean;
     } | null;
     if (!verifyRes.ok) {
       throw new Error(
         verifyPayload?.message || "Could not confirm Razorpay payment.",
+      );
+    }
+    if (verifyPayload?.isPaid !== true) {
+      throw new Error(
+        verifyPayload?.message ||
+          "Payment received by Razorpay but not confirmed on THRY yet. Please wait a moment or contact support with your order id.",
       );
     }
     const redirect =

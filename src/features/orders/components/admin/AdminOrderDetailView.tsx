@@ -144,6 +144,7 @@ export function AdminOrderDetailView({
   const [scannerOpen, setScannerOpen] = useState(false);
   const [dispatchTrackingInput, setDispatchTrackingInput] = useState("");
   const [dispatchSubmitting, setDispatchSubmitting] = useState(false);
+  const [resyncSubmitting, setResyncSubmitting] = useState(false);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [dispatchSuccess, setDispatchSuccess] = useState<{
     courierName: string;
@@ -194,6 +195,12 @@ export function AdminOrderDetailView({
   const isPaid = ["paid", "success", "captured"].includes(
     order.paymentStatus.trim().toLowerCase(),
   );
+
+  const canResyncRazorpay =
+    !isPaid &&
+    (order.paymentProvider?.toLowerCase() === "razorpay" ||
+      order.paymentMethod?.toLowerCase() === "razorpay" ||
+      Boolean(order.paymentReference?.startsWith("order_")));
 
   const canDispatch = isPaid && orderStatusNorm === "preparing";
 
@@ -393,6 +400,59 @@ export function AdminOrderDetailView({
               <FileDown className="mr-2 h-4 w-4" />
             )}
             {downloadingPdf ? "Generating…" : "PDF"}
+          </Button>
+        ) : null}
+        {canResyncRazorpay ? (
+          <Button
+            variant="secondary"
+            disabled={resyncSubmitting}
+            title="Pull latest status from Razorpay and mark paid if captured"
+            onClick={() => {
+              void (async () => {
+                if (resyncSubmitting) return;
+                setResyncSubmitting(true);
+                try {
+                  const res = await fetch(
+                    `/api/admin/orders/${order.id}/resync-razorpay`,
+                    { method: "POST" },
+                  );
+                  const payload = (await res.json().catch(() => null)) as {
+                    message?: string;
+                    isPaid?: boolean;
+                  } | null;
+                  if (!res.ok) {
+                    throw new Error(
+                      payload?.message || "Could not sync from Razorpay.",
+                    );
+                  }
+                  toast({
+                    title: payload?.isPaid
+                      ? "Payment confirmed"
+                      : "Still unpaid on Razorpay",
+                    description: payload?.isPaid
+                      ? "Order marked paid from Razorpay capture."
+                      : "Razorpay still shows this order unpaid. Refresh Razorpay dashboard to double-check.",
+                  });
+                  router.refresh();
+                } catch (error) {
+                  toast({
+                    variant: "destructive",
+                    title: "Resync failed",
+                    description:
+                      error instanceof Error
+                        ? error.message
+                        : "Could not sync from Razorpay.",
+                  });
+                } finally {
+                  setResyncSubmitting(false);
+                }
+              })();
+            }}
+          >
+            {resyncSubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            {resyncSubmitting ? "Syncing…" : "Sync from Razorpay"}
           </Button>
         ) : null}
         {canDispatch ? (

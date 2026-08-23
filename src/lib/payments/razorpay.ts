@@ -150,3 +150,37 @@ export async function fetchRazorpayPayment(razorpayPaymentId: string) {
     { method: "GET" },
   );
 }
+
+/** List payments attached to a Razorpay order (newest first). */
+export async function fetchRazorpayOrderPayments(razorpayOrderId: string) {
+  const data = await razorpayRequest<{ items?: RazorpayPaymentResponse[] }>(
+    `/orders/${encodeURIComponent(razorpayOrderId)}/payments`,
+    { method: "GET" },
+  );
+  return Array.isArray(data.items) ? data.items : [];
+}
+
+/**
+ * Prefer a captured payment, then authorized, else the first payment id.
+ * Used when webhook/verify never stored razorpayPaymentId (common UPI drop-off).
+ */
+export async function resolveBestRazorpayPaymentId(
+  razorpayOrderId: string,
+): Promise<string | null> {
+  const payments = await fetchRazorpayOrderPayments(razorpayOrderId);
+  if (payments.length === 0) return null;
+
+  const byStatus = (status: string) =>
+    payments.find(
+      (p) => String(p.status ?? "").toLowerCase() === status && p.id,
+    );
+
+  const captured = byStatus("captured");
+  if (captured?.id) return String(captured.id).trim();
+
+  const authorized = byStatus("authorized");
+  if (authorized?.id) return String(authorized.id).trim();
+
+  const first = payments.find((p) => p.id);
+  return first?.id ? String(first.id).trim() : null;
+}

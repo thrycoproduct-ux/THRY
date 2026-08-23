@@ -11,6 +11,7 @@ import { fetchCashfreeOrderStatus } from "@/lib/payments/cashfree";
 import {
   fetchRazorpayOrder,
   fetchRazorpayPayment,
+  resolveBestRazorpayPaymentId,
 } from "@/lib/payments/razorpay";
 import { paiseToRupees } from "@/lib/payments/razorpay-standards";
 import { fulfillPaidOrderInventory } from "@/lib/orders/inventory-fulfillment";
@@ -439,9 +440,15 @@ export async function syncRazorpayOrderPayment(
     input.razorpayPaymentId ?? existingMeta.razorpayPaymentId ?? "",
   ).trim();
 
+  let resolvedPaymentId = razorpayPaymentId;
+  if (!resolvedPaymentId) {
+    resolvedPaymentId =
+      (await resolveBestRazorpayPaymentId(razorpayOrderId)) ?? "";
+  }
+
   const rzpOrder = await fetchRazorpayOrder(razorpayOrderId);
-  const rzpPayment = razorpayPaymentId
-    ? await fetchRazorpayPayment(razorpayPaymentId)
+  const rzpPayment = resolvedPaymentId
+    ? await fetchRazorpayPayment(resolvedPaymentId)
     : null;
 
   const notes = (rzpOrder.notes ?? {}) as Record<string, string>;
@@ -494,7 +501,7 @@ export async function syncRazorpayOrderPayment(
       payment_reference: razorpayOrderId,
       payment_meta: mergePaymentMeta(existingMeta, {
         razorpayOrderId,
-        razorpayPaymentId: razorpayPaymentId || null,
+        razorpayPaymentId: resolvedPaymentId || null,
         razorpayOrderStatus: orderStatus,
         razorpayPaymentStatus: paymentStatus || null,
         razorpayMethod: rzpPayment?.method ?? null,

@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { getRazorpayConfig } from "@/lib/integrations/settings";
 import { verifyRazorpayWebhookSignature } from "@/lib/payments/razorpay";
 import { syncRazorpayOrderPayment } from "@/lib/payments/orderPaymentSync";
+import { isLikelyRazorpayWebhookSecret } from "@/lib/payments/razorpay-webhook-secret";
 import {
   razorpayWebhookEventKey,
   withPaymentWebhookIdempotency,
@@ -21,6 +22,20 @@ export async function POST(request: NextRequest) {
   if (!config?.webhookSecret) {
     return NextResponse.json(
       { ok: false, message: "Razorpay webhook secret is not configured." },
+      { status: 503 },
+    );
+  }
+
+  if (!isLikelyRazorpayWebhookSecret(config.webhookSecret)) {
+    console.error(
+      "[razorpay] webhook secret is invalid (looks like a URL or dashboard link). Update Admin → Settings → APIs → Razorpay Webhook Secret.",
+    );
+    return NextResponse.json(
+      {
+        ok: false,
+        message:
+          "Razorpay webhook secret is misconfigured. Paste the secret string from Razorpay Dashboard → Webhooks (not the URL).",
+      },
       { status: 503 },
     );
   }

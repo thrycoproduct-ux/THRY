@@ -470,6 +470,11 @@ export function ApiIntegrationsForm() {
               enable <strong>payment.captured</strong> and{" "}
               <strong>order.paid</strong>.
             </p>
+            <p className="text-xs text-muted-foreground">
+              Webhook Secret = the secret string from Razorpay Dashboard →
+              Webhooks (not the webhook URL, not the Key Secret, not a
+              dashboard.razorpay.com link).
+            </p>
             <p className="rounded-md border border-amber-300 bg-amber-50 px-3 py-2 text-xs text-amber-950">
               Live payments are blocked until <strong>thryco.com</strong> is
               registered on this Razorpay account (MID). Razorpay Dashboard →
