@@ -1,4 +1,15 @@
-import { and, desc, eq, gte, inArray, isNotNull, like, ne, or, sql } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  gte,
+  inArray,
+  isNotNull,
+  like,
+  ne,
+  or,
+  sql,
+} from "drizzle-orm";
 import db from "@/lib/supabase/db";
 import { orders } from "@/lib/supabase/schema";
 import { syncRazorpayOrderPayment } from "@/lib/payments/orderPaymentSync";
@@ -45,7 +56,7 @@ export async function recoverUnpaidRazorpayOrders(options?: {
       : await db.query.orders.findMany({
           where: and(
             eq(orders.payment_status, "unpaid"),
-            gte(orders.createdAt, since.toISOString()),
+            gte(orders.createdAt, since),
             or(
               eq(orders.payment_provider, "razorpay"),
               eq(orders.payment_method, "razorpay"),
@@ -122,7 +133,7 @@ export async function repairPaidRazorpaySideEffects(options?: {
   const candidates = await db.query.orders.findMany({
     where: and(
       eq(orders.payment_status, "paid"),
-      gte(orders.createdAt, since.toISOString()),
+      gte(orders.createdAt, since),
       or(
         eq(orders.payment_provider, "razorpay"),
         eq(orders.payment_method, "razorpay"),
@@ -148,7 +159,8 @@ export async function repairPaidRazorpaySideEffects(options?: {
         {
           orderId: order.id,
           razorpayOrderId,
-          razorpayPaymentId: String(meta.razorpayPaymentId ?? "").trim() || null,
+          razorpayPaymentId:
+            String(meta.razorpayPaymentId ?? "").trim() || null,
         },
         { runSideEffects: true },
       );
