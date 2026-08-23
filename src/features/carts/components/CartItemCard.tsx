@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/card";
 
 import { ProductPriceDisplay } from "@/features/products/components/ProductPriceDisplay";
+import { ProductOptionTiles } from "@/features/products/components/ProductOptionTiles";
 import { formatProductPackLabel } from "@/lib/products/pack";
 import { keytoUrl } from "@/lib/utils";
 import { UseQueryExecute } from "@urql/next";
@@ -124,38 +125,40 @@ function CartItemCard({
               )
                 .trim()
                 .toUpperCase();
+              const tileOptions = group.options.map((option) => {
+                const rawLabel = String(option.label ?? option.value ?? "");
+                const priceMatch = rawLabel.match(/₹\s*([\d,]+(?:\.\d+)?)/);
+                const price = priceMatch
+                  ? Number(priceMatch[1].replace(/,/g, ""))
+                  : null;
+                const label = rawLabel
+                  .replace(/\s*[·•]\s*₹[\d,]+(?:\.\d+)?/g, "")
+                  .trim() || option.value;
+                return {
+                  value: option.value,
+                  label,
+                  price: Number.isFinite(price) ? price : null,
+                };
+              });
               return (
-                <div key={group.id} className="space-y-1">
-                  <label className="text-xs text-muted-foreground">
-                    {group.name}
-                  </label>
-                  <select
-                    value={value}
-                    disabled={disabled || group.options.length === 0}
-                    className="h-8 w-full max-w-[220px] rounded border bg-background px-2 text-xs"
-                    onChange={(event) => {
-                      const nextValue = event.target.value;
-                      if (onSelectionsChange) {
-                        onSelectionsChange({
-                          ...(selections ?? {}),
-                          [group.id]: nextValue,
-                        });
-                      } else {
-                        onSizeChange?.(nextValue);
-                      }
-                    }}
-                  >
-                    <option value="">Select {group.name.toLowerCase()}</option>
-                    {group.options.map((option) => (
-                      <option
-                        key={`${group.id}-${option.value}-${option.label}`}
-                        value={option.value}
-                      >
-                        {option.label}
-                      </option>
-                    ))}
-                  </select>
-                </div>
+                <ProductOptionTiles
+                  key={group.id}
+                  name={group.name}
+                  compact
+                  disabled={disabled || group.options.length === 0}
+                  options={tileOptions}
+                  value={value}
+                  onChange={(nextValue) => {
+                    if (onSelectionsChange) {
+                      onSelectionsChange({
+                        ...(selections ?? {}),
+                        [group.id]: nextValue,
+                      });
+                    } else {
+                      onSizeChange?.(nextValue);
+                    }
+                  }}
+                />
               );
             })}
             {missingRequired ? (

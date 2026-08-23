@@ -576,7 +576,11 @@ function UserCartSection({
                           .toUpperCase();
                         return {
                           value: normalized,
-                          label: normalized || `${option.qty}`,
+                          label:
+                            option.price != null &&
+                            Number.isFinite(Number(option.price))
+                              ? `${normalized || option.qty} · ₹${Number(option.price)}`
+                              : normalized || `${option.qty}`,
                         };
                       })
                       .filter((option) => option.value.length > 0),

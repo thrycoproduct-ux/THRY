@@ -443,9 +443,17 @@ function GuestCartSection({
                         )
                           .trim()
                           .toUpperCase();
+                        const price =
+                          option.price != null &&
+                          Number.isFinite(Number(option.price))
+                            ? Number(option.price)
+                            : null;
                         return {
                           value: normalized,
-                          label: normalized || `${option.qty}`,
+                          label:
+                            price != null
+                              ? `${normalized || option.qty} · ₹${price}`
+                              : normalized || `${option.qty}`,
                         };
                       })
                       .filter((option) => option.value.length > 0),

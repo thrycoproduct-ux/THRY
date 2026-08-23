@@ -54,7 +54,7 @@ export function ProductBuyBox({
 
   const priceHint =
     hasSizeOptions && !allSelected
-      ? "Select every variant to confirm the final price. Showing from the lowest combination."
+      ? `Tap a ${activeGroups.map((g) => g.name.toLowerCase()).join(" / ")} below to lock the price.`
       : null;
 
   return (

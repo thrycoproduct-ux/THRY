@@ -2,7 +2,7 @@
 import { QuantityInput } from "@/components/layouts/QuantityInput";
 import { Button } from "@/components/ui/button";
 import { zodResolver } from "@hookform/resolvers/zod";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm } from "react-hook-form";
 
 import {
@@ -22,6 +22,7 @@ import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartActions from "../hooks/useCartActions";
 import { AddProductCartData, AddProductToCartSchema } from "../validations";
 import { useToast } from "@/components/ui/use-toast";
+import { ProductOptionTiles } from "@/features/products/components/ProductOptionTiles";
 import {
   areAllOptionGroupsSelected,
   getActiveOptionGroups,
@@ -69,6 +70,26 @@ function AddProductToCartForm({
   const hasSizeOptions = activeGroups.length > 0;
   const allSelected = areAllOptionGroupsSelected(sizeConfig, selections);
 
+  // Single stocked choice per group → auto-select so checkout isn't blocked.
+  useEffect(() => {
+    if (!hasSizeOptions) return;
+    let changed = false;
+    const next: OptionSelections = { ...selections };
+    for (const group of activeGroups) {
+      const choices = getSelectableGroupOptions(group);
+      if (choices.length !== 1) continue;
+      const only = String(choices[0]?.value ?? choices[0]?.size ?? "")
+        .trim()
+        .toUpperCase();
+      if (!only) continue;
+      if (next[group.id] === only) continue;
+      next[group.id] = only;
+      changed = true;
+    }
+    if (changed) setSelections(next);
+    // eslint-disable-next-line react-hooks/exhaustive-deps -- auto-fill when options appear
+  }, [activeGroups, hasSizeOptions, sizeConfig]);
+
   const limitingStock = useMemo(() => {
     if (!hasSizeOptions) return null;
     if (!allSelected) return null;
@@ -108,8 +129,8 @@ function AddProductToCartForm({
   async function onSubmit(values: AddProductCartData) {
     if (hasSizeOptions && !allSelected) {
       toast({
-        title: "Select options",
-        description: "Please choose a value for every variant before adding.",
+        title: `Choose ${activeGroups.map((g) => g.name.toLowerCase()).join(" & ")}`,
+        description: "Tap an option above, then add to cart.",
         variant: "destructive",
       });
       return;
@@ -178,48 +199,32 @@ function AddProductToCartForm({
 
   return (
     <Form {...form}>
-      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-8">
+      <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-6">
         {hasSizeOptions
           ? activeGroups.map((group) => {
-              const choices = getSelectableGroupOptions(group);
+              const choices = getSelectableGroupOptions(group).map((option) => {
+                const value = String(option.value ?? option.size ?? "")
+                  .trim()
+                  .toUpperCase();
+                return {
+                  value,
+                  label: value || `${option.qty}`,
+                  price: option.price ?? null,
+                };
+              });
               return (
-                <FormItem key={group.id}>
-                  <FormLabel>{group.name}</FormLabel>
-                  <FormControl>
-                    <select
-                      className="h-10 w-full max-w-md rounded-md border border-input bg-background px-3 text-sm"
-                      value={selections[group.id] ?? ""}
-                      onChange={(event) =>
-                        setSelections({
-                          ...selections,
-                          [group.id]: event.target.value,
-                        })
-                      }
-                    >
-                      <option value="">
-                        Select {group.name.toLowerCase()}
-                      </option>
-                      {choices.map((option) => {
-                        const value = String(option.value ?? option.size ?? "")
-                          .trim()
-                          .toUpperCase();
-                        const label = value || `${option.qty}`;
-                        const priceLabel =
-                          option.price != null ? ` · ₹${option.price}` : "";
-                        return (
-                          <option
-                            key={`${group.id}-${value || "NO_LABEL"}`}
-                            value={value}
-                          >
-                            {label}
-                            {priceLabel}
-                          </option>
-                        );
-                      })}
-                    </select>
-                  </FormControl>
-                  <FormMessage />
-                </FormItem>
+                <ProductOptionTiles
+                  key={group.id}
+                  name={group.name}
+                  options={choices}
+                  value={selections[group.id] ?? ""}
+                  onChange={(nextValue) =>
+                    setSelections({
+                      ...selections,
+                      [group.id]: nextValue,
+                    })
+                  }
+                />
               );
             })
           : null}
