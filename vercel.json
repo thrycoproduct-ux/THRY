@@ -4,16 +4,6 @@
   "buildCommand": "npm run build",
   "installCommand": "npm install",
   "regions": ["bom1"],
-  "crons": [
-    {
-      "path": "/api/cron/recover-unpaid-razorpay",
-      "schedule": "*/5 * * * *"
-    },
-    {
-      "path": "/api/cron/release-expired-stock-reservations",
-      "schedule": "*/10 * * * *"
-    }
-  ],
   "headers": [
     {
       "source": "/(.*)",

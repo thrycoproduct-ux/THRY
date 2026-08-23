@@ -12,6 +12,7 @@ import {
   parseAdminOrdersPage,
 } from "@/lib/admin/getAdminOrdersList";
 import { publicErrorMessage } from "@/lib/api/public-error";
+import { runLazyRazorpayPaymentRecovery } from "@/lib/payments/lazy-razorpay-recovery";
 import { withDbAsync } from "@/lib/supabase/db";
 import { Suspense } from "react";
 
@@ -99,6 +100,8 @@ async function OrdersPageContent({
 
   try {
     const result = await withDbAsync(async () => {
+      // Recover captured-but-unpaid Razorpay orders before listing unpaid.
+      await runLazyRazorpayPaymentRecovery();
       const countsPromise = getAdminOrdersCounts();
       if (segment === "paid") {
         const [nextCounts, nextPaid] = await Promise.all([
