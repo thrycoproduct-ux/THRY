@@ -2,6 +2,8 @@ import { INDIAN_STATES } from "@/features/addresses/constants/indianStates";
 
 export const PINCODE_PATTERN = /^\d{6}$/;
 
+export type CatalogState = (typeof INDIAN_STATES)[number];
+
 export type PincodeLocality = {
   name: string;
   district: string;
@@ -17,22 +19,36 @@ export type PincodeLookupResult = {
   localities: PincodeLocality[];
 };
 
-const STATE_ALIASES: Record<string, (typeof INDIAN_STATES)[number]> = {
+/**
+ * Map India Post / GST former names onto ISO 3166-2:IN + GST master labels.
+ * Keys must already be passed through `normalizeStateKey`.
+ */
+const STATE_ALIASES: Record<string, CatalogState> = {
+  // India Post directory still uses the one-t spelling.
+  chattisgarh: "Chhattisgarh",
+  // Renamed states / UTs (ISO + GST).
   orissa: "Odisha",
-  odisha: "Odisha",
   pondicherry: "Puducherry",
-  puducherry: "Puducherry",
+  uttaranchal: "Uttarakhand",
+  laccadive: "Lakshadweep",
+  laccadives: "Lakshadweep",
+  "laccadive islands": "Lakshadweep",
+  "lakshadweep islands": "Lakshadweep",
+  // Delhi variants from postal + GST masters.
   "nct of delhi": "Delhi",
-  delhi: "Delhi",
-  "andaman & nicobar islands": "Andaman and Nicobar Islands",
-  "andaman and nicobar islands": "Andaman and Nicobar Islands",
+  "nct delhi": "Delhi",
+  "national capital territory of delhi": "Delhi",
+  "new delhi": "Delhi",
+  // Merged UT (GST 26, ISO IN-DH).
   "dadra and nagar haveli": "Dadra and Nagar Haveli and Daman and Diu",
   "daman and diu": "Dadra and Nagar Haveli and Daman and Diu",
-  "dadra and nagar haveli and daman and diu":
+  "the dadra and nagar haveli and daman and diu":
     "Dadra and Nagar Haveli and Daman and Diu",
-  "jammu & kashmir": "Jammu and Kashmir",
-  "jammu and kashmir": "Jammu and Kashmir",
+  "dadra nagar haveli": "Dadra and Nagar Haveli and Daman and Diu",
+  "daman diu": "Dadra and Nagar Haveli and Daman and Diu",
 };
+
+const LADAKH_DISTRICTS = new Set(["leh", "kargil", "leh ladakh", "ladakh"]);
 
 export function normalizePincode(
   raw: string | null | undefined,
@@ -43,23 +59,44 @@ export function normalizePincode(
   return PINCODE_PATTERN.test(digits) ? digits : null;
 }
 
-export function mapIndiaPostStateToCatalog(
-  rawState: string | null | undefined,
-): (typeof INDIAN_STATES)[number] | null {
-  const normalized = String(rawState ?? "")
+export function normalizeStateKey(raw: string | null | undefined): string {
+  return String(raw ?? "")
     .toLowerCase()
-    .replace(/&/g, "and")
+    .replace(/&/g, " and ")
+    .replace(/[^a-z]+/g, " ")
     .replace(/\s+/g, " ")
     .trim();
+}
+
+function compactStateKey(key: string): string {
+  return key.replace(/\s+/g, "");
+}
+
+export function mapIndiaPostStateToCatalog(
+  rawState: string | null | undefined,
+): CatalogState | null {
+  const normalized = normalizeStateKey(rawState);
   if (!normalized) return null;
 
   const alias = STATE_ALIASES[normalized];
   if (alias) return alias;
 
   const exact = INDIAN_STATES.find(
-    (state) => state.toLowerCase() === normalized,
+    (state) => normalizeStateKey(state) === normalized,
   );
-  return exact ?? null;
+  if (exact) return exact;
+
+  const withIslands = `${normalized} islands`;
+  const islandsMatch = INDIAN_STATES.find(
+    (state) => normalizeStateKey(state) === withIslands,
+  );
+  if (islandsMatch) return islandsMatch;
+
+  const compact = compactStateKey(normalized);
+  const compactMatch = INDIAN_STATES.find(
+    (state) => compactStateKey(normalizeStateKey(state)) === compact,
+  );
+  return compactMatch ?? null;
 }
 
 type IndiaPostOffice = {
@@ -69,6 +106,25 @@ type IndiaPostOffice = {
   Block?: string;
   Pincode?: string;
 };
+
+function isLadakhOffice(office: IndiaPostOffice, pin: string): boolean {
+  const district = normalizeStateKey(office.District);
+  if (LADAKH_DISTRICTS.has(district)) return true;
+  // India Post sorting district 194 is Ladakh (GST 38 / ISO IN-LA).
+  return pin.startsWith("194");
+}
+
+export function resolveIndiaPostOfficeState(
+  office: Pick<IndiaPostOffice, "State" | "District">,
+  pin: string,
+): CatalogState | null {
+  const mapped = mapIndiaPostStateToCatalog(office.State);
+  if (!mapped) return null;
+  if (mapped === "Jammu and Kashmir" && isLadakhOffice(office, pin)) {
+    return "Ladakh";
+  }
+  return mapped;
+}
 
 type IndiaPostResponseItem = {
   Status?: string;
@@ -88,7 +144,7 @@ export function parseIndiaPostPincodeResponse(
 
   const localities: PincodeLocality[] = [];
   for (const office of offices) {
-    const state = mapIndiaPostStateToCatalog(office.State);
+    const state = resolveIndiaPostOfficeState(office, pin);
     if (!state) continue;
     const name = String(office.Name ?? "").trim();
     const district = String(office.District ?? "").trim();
