@@ -63,7 +63,10 @@ export async function buildCheckoutLineItems(
 ): Promise<CheckoutLineItem[]> {
   const cartLines = Object.entries(orderProducts)
     .map(([lineKey, item]) => {
-      const productId = extractProductIdFromCartLineKey(lineKey, item?.productId);
+      const productId = extractProductIdFromCartLineKey(
+        lineKey,
+        item?.productId,
+      );
       if (!productId || item.quantity <= 0) return null;
       return { lineKey, productId, item };
     })

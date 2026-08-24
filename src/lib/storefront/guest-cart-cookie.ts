@@ -30,11 +30,13 @@ export function readGuestCartItemsFromCookies(
 }
 
 export function guestCartProductIds(cart: CartItems): string[] {
-  return [...new Set(
-    Object.entries(cart)
-      .map(([lineKey, item]) =>
-        extractProductIdFromCartLineKey(lineKey, item?.productId),
-      )
-      .filter(Boolean),
-  )];
+  return [
+    ...new Set(
+      Object.entries(cart)
+        .map(([lineKey, item]) =>
+          extractProductIdFromCartLineKey(lineKey, item?.productId),
+        )
+        .filter(Boolean),
+    ),
+  ];
 }

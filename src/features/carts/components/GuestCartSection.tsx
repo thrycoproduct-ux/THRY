@@ -529,11 +529,7 @@ function GuestCartSection({
                       )
                     }
                     minusOneHandler={() =>
-                      minusOneHandler(
-                        lineKey,
-                        node.id,
-                        item?.quantity ?? 0,
-                      )
+                      minusOneHandler(lineKey, node.id, item?.quantity ?? 0)
                     }
                     removeHandler={() => removeHandler(lineKey)}
                   />

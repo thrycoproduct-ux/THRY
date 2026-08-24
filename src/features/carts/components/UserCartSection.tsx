@@ -43,7 +43,10 @@ import {
 } from "@/features/offers/lib/welcomeOffer";
 import { useWelcomeOfferEligibility } from "@/features/offers/hooks/useWelcomeOfferEligibility";
 import EmptyCart from "@/features/carts/components/EmptyCart";
-import useCartStore, { type OptionSelections, type CartItems } from "../useCartStore";
+import useCartStore, {
+  type OptionSelections,
+  type CartItems,
+} from "../useCartStore";
 import {
   calcLiveCartSubtotal,
   useCartLivePricing,
@@ -614,7 +617,10 @@ function UserCartSection({
   const removeHandler = async (cartId: string) => {
     setIsLoading(true);
     try {
-      const { error: delErr } = await supabase.from("carts").delete().eq("id", cartId);
+      const { error: delErr } = await supabase
+        .from("carts")
+        .delete()
+        .eq("id", cartId);
       if (delErr) {
         toast({
           title: "Error",
@@ -644,9 +650,8 @@ function UserCartSection({
   ) => {
     setIsLoading(true);
     try {
-      const normalizedSelections = normalizeCartOptionSelections(
-        nextSelections,
-      );
+      const normalizedSelections =
+        normalizeCartOptionSelections(nextSelections);
       const hasSelections = Object.keys(normalizedSelections).length > 0;
       const selections = hasSelections ? normalizedSelections : null;
 

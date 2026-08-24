@@ -7,7 +7,11 @@ import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartStore, { type OptionSelections } from "../useCartStore";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildCartLineKey, buildCartVariantKey, normalizeCartSize } from "../cart-line";
+import {
+  buildCartLineKey,
+  buildCartVariantKey,
+  normalizeCartSize,
+} from "../cart-line";
 
 type AddOpts = {
   silent?: boolean;
@@ -26,9 +30,7 @@ function useCartActions(
   const addProductStorage = useCartStore((s) => s.addProductToCart);
   const guestCart = useCartStore((s) => s.cart);
 
-  const supabase: SupabaseClient | null = user
-    ? createSupabaseClient()
-    : null;
+  const supabase: SupabaseClient | null = user ? createSupabaseClient() : null;
 
   const authAddOrUpdateProduct = async (
     quantity: number,
@@ -103,7 +105,11 @@ function useCartActions(
           if (delErr) throw delErr;
         }
         // Keep store consistent.
-        addProductStorage(productId, -currentQuantity, selections ?? normalizedSize);
+        addProductStorage(
+          productId,
+          -currentQuantity,
+          selections ?? normalizedSize,
+        );
         return { blockedBulk: false, added: true };
       }
 

@@ -70,7 +70,10 @@ function normalizeSelections(
   };
 }
 
-function normalizeCartEntry(lineKey: string, item: CartItem): [string, CartItem] | null {
+function normalizeCartEntry(
+  lineKey: string,
+  item: CartItem,
+): [string, CartItem] | null {
   const quantity = Number(item?.quantity ?? 0);
   if (!Number.isFinite(quantity) || quantity <= 0) return null;
 
@@ -142,7 +145,10 @@ const useCartStore = create<CartStore>(
             return { cart: updatedCart };
           }
 
-          const normalized = normalizeSelections(sizeOrSelections, existingProduct);
+          const normalized = normalizeSelections(
+            sizeOrSelections,
+            existingProduct,
+          );
           return {
             cart: {
               ...state.cart,
@@ -151,7 +157,9 @@ const useCartStore = create<CartStore>(
                 quantity: newQuantity,
                 ...normalized,
                 variantKey: buildCartVariantKey(normalized),
-                ...(existingProduct?.cartId ? { cartId: existingProduct.cartId } : {}),
+                ...(existingProduct?.cartId
+                  ? { cartId: existingProduct.cartId }
+                  : {}),
               },
             },
           };
@@ -169,7 +177,10 @@ const useCartStore = create<CartStore>(
             lineKey,
             existingProduct?.productId,
           );
-          const normalized = normalizeSelections(sizeOrSelections, existingProduct);
+          const normalized = normalizeSelections(
+            sizeOrSelections,
+            existingProduct,
+          );
           const nextLineKey = buildCartLineKey({
             productId,
             size: normalized.size,
@@ -185,7 +196,9 @@ const useCartStore = create<CartStore>(
                 quantity,
                 ...normalized,
                 variantKey: buildCartVariantKey(normalized),
-                ...(existingProduct?.cartId ? { cartId: existingProduct.cartId } : {}),
+                ...(existingProduct?.cartId
+                  ? { cartId: existingProduct.cartId }
+                  : {}),
               },
             }),
           };
@@ -219,7 +232,9 @@ const useCartStore = create<CartStore>(
                   size: normalized,
                   selections: existingProduct?.selections,
                 }),
-                ...(existingProduct?.cartId ? { cartId: existingProduct.cartId } : {}),
+                ...(existingProduct?.cartId
+                  ? { cartId: existingProduct.cartId }
+                  : {}),
               },
             }),
           };
@@ -247,7 +262,9 @@ const useCartStore = create<CartStore>(
                 quantity: existingProduct?.quantity ?? 0,
                 ...normalized,
                 variantKey: buildCartVariantKey(normalized),
-                ...(existingProduct?.cartId ? { cartId: existingProduct.cartId } : {}),
+                ...(existingProduct?.cartId
+                  ? { cartId: existingProduct.cartId }
+                  : {}),
               },
             }),
           };

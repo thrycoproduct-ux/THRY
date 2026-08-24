@@ -261,7 +261,8 @@ export async function POST(request: Request) {
           .filter(Boolean),
       ),
     ];
-    const sizeConfigs = await getProductSizeConfigsByProductIds(checkoutProductIds);
+    const sizeConfigs =
+      await getProductSizeConfigsByProductIds(checkoutProductIds);
     for (const line of productsQuantity) {
       if (line.isDigital) continue;
       const cartItem = checkout.orderProducts[line.cartLineKey];
@@ -386,7 +387,10 @@ export async function POST(request: Request) {
     );
     const selectedSelectionsByLine = Object.fromEntries(
       Object.entries(checkout.orderProducts).map(([lineKey, value]) => {
-        const productId = extractProductIdFromCartLineKey(lineKey, value.productId);
+        const productId = extractProductIdFromCartLineKey(
+          lineKey,
+          value.productId,
+        );
         return [
           lineKey,
           resolveOptionSelections({
@@ -417,13 +421,18 @@ export async function POST(request: Request) {
         totalQuantity,
         paymentEnvironment,
         linePricing,
-        cartLines: Object.entries(checkout.orderProducts).map(([lineKey, value]) => ({
-          lineKey,
-          productId: extractProductIdFromCartLineKey(lineKey, value.productId),
-          quantity: value.quantity,
-          size: selectedSizesByLine[lineKey] || undefined,
-          selections: selectedSelectionsByLine[lineKey],
-        })),
+        cartLines: Object.entries(checkout.orderProducts).map(
+          ([lineKey, value]) => ({
+            lineKey,
+            productId: extractProductIdFromCartLineKey(
+              lineKey,
+              value.productId,
+            ),
+            quantity: value.quantity,
+            size: selectedSizesByLine[lineKey] || undefined,
+            selections: selectedSelectionsByLine[lineKey],
+          }),
+        ),
       };
 
       const created = await tx

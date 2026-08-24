@@ -46,8 +46,10 @@ export function buildCartVariantKey(input: CartLineInput): string {
   return size ? `size=${size}` : DEFAULT_CART_VARIANT_KEY;
 }
 
-export function buildCartLineKey(input: Required<Pick<CartLineInput, "productId">> &
-  Pick<CartLineInput, "size" | "selections">): string {
+export function buildCartLineKey(
+  input: Required<Pick<CartLineInput, "productId">> &
+    Pick<CartLineInput, "size" | "selections">,
+): string {
   return `${input.productId}${CART_LINE_SEPARATOR}${buildCartVariantKey(input)}`;
 }
 
