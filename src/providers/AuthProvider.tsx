@@ -1,6 +1,10 @@
 "use client";
 
 import useCartStore, { type CartItems } from "@/features/carts/useCartStore";
+import {
+  buildCartVariantKey,
+  extractProductIdFromCartLineKey,
+} from "@/features/carts/cart-line";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthUser, Session } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
@@ -126,14 +130,37 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                   const parsed = JSON.parse(raw) as { cart?: CartItems };
                   const cart = parsed?.cart;
                   if (cart && typeof cart === "object") {
-                    const storageCarts = Object.entries(cart).map(
-                      ([productId, productValue]) => ({
-                        id: nanoid(),
-                        productId,
-                        quantity: productValue.quantity,
-                        userId: data.user!.id,
-                      }),
-                    );
+                    const storageCarts = Object.entries(cart)
+                      .map(([lineKey, productValue]) => {
+                        const productId = extractProductIdFromCartLineKey(
+                          lineKey,
+                          productValue.productId,
+                        );
+                        if (!productId) return null;
+
+                        const quantity = Number(productValue.quantity ?? 0);
+                        if (!Number.isFinite(quantity) || quantity <= 0) {
+                          return null;
+                        }
+
+                        return {
+                          id: nanoid(),
+                          product_id: productId,
+                          user_id: data.user!.id,
+                          quantity,
+                          variant_key:
+                            productValue.variantKey ??
+                            buildCartVariantKey({
+                              size: productValue.size,
+                              selections: productValue.selections,
+                            }),
+                          size: productValue.size ?? null,
+                          selections: productValue.selections ?? null,
+                        };
+                      })
+                      .filter(
+                        (row): row is NonNullable<typeof row> => row !== null,
+                      );
 
                     if (storageCarts.length > 0) {
                       supabase.from("carts").insert(storageCarts);

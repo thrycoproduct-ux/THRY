@@ -16,11 +16,7 @@ import { Resend } from "resend";
 
 export type OrderDispatchEmailResult = {
   sent: boolean;
-  skipped?:
-    | "not_configured"
-    | "already_notified"
-    | "no_email"
-    | "error";
+  skipped?: "not_configured" | "already_notified" | "no_email" | "error";
   error?: string;
 };
 

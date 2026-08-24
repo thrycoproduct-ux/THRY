@@ -3,6 +3,7 @@
 import { resolveProductPricingForSelection } from "@/lib/products/pricing";
 import { normalizeProductSizeConfig } from "@/lib/products/sizeConfig-shared";
 import type { CartProductPricing } from "@/lib/storefront/cart-pricing";
+import { extractProductIdFromCartLineKey } from "../cart-line";
 import { useEffect, useMemo, useState } from "react";
 
 type PricingMap = Record<string, CartProductPricing>;
@@ -77,6 +78,8 @@ export function calcLiveCartSubtotal(
     string,
     {
       quantity: number;
+      /** If present, authoritative product id for this cart line. */
+      productId?: string;
       size?: string;
       selections?: Record<string, string>;
     }
@@ -85,11 +88,15 @@ export function calcLiveCartSubtotal(
   sizeConfigs?: Record<string, unknown>,
 ): number {
   return Object.entries(quantities).reduce((total, [productId, item]) => {
-    const base = pricing[productId];
+    const resolvedProductId = extractProductIdFromCartLineKey(
+      productId,
+      item.productId,
+    );
+    const base = pricing[resolvedProductId];
     if (!base || item.quantity <= 0) return total;
 
-    const sizeConfig = sizeConfigs?.[productId]
-      ? normalizeProductSizeConfig(sizeConfigs[productId])
+    const sizeConfig = sizeConfigs?.[resolvedProductId]
+      ? normalizeProductSizeConfig(sizeConfigs[resolvedProductId])
       : null;
     const unitPrice = sizeConfig?.enabled
       ? resolveProductPricingForSelection({

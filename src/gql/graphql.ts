@@ -2232,6 +2232,7 @@ export type FetchCartQueryQuery = {
       __typename: "cartsEdge";
       node: {
         __typename: "carts";
+        nodeId: string;
         product_id: string;
         user_id: any;
         quantity: number;
@@ -4677,6 +4678,10 @@ export const FetchCartQueryDocument = {
                             {
                               kind: "Field",
                               name: { kind: "Name", value: "__typename" },
+                            },
+                            {
+                              kind: "Field",
+                              name: { kind: "Name", value: "nodeId" },
                             },
                             {
                               kind: "Field",

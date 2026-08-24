@@ -23,7 +23,8 @@ export async function POST(
       ok: true,
       orderId: result.orderId,
       isPaid: result.isPaid,
-      alreadyPaid: "alreadyPaid" in result ? Boolean(result.alreadyPaid) : false,
+      alreadyPaid:
+        "alreadyPaid" in result ? Boolean(result.alreadyPaid) : false,
       state: result.state,
     });
   } catch (error) {

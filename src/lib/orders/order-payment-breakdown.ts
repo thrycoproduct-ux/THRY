@@ -5,7 +5,13 @@ import {
 import { readPaymentMeta } from "@/lib/orders/payment-meta";
 
 export type OrderPaymentBreakdownLine = {
-  key: "subtotal" | "discount" | "discountedSubtotal" | "courier" | "gst" | "total";
+  key:
+    | "subtotal"
+    | "discount"
+    | "discountedSubtotal"
+    | "courier"
+    | "gst"
+    | "total";
   label: string;
   /** Display value already formatted for Free / Not applied cases when needed. */
   valueKind: "money" | "free" | "not_applied";
@@ -93,8 +99,7 @@ export function buildOrderPaymentBreakdown(params: {
   });
 
   if (showDiscount) {
-    const pctLabel =
-      discountPercentage > 0 ? ` (${discountPercentage}%)` : "";
+    const pctLabel = discountPercentage > 0 ? ` (${discountPercentage}%)` : "";
     const promoLabel = promoCode ? ` · ${promoCode}` : "";
     lines.push({
       key: "discount",

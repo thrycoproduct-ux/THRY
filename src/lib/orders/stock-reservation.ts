@@ -398,6 +398,8 @@ async function loadOrderLinesForRelease(
     .select({
       productId: orderLines.productId,
       quantity: orderLines.quantity,
+      size: orderLines.size,
+      selections: orderLines.selections,
     })
     .from(orderLines)
     .where(eq(orderLines.orderId, orderId));
@@ -405,8 +407,13 @@ async function loadOrderLinesForRelease(
   return lines.map((line) => ({
     productId: line.productId,
     quantity: line.quantity,
-    ...(selectedSizes[line.productId]
-      ? { size: selectedSizes[line.productId] }
+    ...(line.size
+      ? { size: String(line.size).trim().toUpperCase() }
+      : selectedSizes[line.productId]
+        ? { size: selectedSizes[line.productId] }
+        : {}),
+    ...(line.selections && typeof line.selections === "object"
+      ? { selections: line.selections as Record<string, string> }
       : {}),
   }));
 }
@@ -701,6 +708,8 @@ export async function loadOrderReservationLines(
     .select({
       productId: orderLines.productId,
       quantity: orderLines.quantity,
+      size: orderLines.size,
+      selections: orderLines.selections,
     })
     .from(orderLines)
     .where(eq(orderLines.orderId, order.id));
@@ -719,8 +728,13 @@ export async function loadOrderReservationLines(
   return lines.map((line) => ({
     productId: line.productId,
     quantity: line.quantity,
-    ...(selectedSizes[line.productId]
-      ? { size: selectedSizes[line.productId] }
+    ...(line.size
+      ? { size: String(line.size).trim().toUpperCase() }
+      : selectedSizes[line.productId]
+        ? { size: selectedSizes[line.productId] }
+        : {}),
+    ...(line.selections && typeof line.selections === "object"
+      ? { selections: line.selections as Record<string, string> }
       : {}),
   }));
 }

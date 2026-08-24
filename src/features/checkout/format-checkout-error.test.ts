@@ -14,7 +14,9 @@ describe("formatCheckoutErrorMessage", () => {
   it("maps Razorpay script load failures", () => {
     expect(
       formatCheckoutErrorMessage(
-        new Error("Razorpay checkout script failed to load. Please retry checkout."),
+        new Error(
+          "Razorpay checkout script failed to load. Please retry checkout.",
+        ),
       ),
     ).toMatch(/could not load/i);
   });

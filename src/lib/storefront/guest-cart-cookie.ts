@@ -1,4 +1,5 @@
-import type { CartItems } from "@/features/carts/useCartStore";
+import { normalizeCart, type CartItems } from "@/features/carts/useCartStore";
+import { extractProductIdFromCartLineKey } from "@/features/carts/cart-line";
 import type { ReadonlyRequestCookies } from "next/dist/server/web/spec-extension/adapters/request-cookies";
 
 const CART_COOKIE_NAME = "cart";
@@ -15,11 +16,13 @@ export function readGuestCartItemsFromCookies(
     const parsed = JSON.parse(decoded) as { cart?: CartItems };
     const cart = parsed?.cart;
     if (!cart || typeof cart !== "object") return {};
-    return cart;
+    return normalizeCart(cart);
   } catch {
     try {
       const parsed = JSON.parse(raw) as { cart?: CartItems };
-      return parsed?.cart && typeof parsed.cart === "object" ? parsed.cart : {};
+      return parsed?.cart && typeof parsed.cart === "object"
+        ? normalizeCart(parsed.cart)
+        : {};
     } catch {
       return {};
     }
@@ -27,5 +30,11 @@ export function readGuestCartItemsFromCookies(
 }
 
 export function guestCartProductIds(cart: CartItems): string[] {
-  return Object.keys(cart).filter(Boolean);
+  return [...new Set(
+    Object.entries(cart)
+      .map(([lineKey, item]) =>
+        extractProductIdFromCartLineKey(lineKey, item?.productId),
+      )
+      .filter(Boolean),
+  )];
 }

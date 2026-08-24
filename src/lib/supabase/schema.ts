@@ -153,11 +153,18 @@ export type InsertPaymentWebhookEvents = InferInsertModel<
 export const carts = pgTable(
   "carts",
   {
+    id: text("id")
+      .notNull()
+      .primaryKey()
+      .$defaultFn(() => createId()),
     quantity: integer("quantity").notNull(),
     productId: text("product_id")
       .notNull()
       .references(() => products.id, { onDelete: "cascade" }),
     userId: uuid("user_id").notNull(),
+    size: text("size"),
+    selections: jsonRecordNullable("selections"),
+    variantKey: text("variant_key").notNull().default("default"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
       mode: "string",
@@ -167,10 +174,11 @@ export const carts = pgTable(
   },
   (table) => {
     return {
-      pkWithCustomName: primaryKey({
-        name: "user_poduct_cart_id",
-        columns: [table.userId, table.productId],
-      }),
+      userProductVariantUid: uniqueIndex("user_product_variant_cart_uid").on(
+        table.userId,
+        table.productId,
+        table.variantKey,
+      ),
       product: foreignKey({
         columns: [table.productId],
         foreignColumns: [products.id],
@@ -495,6 +503,8 @@ export const orderLines = pgTable(
     digitalFileNameSnapshot: text("digital_file_name_snapshot"),
     quantity: integer("quantity").notNull(),
     price: decimal("price", { precision: 8, scale: 2 }).notNull(),
+    size: text("size"),
+    selections: jsonRecordNullable("selections"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })

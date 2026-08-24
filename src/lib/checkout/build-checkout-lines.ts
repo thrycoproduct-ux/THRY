@@ -1,5 +1,6 @@
 import { getProductsByIds } from "@/_actions/products";
 import type { CartItems } from "@/features/carts";
+import { extractProductIdFromCartLineKey } from "@/features/carts/cart-line";
 import {
   resolveProductPricingForSelection,
   type ResolvedProductPricing,
@@ -19,6 +20,7 @@ import {
 } from "@/lib/storefront/product-visibility";
 
 export type CheckoutLineItem = SelectProducts & {
+  cartLineKey: string;
   quantity: number;
   /** Authoritative sale price for this checkout line (discount applied once). */
   pricing: CartProductPricing;
@@ -59,7 +61,22 @@ function resolveCheckoutLinePricing(
 export async function buildCheckoutLineItems(
   orderProducts: CartItems,
 ): Promise<CheckoutLineItem[]> {
-  const productIds = Object.keys(orderProducts);
+  const cartLines = Object.entries(orderProducts)
+    .map(([lineKey, item]) => {
+      const productId = extractProductIdFromCartLineKey(lineKey, item?.productId);
+      if (!productId || item.quantity <= 0) return null;
+      return { lineKey, productId, item };
+    })
+    .filter(
+      (
+        line,
+      ): line is {
+        lineKey: string;
+        productId: string;
+        item: CartItems[string];
+      } => line !== null,
+    );
+  const productIds = [...new Set(cartLines.map((line) => line.productId))];
   if (productIds.length === 0) return [];
 
   const [products, pricingMap, sizeConfigs] = await Promise.all([
@@ -76,15 +93,15 @@ export async function buildCheckoutLineItems(
     unpublishedIds,
   );
 
-  return productIds.map((productId) => {
+  return cartLines.map(({ lineKey, productId, item }) => {
     const product = productById.get(productId);
     if (!product) {
       throw new Error(`Product ${productId} is no longer available.`);
     }
 
-    const item = orderProducts[productId];
     return {
       ...product,
+      cartLineKey: lineKey,
       quantity: item.quantity,
       pricing: resolveCheckoutLinePricing(
         product,

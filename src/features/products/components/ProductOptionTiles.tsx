@@ -63,10 +63,7 @@ export function ProductOptionTiles({
       <div
         role="radiogroup"
         aria-label={name}
-        className={cn(
-          "flex flex-wrap gap-2",
-          compact ? "gap-1.5" : "gap-2.5",
-        )}
+        className={cn("flex flex-wrap gap-2", compact ? "gap-1.5" : "gap-2.5")}
       >
         {options.map((option) => {
           const isSelected = option.value === selected;
@@ -83,9 +80,7 @@ export function ProductOptionTiles({
               role="radio"
               aria-checked={isSelected}
               aria-label={
-                priceText
-                  ? `${option.label}, ${priceText}`
-                  : option.label
+                priceText ? `${option.label}, ${priceText}` : option.label
               }
               disabled={isDisabled}
               onClick={() => {
@@ -118,9 +113,7 @@ export function ProductOptionTiles({
                   className={cn(
                     "mt-0.5 font-medium",
                     compact ? "text-[10px]" : "text-xs",
-                    isSelected
-                      ? "text-brand-rose"
-                      : "text-muted-foreground",
+                    isSelected ? "text-brand-rose" : "text-muted-foreground",
                   )}
                 >
                   {priceText}

@@ -3,39 +3,17 @@ import { useToast } from "@/components/ui/use-toast";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useStockControlConfig } from "@/providers/StockControlProvider";
 import { User } from "@supabase/auth-helpers-nextjs";
-import { useMutation, useQuery } from "@urql/next";
-import { FetchCartQuery } from "../components/UserCartSection";
-import { createCartMutation, updateCartsMutation } from "../query";
 import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartStore, { type OptionSelections } from "../useCartStore";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import type { SupabaseClient } from "@supabase/supabase-js";
+import { buildCartLineKey, buildCartVariantKey, normalizeCartSize } from "../cart-line";
 
 type AddOpts = {
   silent?: boolean;
   size?: string;
   selections?: OptionSelections;
 };
-
-function selectionsEqual(
-  a?: OptionSelections | null,
-  b?: OptionSelections | null,
-) {
-  const left = a ?? {};
-  const right = b ?? {};
-  const keys = new Set([...Object.keys(left), ...Object.keys(right)]);
-  for (const key of keys) {
-    if (
-      String(left[key] ?? "")
-        .trim()
-        .toUpperCase() !==
-      String(right[key] ?? "")
-        .trim()
-        .toUpperCase()
-    ) {
-      return false;
-    }
-  }
-  return true;
-}
 
 function useCartActions(
   user: User | null,
@@ -45,51 +23,55 @@ function useCartActions(
   const { toast } = useToast();
   const bulkOrder = useBulkOrderGuardConfig();
   const stockControl = useStockControlConfig();
-  const [, addToCart] = useMutation(createCartMutation);
-  const [, updateCart] = useMutation(updateCartsMutation);
   const addProductStorage = useCartStore((s) => s.addProductToCart);
-  const setProductSize = useCartStore((s) => s.setProductSize);
-  const setProductSelections = useCartStore((s) => s.setProductSelections);
   const guestCart = useCartStore((s) => s.cart);
 
-  const [{ data }, refetch] = useQuery({
-    query: FetchCartQuery,
-    variables: {
-      userId: user ? user.id : undefined,
-    },
-  });
+  const supabase: SupabaseClient | null = user
+    ? createSupabaseClient()
+    : null;
 
   const authAddOrUpdateProduct = async (
     quantity: number,
     opts: AddOpts = {},
   ) => {
-    const size = opts.size;
+    if (!user || !supabase) {
+      return { blockedBulk: false, added: false };
+    }
+
+    const normalizedSize = opts.size ? normalizeCartSize(opts.size) : undefined;
     const selections = opts.selections;
-    const existedProduct = data?.cartsCollection?.edges?.find(
-      ({ node }) => node.product_id === productId,
-    );
-    const currentQuantity = existedProduct?.node.quantity ?? 0;
-    const currentItem = guestCart[productId];
-    const hasConflict =
-      currentQuantity > 0 &&
-      ((selections &&
-        currentItem?.selections &&
-        !selectionsEqual(currentItem.selections, selections)) ||
-        (size &&
-          currentItem?.size &&
-          !selections &&
-          currentItem.size !== size));
-    if (hasConflict) {
+    const variantKey = buildCartVariantKey({
+      productId,
+      size: normalizedSize,
+      selections,
+    });
+    const lineKey = buildCartLineKey({
+      productId,
+      size: normalizedSize,
+      selections,
+    });
+
+    const { data: existingRow, error: existingErr } = await supabase
+      .from("carts")
+      .select("id, quantity")
+      .eq("user_id", user.id)
+      .eq("product_id", productId)
+      .eq("variant_key", variantKey)
+      .maybeSingle();
+
+    if (existingErr) {
       if (!opts.silent) {
         toast({
-          title: "Option mismatch",
-          description:
-            "This product is already in cart with a different option. Remove it first, then add the new choice.",
+          title: "Error",
+          description: "Could not update cart. Please try again.",
           variant: "destructive",
         });
       }
       return { blockedBulk: false, added: false };
     }
+
+    const currentQuantity = existingRow?.quantity ?? 0;
+    const currentItem = guestCart[lineKey];
     if (
       bulkOrder.enabled &&
       isBulkOrderQuantity(currentQuantity + quantity, bulkOrder.threshold)
@@ -111,29 +93,54 @@ function useCartActions(
       return { blockedBulk: false, added: false };
     }
     try {
-      let res;
-      if (!existedProduct) {
-        res = await addToCart({
-          productId,
-          userId: user!.id,
-          quantity,
-        });
-        refetch({ requestPolicy: "network-only" });
-      } else {
-        res = await updateCart({
-          productId,
-          userId: user!.id,
-          newQuantity: existedProduct.node.quantity + quantity,
-        });
-        refetch({ requestPolicy: "network-only" });
+      const nextQuantity = currentQuantity + quantity;
+      if (nextQuantity <= 0) {
+        if (existingRow?.id) {
+          const { error: delErr } = await supabase
+            .from("carts")
+            .delete()
+            .eq("id", existingRow.id);
+          if (delErr) throw delErr;
+        }
+        // Keep store consistent.
+        addProductStorage(productId, -currentQuantity, selections ?? normalizedSize);
+        return { blockedBulk: false, added: true };
       }
+
+      const payload: Record<string, unknown> = {
+        user_id: user.id,
+        product_id: productId,
+        variant_key: variantKey,
+        quantity: nextQuantity,
+      };
+      if (normalizedSize) payload.size = normalizedSize;
       if (selections && Object.keys(selections).length > 0) {
-        setProductSelections(productId, selections);
-      } else if (size) {
-        setProductSize(productId, size);
+        payload.selections = selections;
       }
-      if (res && !res.error && !opts.silent)
+
+      if (existingRow?.id) {
+        const { error: updErr } = await supabase
+          .from("carts")
+          .update(payload)
+          .eq("id", existingRow.id);
+        if (updErr) throw updErr;
+      } else {
+        const { error: insErr } = await supabase.from("carts").insert({
+          ...payload,
+        });
+        if (insErr) throw insErr;
+      }
+
+      // Update local store for immediate UI + checkout.
+      const sizeOrSelections =
+        selections && Object.keys(selections).length > 0
+          ? selections
+          : normalizedSize;
+      addProductStorage(productId, quantity, sizeOrSelections);
+
+      if (!opts.silent)
         toast({ title: "Success, Added a Product to the Cart." });
+
       return { blockedBulk: false, added: true };
     } catch {
       if (!opts.silent) toast({ title: "Error, Unexpected Error occurred." });
@@ -142,30 +149,20 @@ function useCartActions(
   };
 
   const guestAddProduct = (quantity: number, opts: AddOpts = {}) => {
-    const size = opts.size;
+    const normalizedSize = opts.size ? normalizeCartSize(opts.size) : undefined;
     const selections = opts.selections;
-    const currentQuantity = guestCart[productId]?.quantity ?? 0;
-    const currentItem = guestCart[productId];
-    const hasConflict =
-      currentQuantity > 0 &&
-      ((selections &&
-        currentItem?.selections &&
-        !selectionsEqual(currentItem.selections, selections)) ||
-        (size &&
-          currentItem?.size &&
-          !selections &&
-          currentItem.size !== size));
-    if (hasConflict) {
-      if (!opts.silent) {
-        toast({
-          title: "Option mismatch",
-          description:
-            "This product is already in cart with a different option. Remove it first, then add the new choice.",
-          variant: "destructive",
-        });
-      }
-      return { blockedBulk: false, added: false };
-    }
+    const variantKey = buildCartVariantKey({
+      productId,
+      size: normalizedSize,
+      selections,
+    });
+    const lineKey = buildCartLineKey({
+      productId,
+      size: normalizedSize,
+      selections,
+    });
+    const currentQuantity = guestCart[lineKey]?.quantity ?? 0;
+
     if (
       bulkOrder.enabled &&
       isBulkOrderQuantity(currentQuantity + quantity, bulkOrder.threshold)
@@ -186,7 +183,11 @@ function useCartActions(
       }
       return { blockedBulk: false, added: false };
     }
-    addProductStorage(productId, quantity, selections ?? size);
+    const sizeOrSelections =
+      selections && Object.keys(selections).length > 0
+        ? selections
+        : normalizedSize;
+    addProductStorage(productId, quantity, sizeOrSelections);
     if (!opts.silent) toast({ title: "Sucess, Added a Product to the Cart." });
     return { blockedBulk: false, added: true };
   };

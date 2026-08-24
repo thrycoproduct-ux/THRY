@@ -13,6 +13,7 @@ export const FetchCartQuery = gql(/* GraphQL */ `
         __typename
         node {
           __typename
+          nodeId
           product_id
           user_id
           quantity

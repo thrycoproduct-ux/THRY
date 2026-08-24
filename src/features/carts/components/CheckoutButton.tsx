@@ -141,7 +141,8 @@ function CheckoutButton({
                   .trim()
                   .toUpperCase(),
             )
-            .map(([productId]) => productId);
+            .map(([, item]) => item.productId)
+            .filter((id): id is string => Boolean(id));
           if (uncheckedIds.length > 0) {
             const results = await Promise.all(
               uncheckedIds.map(async (productId) => {

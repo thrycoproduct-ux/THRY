@@ -34,6 +34,7 @@ yarn-error.log*
 scripts/.r2-creds.tmp.json
 scripts/.media-proxy-secret.tmp
 scripts/.r2-direct-ok.tmp
+.cloudflare-dns.token
 
 # local backup exports (may contain old URLs/metadata)
 scripts/deleted-media-backup-*.json

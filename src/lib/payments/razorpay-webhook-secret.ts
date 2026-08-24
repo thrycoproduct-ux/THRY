@@ -24,7 +24,10 @@ export function razorpayWebhookSecretValidationMessage(
   const secret = String(value ?? "").trim();
   if (!secret) return null;
   if (isLikelyRazorpayWebhookSecret(secret)) return null;
-  if (/^https?:\/\//i.test(secret) || /dashboard\.razorpay\.com/i.test(secret)) {
+  if (
+    /^https?:\/\//i.test(secret) ||
+    /dashboard\.razorpay\.com/i.test(secret)
+  ) {
     return "Webhook Secret must be the secret string from Razorpay Webhooks — not the dashboard URL.";
   }
   if (secret.length < 8) {

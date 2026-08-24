@@ -73,13 +73,17 @@ export function formatOrderPaymentMethodLabel(
   return provider || method || null;
 }
 
-export function formatOrderPhoneLabel(mobile: string | null | undefined): string | null {
+export function formatOrderPhoneLabel(
+  mobile: string | null | undefined,
+): string | null {
   const trimmed = mobile?.trim();
   return trimmed || null;
 }
 
 export function buildEmailBrandHeaderHtml(): string {
-  const logoUrl = escapeHtml(`${siteConfig.url.replace(/\/$/, "")}/images/thry-wordmark.svg`);
+  const logoUrl = escapeHtml(
+    `${siteConfig.url.replace(/\/$/, "")}/images/thry-wordmark.svg`,
+  );
   const name = escapeHtml(siteConfig.name);
   return `<div style="margin-bottom:20px;">
     <img src="${logoUrl}" alt="${name}" width="120" height="32" style="display:block;height:32px;width:auto;max-width:140px;margin-bottom:8px;" />
@@ -141,7 +145,9 @@ export function buildOrderMetaBlockHtml(params: {
   return `<p style="margin:0 0 20px;line-height:1.6;">${lines.join("<br />")}</p>`;
 }
 
-export function buildLineItemsTableHtml(lineItems: OrderEmailLineItem[]): string {
+export function buildLineItemsTableHtml(
+  lineItems: OrderEmailLineItem[],
+): string {
   const rows = lineItems
     .map((line) => {
       const name = escapeHtml(line.name);
@@ -176,7 +182,9 @@ export function buildLineItemsTableHtml(lineItems: OrderEmailLineItem[]): string
   </table>`;
 }
 
-export function buildLineItemsPlainText(lineItems: OrderEmailLineItem[]): string[] {
+export function buildLineItemsPlainText(
+  lineItems: OrderEmailLineItem[],
+): string[] {
   return lineItems.map((line) => {
     const code = line.productCode ? ` (${line.productCode})` : "";
     const total = line.unitPrice * line.quantity;

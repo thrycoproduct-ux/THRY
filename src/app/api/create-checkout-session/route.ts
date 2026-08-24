@@ -23,6 +23,7 @@ import {
 } from "@/lib/orders/stock-reservation";
 import { sweepExpiredStockReservationsIfEnabled } from "@/lib/orders/lazy-stock-reservation-sweep";
 import type { CartItems } from "@/features/carts";
+import { extractProductIdFromCartLineKey } from "@/features/carts/cart-line";
 import { createPhonePePayment } from "@/lib/payments/phonepe";
 import { createCashfreePayment } from "@/lib/payments/cashfree";
 import { createRazorpayPayment } from "@/lib/payments/razorpay";
@@ -68,6 +69,7 @@ const shippingSchema = z.object({
 const orderProductsSchema = z.object({
   orderProducts: z.record(
     z.object({
+      productId: z.string().trim().min(1).optional(),
       quantity: z.number().min(1),
       size: z.string().trim().max(24).optional(),
       selections: z.record(z.string().trim().max(24)).optional(),
@@ -250,12 +252,19 @@ export async function POST(request: Request) {
         );
       }
     }
-    const sizeConfigs = await getProductSizeConfigsByProductIds(
-      Object.keys(checkout.orderProducts),
-    );
+    const checkoutProductIds = [
+      ...new Set(
+        Object.entries(checkout.orderProducts)
+          .map(([lineKey, item]) =>
+            extractProductIdFromCartLineKey(lineKey, item.productId),
+          )
+          .filter(Boolean),
+      ),
+    ];
+    const sizeConfigs = await getProductSizeConfigsByProductIds(checkoutProductIds);
     for (const line of productsQuantity) {
       if (line.isDigital) continue;
-      const cartItem = checkout.orderProducts[line.id];
+      const cartItem = checkout.orderProducts[line.cartLineKey];
       const sizeConfig = sizeConfigs.get(line.id);
       const activeGroups = getActiveOptionGroups(sizeConfig);
       if (activeGroups.length === 0) continue;
@@ -367,23 +376,26 @@ export async function POST(request: Request) {
       shouldReserveStockAtCheckout(paymentEnvironment);
     const linePricing = buildCheckoutLinePricingRecord(productsQuantity);
 
-    const selectedSizes = Object.fromEntries(
-      Object.entries(checkout.orderProducts).map(([id, value]) => [
-        id,
+    const selectedSizesByLine = Object.fromEntries(
+      Object.entries(checkout.orderProducts).map(([lineKey, value]) => [
+        lineKey,
         String(value.size ?? "")
           .trim()
           .toUpperCase(),
       ]),
     );
-    const selectedSelections = Object.fromEntries(
-      Object.entries(checkout.orderProducts).map(([id, value]) => [
-        id,
-        resolveOptionSelections({
-          sizeConfig: sizeConfigs.get(id),
-          selections: value.selections,
-          selectedSize: value.size,
-        }),
-      ]),
+    const selectedSelectionsByLine = Object.fromEntries(
+      Object.entries(checkout.orderProducts).map(([lineKey, value]) => {
+        const productId = extractProductIdFromCartLineKey(lineKey, value.productId);
+        return [
+          lineKey,
+          resolveOptionSelections({
+            sizeConfig: sizeConfigs.get(productId),
+            selections: value.selections,
+            selectedSize: value.size,
+          }),
+        ];
+      }),
     );
     const productNames = new Map(
       productsQuantity.map((product) => [product.id, product.name]),
@@ -405,8 +417,13 @@ export async function POST(request: Request) {
         totalQuantity,
         paymentEnvironment,
         linePricing,
-        sizes: selectedSizes,
-        selections: selectedSelections,
+        cartLines: Object.entries(checkout.orderProducts).map(([lineKey, value]) => ({
+          lineKey,
+          productId: extractProductIdFromCartLineKey(lineKey, value.productId),
+          quantity: value.quantity,
+          size: selectedSizesByLine[lineKey] || undefined,
+          selections: selectedSelectionsByLine[lineKey],
+        })),
       };
 
       const created = await tx
@@ -442,6 +459,7 @@ export async function POST(request: Request) {
       await tx.insert(orderLines).values(
         productsQuantity.map(
           ({
+            cartLineKey,
             id,
             quantity,
             pricing,
@@ -464,6 +482,8 @@ export async function POST(request: Request) {
             isDigitalSnapshot: Boolean(isDigital),
             digitalFileKeySnapshot: isDigital ? digitalFileKey ?? null : null,
             digitalFileNameSnapshot: isDigital ? digitalFileName ?? null : null,
+            size: selectedSizesByLine[cartLineKey] || null,
+            selections: selectedSelectionsByLine[cartLineKey] ?? {},
           }),
         ),
       );
@@ -473,11 +493,11 @@ export async function POST(request: Request) {
           lines: productsQuantity.map((product) => ({
             productId: product.id,
             quantity: product.quantity,
-            size: selectedSizes[product.id] || undefined,
-            selections: selectedSelections[product.id],
+            size: selectedSizesByLine[product.cartLineKey] || undefined,
+            selections: selectedSelectionsByLine[product.cartLineKey],
           })),
-          selectedSizes,
-          selectedSelections,
+          selectedSizes: {},
+          selectedSelections: {},
           sizeConfigs,
           productNames,
         });

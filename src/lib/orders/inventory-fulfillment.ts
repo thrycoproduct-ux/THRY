@@ -48,6 +48,8 @@ async function loadFulfillmentLines(
     .select({
       productId: orderLines.productId,
       quantity: orderLines.quantity,
+      size: orderLines.size,
+      selections: orderLines.selections,
     })
     .from(orderLines)
     .where(eq(orderLines.orderId, orderId));
@@ -55,8 +57,13 @@ async function loadFulfillmentLines(
   return lines.map((line) => ({
     productId: line.productId,
     quantity: line.quantity,
-    ...(selectedSizes[line.productId]
-      ? { size: selectedSizes[line.productId] }
+    ...(line.size
+      ? { size: String(line.size).trim().toUpperCase() }
+      : selectedSizes[line.productId]
+        ? { size: selectedSizes[line.productId] }
+        : {}),
+    ...(line.selections && typeof line.selections === "object"
+      ? { selections: line.selections as Record<string, string> }
       : {}),
   }));
 }

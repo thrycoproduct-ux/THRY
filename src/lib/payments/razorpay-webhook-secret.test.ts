@@ -16,9 +16,9 @@ describe("razorpay webhook secret validation", () => {
         "https://dashboard.razorpay.com/app/webhooks/TPy22zW5ngSIqq",
       ),
     ).toBe(false);
-    expect(isLikelyRazorpayWebhookSecret("https://thryco.com/api/razorpay/webhook")).toBe(
-      false,
-    );
+    expect(
+      isLikelyRazorpayWebhookSecret("https://thryco.com/api/razorpay/webhook"),
+    ).toBe(false);
     expect(isLikelyRazorpayWebhookSecret("short")).toBe(false);
   });
 

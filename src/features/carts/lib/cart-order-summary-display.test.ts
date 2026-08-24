@@ -25,23 +25,23 @@ describe("shouldShowCartDiscountRows", () => {
 
 describe("formatCartGstLabel", () => {
   it("includes percentage when GST is enabled", () => {
-    expect(
-      formatCartGstLabel({ gstEnabled: true, gstPercentage: 18 }),
-    ).toBe("GST (18%)");
+    expect(formatCartGstLabel({ gstEnabled: true, gstPercentage: 18 })).toBe(
+      "GST (18%)",
+    );
   });
 
   it("keeps plain GST when disabled or rate is zero", () => {
-    expect(
-      formatCartGstLabel({ gstEnabled: false, gstPercentage: 18 }),
-    ).toBe("GST");
+    expect(formatCartGstLabel({ gstEnabled: false, gstPercentage: 18 })).toBe(
+      "GST",
+    );
     expect(formatCartGstLabel({ gstEnabled: true, gstPercentage: 0 })).toBe(
       "GST",
     );
   });
 
   it("preserves fractional rates", () => {
-    expect(
-      formatCartGstLabel({ gstEnabled: true, gstPercentage: 12.5 }),
-    ).toBe("GST (12.5%)");
+    expect(formatCartGstLabel({ gstEnabled: true, gstPercentage: 12.5 })).toBe(
+      "GST (12.5%)",
+    );
   });
 });

@@ -56,60 +56,60 @@ const resend = new Resend(apiKey);
 
 async function main() {
   const confirmation = await resend.emails.send({
-  from,
-  to,
-  subject: buildOrderConfirmationSubject(base.orderId),
-  html: buildOrderConfirmationHtml({
-    ...base,
-    orderAmount: 1178,
-    currency: "INR",
-    paymentMeta: {
-      subtotalAmount: 998,
-      courierCharge: 0,
-      courierRule: "free_shipping",
-      gstAmount: 180,
-      gstEnabled: true,
-      gstPercentage: 18,
-    },
-    paymentMethod: "Razorpay · UPI",
-  }),
-  text: buildOrderConfirmationPlainText({
-    ...base,
-    orderAmount: 1178,
-    currency: "INR",
-    paymentMeta: {
-      subtotalAmount: 998,
-      courierCharge: 0,
-      courierRule: "free_shipping",
-      gstAmount: 180,
-      gstEnabled: true,
-      gstPercentage: 18,
-    },
-    paymentMethod: "Razorpay · UPI",
-  }),
-  replyTo: "thrycoproduct@gmail.com",
-});
+    from,
+    to,
+    subject: buildOrderConfirmationSubject(base.orderId),
+    html: buildOrderConfirmationHtml({
+      ...base,
+      orderAmount: 1178,
+      currency: "INR",
+      paymentMeta: {
+        subtotalAmount: 998,
+        courierCharge: 0,
+        courierRule: "free_shipping",
+        gstAmount: 180,
+        gstEnabled: true,
+        gstPercentage: 18,
+      },
+      paymentMethod: "Razorpay · UPI",
+    }),
+    text: buildOrderConfirmationPlainText({
+      ...base,
+      orderAmount: 1178,
+      currency: "INR",
+      paymentMeta: {
+        subtotalAmount: 998,
+        courierCharge: 0,
+        courierRule: "free_shipping",
+        gstAmount: 180,
+        gstEnabled: true,
+        gstPercentage: 18,
+      },
+      paymentMethod: "Razorpay · UPI",
+    }),
+    replyTo: "thrycoproduct@gmail.com",
+  });
 
-const dispatch = await resend.emails.send({
-  from,
-  to,
-  subject: buildOrderDispatchSubject(base.orderId),
-  html: buildOrderDispatchHtml({
-    ...base,
-    courierName: "Delhivery",
-    trackingNumber: "DL123456789IN",
-    trackingUrl: "https://www.delhivery.com/track/package/DL123456789IN",
-    dispatchedAt: new Date().toISOString(),
-  }),
-  text: buildOrderDispatchPlainText({
-    ...base,
-    courierName: "Delhivery",
-    trackingNumber: "DL123456789IN",
-    trackingUrl: "https://www.delhivery.com/track/package/DL123456789IN",
-    dispatchedAt: new Date().toISOString(),
-  }),
-  replyTo: "thrycoproduct@gmail.com",
-});
+  const dispatch = await resend.emails.send({
+    from,
+    to,
+    subject: buildOrderDispatchSubject(base.orderId),
+    html: buildOrderDispatchHtml({
+      ...base,
+      courierName: "Delhivery",
+      trackingNumber: "DL123456789IN",
+      trackingUrl: "https://www.delhivery.com/track/package/DL123456789IN",
+      dispatchedAt: new Date().toISOString(),
+    }),
+    text: buildOrderDispatchPlainText({
+      ...base,
+      courierName: "Delhivery",
+      trackingNumber: "DL123456789IN",
+      trackingUrl: "https://www.delhivery.com/track/package/DL123456789IN",
+      dispatchedAt: new Date().toISOString(),
+    }),
+    replyTo: "thrycoproduct@gmail.com",
+  });
 
   console.log(
     JSON.stringify(

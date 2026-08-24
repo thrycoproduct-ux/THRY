@@ -131,9 +131,9 @@ function CartItemCard({
                 const price = priceMatch
                   ? Number(priceMatch[1].replace(/,/g, ""))
                   : null;
-                const label = rawLabel
-                  .replace(/\s*[·•]\s*₹[\d,]+(?:\.\d+)?/g, "")
-                  .trim() || option.value;
+                const label =
+                  rawLabel.replace(/\s*[·•]\s*₹[\d,]+(?:\.\d+)?/g, "").trim() ||
+                  option.value;
                 return {
                   value: option.value,
                   label,

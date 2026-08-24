@@ -31,6 +31,7 @@ import useCartStore, {
   CartItems,
   calcProductCountStorage,
 } from "../useCartStore";
+import { guestCartProductIds } from "@/lib/storefront/guest-cart-cookie";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useCourierChargesConfig } from "@/providers/CourierChargesProvider";
 import { useOfferCodesConfig } from "@/providers/OfferCodesProvider";
@@ -90,7 +91,9 @@ function GuestCartSection({
     Boolean(initialSizeConfigs && prefetchedIdsKey),
   );
 
-  const cartProductIds = Object.keys(cartItems);
+  // `cartItems` is keyed by `lineKey` (productId + selected options), but
+  // product hydration & pricing APIs work by plain `productId`.
+  const cartProductIds = guestCartProductIds(cartItems);
 
   const [{ data, fetching, error }, _] = useQuery({
     query: FetchGuestCartQuery,
@@ -122,7 +125,9 @@ function GuestCartSection({
     [cartItems],
   );
   const physicalCount = useMemo(() => {
-    return Object.entries(cartItems).reduce((acc, [productId, item]) => {
+    return Object.entries(cartItems).reduce((acc, [, item]) => {
+      const productId = item.productId;
+      if (!productId) return acc;
       if (livePricing[productId]?.isDigital) return acc;
       return acc + Number(item.quantity ?? 0);
     }, 0);
@@ -248,13 +253,29 @@ function GuestCartSection({
     setPromoInput("");
   };
 
-  const cartLines = useMemo(
-    () =>
-      productsData?.productsCollection?.edges?.filter(
-        ({ node }) => cartItems[node.id],
-      ) ?? [],
-    [cartItems, productsData?.productsCollection?.edges],
-  );
+  const productsById = useMemo(() => {
+    const edges = productsData?.productsCollection?.edges ?? [];
+    return new Map(edges.map(({ node }) => [node.id, node]));
+  }, [productsData?.productsCollection?.edges]);
+
+  const cartLines = useMemo(() => {
+    return Object.entries(cartItems)
+      .map(([lineKey, item]) => {
+        const productId = item.productId;
+        const node = productId ? productsById.get(productId) : undefined;
+        if (!node) return null;
+        return { lineKey, node, item };
+      })
+      .filter(
+        (
+          entry,
+        ): entry is {
+          lineKey: string;
+          node: (typeof entry)["node"];
+          item: (typeof entry)["item"];
+        } => entry !== null,
+      );
+  }, [cartItems, productsById]);
 
   useEffect(() => {
     let active = true;
@@ -308,14 +329,13 @@ function GuestCartSection({
   const missingSizeProductNames = useMemo(
     () =>
       cartLines
-        .filter(({ node }) => {
+        .filter(({ node, item }) => {
           const sizeConfig = toSizeConfigFromCartPayload(
             sizeConfigsByProductId[node.id],
           );
           if (!sizeConfig.enabled || sizeConfig.groups.length === 0) {
             return false;
           }
-          const item = cartItems[node.id];
           const selections =
             item?.selections ??
             (item?.size && sizeConfig.groups[0]
@@ -333,10 +353,12 @@ function GuestCartSection({
   if (!productsData?.productsCollection?.edges?.length) return <EmptyCart />;
 
   const addOneHandler = (
+    lineKey: string,
     productId: string,
     quantity: number,
     stock: number | null,
   ) => {
+    const item = cartItems[lineKey];
     if (
       bulkOrder.enabled &&
       isBulkOrderQuantity(quantity + 1, bulkOrder.threshold)
@@ -356,17 +378,31 @@ function GuestCartSection({
       });
       return;
     }
-    addProductToCart(productId, 1);
+
+    const sizeOrSelections =
+      item?.selections && Object.keys(item.selections).length > 0
+        ? item.selections
+        : item?.size;
+    addProductToCart(productId, 1, sizeOrSelections);
   };
-  const minusOneHandler = (productId: string, quantity: number) => {
+  const minusOneHandler = (
+    lineKey: string,
+    productId: string,
+    quantity: number,
+  ) => {
     if (quantity > 1) {
-      addProductToCart(productId, -1);
+      const item = cartItems[lineKey];
+      const sizeOrSelections =
+        item?.selections && Object.keys(item.selections).length > 0
+          ? item.selections
+          : item?.size;
+      addProductToCart(productId, -1, sizeOrSelections);
     } else {
       toast({ title: "Minimum is reached." });
     }
   };
-  const removeHandler = (productId: string) => {
-    removeProduct(productId);
+  const removeHandler = (lineKey: string) => {
+    removeProduct(lineKey);
     toast({ title: "Product Removed." });
   };
 
@@ -423,7 +459,7 @@ function GuestCartSection({
           />
 
           <CartItemsList>
-            {cartLines.map(({ node }) =>
+            {cartLines.map(({ lineKey, node, item }) =>
               (() => {
                 const sizeConfig = toSizeConfigFromCartPayload(
                   sizeConfigsByProductId[node.id],
@@ -459,7 +495,6 @@ function GuestCartSection({
                       .filter((option) => option.value.length > 0),
                   }));
                 const sizeRequired = optionGroups.length > 0;
-                const item = cartItems[node.id];
                 const selections =
                   item?.selections ??
                   (item?.size && optionGroups[0]
@@ -468,8 +503,7 @@ function GuestCartSection({
 
                 return (
                   <CartItemCard
-                    key={node.id}
-                    id={node.id}
+                    key={lineKey}
                     product={withLiveLinePricing(
                       node,
                       livePricing[node.id],
@@ -483,20 +517,25 @@ function GuestCartSection({
                     sizeRequired={sizeRequired}
                     optionGroups={optionGroups}
                     onSelectionsChange={(next) =>
-                      setProductSelections(node.id, next)
+                      setProductSelections(lineKey, next)
                     }
-                    onSizeChange={(size) => setProductSize(node.id, size)}
+                    onSizeChange={(size) => setProductSize(lineKey, size)}
                     addOneHandler={() =>
                       addOneHandler(
+                        lineKey,
                         node.id,
-                        cartItems[node.id].quantity,
+                        item?.quantity ?? 0,
                         node.stock ?? null,
                       )
                     }
                     minusOneHandler={() =>
-                      minusOneHandler(node.id, cartItems[node.id].quantity)
+                      minusOneHandler(
+                        lineKey,
+                        node.id,
+                        item?.quantity ?? 0,
+                      )
                     }
-                    removeHandler={() => removeHandler(node.id)}
+                    removeHandler={() => removeHandler(lineKey)}
                   />
                 );
               })(),
@@ -581,9 +620,12 @@ const calcSubtotal = ({
 
   if (!productPrices.length) return 0;
 
-  return productPrices.reduce((acc, cur) => {
-    const item = quantity[cur.node.id];
-    if (!item) return acc;
-    return acc + item.quantity * getSaleProductPrice(cur.node);
+  const byId = new Map(productPrices.map((cur) => [cur.node.id, cur.node]));
+  return Object.entries(quantity).reduce((acc, [, item]) => {
+    const productId = item.productId;
+    if (!productId) return acc;
+    const product = byId.get(productId);
+    if (!product) return acc;
+    return acc + item.quantity * getSaleProductPrice(product);
   }, 0);
 };

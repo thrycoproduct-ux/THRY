@@ -61,9 +61,7 @@ describe("resolveSocialImageUrl", () => {
         "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png",
         deps,
       ),
-    ).toBe(
-      "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png",
-    );
+    ).toBe("https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png");
   });
 });
 

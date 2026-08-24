@@ -49,6 +49,8 @@
     "db:seed-testimonials": "tsx --env-file=.env.local ./scripts/seed-sakthi-testimonials.ts",
     "db:setup-velo-order-push": "node --env-file=.env.local ./scripts/setup-velo-order-push.mjs",
     "resend:dns": "node scripts/add-resend-dns-cloudflare.mjs",
+    "email:dns:fix": "node scripts/cf-fix-thryco-email-dns.mjs",
+    "email:dns:apply": "node scripts/apply-email-dns.mjs",
     "resend:verify-domain": "resend domains verify ef23a9b0-9145-4f59-84fc-0c3a795a06b6",
     "db:migrate-product-lifecycle": "node ./scripts/apply-product-lifecycle.mjs",
     "db:migrate-api-settings-rls": "node scripts/apply-api-settings-rls.mjs",
