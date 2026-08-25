@@ -9,7 +9,9 @@ import {
   type StorefrontProductsInitialData,
 } from "@/hooks/useStorefrontProducts";
 import { useProductPackLabels } from "@/hooks/useProductPackLabels";
+import { useProductSizePreviews } from "@/hooks/useProductSizePreviews";
 import { useInfiniteScrollSentinel } from "@/hooks/useInfiniteScrollSentinel";
+import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 import SearchProductsGridSkeleton from "./SearchProductsGridSkeleton";
 
 type ProductNode = DocumentType<typeof ProductCardFragment>;
@@ -21,6 +23,7 @@ type Props = {
   initialData?: StorefrontProductsInitialData;
   initialDraftIds?: string[];
   initialPackLabels?: Record<string, string | null>;
+  initialSizePreviews?: Record<string, ProductSizePreview>;
 };
 
 export function FeaturedProductsResultPage({
@@ -30,6 +33,7 @@ export function FeaturedProductsResultPage({
   initialData,
   initialDraftIds,
   initialPackLabels,
+  initialSizePreviews,
 }: Props) {
   const { productsCollection, fetching, error } = useStorefrontFeaturedProducts(
     variables,
@@ -49,6 +53,7 @@ export function FeaturedProductsResultPage({
     [visibleEdges],
   );
   const packLabels = useProductPackLabels(visibleIds, initialPackLabels);
+  const sizePreviews = useProductSizePreviews(visibleIds, initialSizePreviews);
 
   const endCursor = productsCollection?.pageInfo?.endCursor ?? "";
   const canLoadMore = Boolean(
@@ -94,6 +99,7 @@ export function FeaturedProductsResultPage({
               product={node as ProductNode}
               priorityImage={!variables.after && index < 2}
               packLabel={packLabels[node.id] ?? null}
+              sizePreview={sizePreviews[node.id] ?? null}
             />
           ))}
         </section>

@@ -26,6 +26,7 @@ import {
   ProductDiscountBadge,
   ProductPriceDisplay,
 } from "./ProductPriceDisplay";
+import type { ProductSizePreview as ProductSizePreviewData } from "@/lib/products/sizeConfig-shared";
 
 type CardProps = React.ComponentProps<typeof Card>;
 
@@ -34,6 +35,8 @@ export type ProductCardProps = CardProps & {
   priorityImage?: boolean;
   /** Compact “Set of N” under price when sold as pack. */
   packLabel?: string | null;
+  /** SSR / batched listing size pills — avoids per-card size-config fetch. */
+  sizePreview?: ProductSizePreviewData | null;
 };
 
 export const ProductCardFragment = gql(/* GraphQL */ `
@@ -66,6 +69,7 @@ export function ProductCard({
   product,
   priorityImage = false,
   packLabel = null,
+  sizePreview = null,
   ...props
 }: ProductCardProps) {
   const { id, name, slug, featuredImage, badge, stock } = product;
@@ -126,7 +130,7 @@ export function ProductCard({
           </p>
         ) : null}
         <LowStockNotice stock={stock} />
-        <ProductSizePreview productId={id} />
+        <ProductSizePreview preview={sizePreview} />
 
         <div className="hidden md:block">
           <Rating value={product.rating} precision={0.5} readOnly />

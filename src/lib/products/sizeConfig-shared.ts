@@ -429,3 +429,86 @@ export function serializeProductSizeConfig(
     options: first?.options ?? [],
   };
 }
+
+/** Slim listing-card size preview (Shopify-style light PLP payload). */
+export type ProductSizePreview = {
+  enabled: boolean;
+  optionName: string;
+  labels: string[];
+};
+
+export const EMPTY_PRODUCT_SIZE_PREVIEW: ProductSizePreview = {
+  enabled: false,
+  optionName: DEFAULT_PRODUCT_OPTION_NAME,
+  labels: [],
+};
+
+/** Format one in-stock option for listing pills (e.g. `XL : 2`). */
+export function formatSizeOptionLabel(option: {
+  value?: string | null;
+  size?: string | null;
+  qty?: number | null;
+}): string {
+  const size = String(option.value ?? option.size ?? "")
+    .trim()
+    .toUpperCase();
+  const qty = Number(option.qty ?? 0);
+  if (!size) return `${qty}`;
+  if (/^[A-Z]+$/.test(size)) return `${size} : ${qty}`;
+  return size;
+}
+
+type SizePreviewSource = {
+  enabled?: boolean;
+  name?: string | null;
+  options?: Array<{
+    value?: string | null;
+    size?: string | null;
+    qty?: number | null;
+  }> | null;
+  groups?: Array<{
+    name?: string | null;
+    options?: Array<{
+      value?: string | null;
+      size?: string | null;
+      qty?: number | null;
+    }> | null;
+  }> | null;
+};
+
+/** Map full/API size config → listing preview labels (qty > 0 only). */
+export function toProductSizePreview(
+  config: SizePreviewSource | null | undefined,
+): ProductSizePreview {
+  if (!config?.enabled) {
+    return { ...EMPTY_PRODUCT_SIZE_PREVIEW };
+  }
+
+  const optionName =
+    String(config.name ?? "").trim() || DEFAULT_PRODUCT_OPTION_NAME;
+  const groups =
+    Array.isArray(config.groups) && config.groups.length > 0
+      ? config.groups
+      : [{ name: config.name, options: config.options ?? [] }];
+
+  const labels = groups.flatMap((group) =>
+    (group.options ?? [])
+      .filter((option) => Number(option.qty ?? 0) > 0)
+      .map((option) => {
+        const label = formatSizeOptionLabel(option);
+        return groups.length > 1
+          ? `${String(group.name ?? optionName).trim() || optionName}: ${label}`
+          : label;
+      }),
+  );
+
+  if (labels.length === 0) {
+    return { ...EMPTY_PRODUCT_SIZE_PREVIEW, optionName };
+  }
+
+  return {
+    enabled: true,
+    optionName,
+    labels,
+  };
+}

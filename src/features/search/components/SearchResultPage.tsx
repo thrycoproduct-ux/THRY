@@ -9,9 +9,11 @@ import {
   type StorefrontProductsInitialData,
 } from "@/hooks/useStorefrontProducts";
 import { useProductPackLabels } from "@/hooks/useProductPackLabels";
+import { useProductSizePreviews } from "@/hooks/useProductSizePreviews";
 import { useInfiniteScrollSentinel } from "@/hooks/useInfiniteScrollSentinel";
 import { normalizeStorefrontSearchTerm } from "@/lib/storefront/search-utils";
 import { formatPriceRangeLabel } from "@/lib/storefront/shop-by-price-buckets";
+import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
 import { SearchMatchingCollections } from "./SearchMatchingCollections";
@@ -28,6 +30,7 @@ const SearchResultPage = ({
   initialData,
   initialDraftIds,
   initialPackLabels,
+  initialSizePreviews,
 }: {
   variables: SearchQueryVariables;
   onLoadMore: (cursor: string) => void;
@@ -37,6 +40,7 @@ const SearchResultPage = ({
   initialData?: StorefrontProductsInitialData;
   initialDraftIds?: string[];
   initialPackLabels?: Record<string, string | null>;
+  initialSizePreviews?: Record<string, ProductSizePreview>;
 }) => {
   const searchParams = useSearchParams();
   const { productsCollection, matchingCollections, fetching, error } =
@@ -68,6 +72,7 @@ const SearchResultPage = ({
     [visibleEdges],
   );
   const packLabels = useProductPackLabels(visibleIds, initialPackLabels);
+  const sizePreviews = useProductSizePreviews(visibleIds, initialSizePreviews);
 
   const hasCollectionMatches =
     showMatchingCollections && matchingCollections.length > 0;
@@ -132,6 +137,7 @@ const SearchResultPage = ({
                   product={node as ProductNode}
                   priorityImage={showMatchingCollections && index < 2}
                   packLabel={packLabels[node.id] ?? null}
+                  sizePreview={sizePreviews[node.id] ?? null}
                 />
               ))}
             </section>

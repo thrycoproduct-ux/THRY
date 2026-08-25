@@ -20,6 +20,7 @@ import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 import {
   getProductOptionDisplayName,
   getProductSizeConfig,
+  getProductSizePreviewsByIds,
 } from "@/lib/products/sizeConfig";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo/json-ld";
 import { buildSocialImages } from "@/lib/seo/social-image";
@@ -120,6 +121,7 @@ async function ProductDetailPage({ params }: Props) {
     livePricing,
     packFieldsById,
     recommendationPackLabels,
+    recommendationSizePreviews,
     digitalMeta,
   ] = await Promise.all([
     // Variant data gates add-to-cart, so it must not silently degrade.
@@ -132,6 +134,7 @@ async function ProductDetailPage({ params }: Props) {
       new Map<string, ProductPackFields>(),
     ),
     getProductPackLabelsByIds(recommendationIds),
+    getProductSizePreviewsByIds(recommendationIds),
     withFallback("pdp:digital", () => getProductDigitalStorefront(id), {
       isDigital: false,
       fileName: null,
@@ -346,6 +349,7 @@ async function ProductDetailPage({ params }: Props) {
               key={node.id}
               product={node}
               packLabel={recommendationPackLabels[node.id]}
+              sizePreview={recommendationSizePreviews[node.id] ?? null}
             />
           ))}
       </div>

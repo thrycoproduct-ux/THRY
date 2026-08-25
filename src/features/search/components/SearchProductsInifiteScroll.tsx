@@ -2,6 +2,7 @@
 
 import type { StorefrontProductSearchResult } from "@/lib/storefront/product-queries";
 import { buildShopSearchVariables } from "@/lib/storefront/search-params";
+import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 import { useListingNavigationState } from "@/hooks/useListingNavigationState";
 import {
   ReadonlyURLSearchParams,
@@ -15,6 +16,7 @@ interface SearchProductsInifiteScrollProps {
   initialSearchResult?: StorefrontProductSearchResult;
   initialDraftIds?: string[];
   initialPackLabels?: Record<string, string | null>;
+  initialSizePreviews?: Record<string, ProductSizePreview>;
 }
 
 function SearchProductsInifiteScroll({
@@ -22,6 +24,7 @@ function SearchProductsInifiteScroll({
   initialSearchResult,
   initialDraftIds,
   initialPackLabels,
+  initialSizePreviews,
 }: SearchProductsInifiteScrollProps) {
   const searchParmas = useSearchParams();
   const pathname = usePathname();
@@ -53,6 +56,7 @@ function SearchProductsInifiteScroll({
           initialData={i === 0 ? initialSearchResult : undefined}
           initialDraftIds={i === 0 ? initialDraftIds : undefined}
           initialPackLabels={i === 0 ? initialPackLabels : undefined}
+          initialSizePreviews={i === 0 ? initialSizePreviews : undefined}
         />
       ))}
     </section>

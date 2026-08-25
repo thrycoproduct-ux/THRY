@@ -2,6 +2,7 @@
 
 import type { StorefrontProductsInitialData } from "@/hooks/useStorefrontProducts";
 import { useListingNavigationState } from "@/hooks/useListingNavigationState";
+import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 import { usePathname } from "next/navigation";
 import FeaturedProductsResultPage from "./FeaturedProductsResultPage";
 
@@ -11,12 +12,14 @@ type Props = {
   initialData?: StorefrontProductsInitialData;
   initialDraftIds?: string[];
   initialPackLabels?: Record<string, string | null>;
+  initialSizePreviews?: Record<string, ProductSizePreview>;
 };
 
 export function FeaturedProductsScroll({
   initialData,
   initialDraftIds,
   initialPackLabels,
+  initialSizePreviews,
 }: Props) {
   const pathname = usePathname();
   const [pageVariables, setPageVariables] = useListingNavigationState(
@@ -42,6 +45,7 @@ export function FeaturedProductsScroll({
           initialData={i === 0 ? initialData : undefined}
           initialDraftIds={i === 0 ? initialDraftIds : undefined}
           initialPackLabels={i === 0 ? initialPackLabels : undefined}
+          initialSizePreviews={i === 0 ? initialSizePreviews : undefined}
         />
       ))}
     </section>

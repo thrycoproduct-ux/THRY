@@ -17,6 +17,7 @@ import {
 } from "@/lib/storefront/product-queries";
 import { buildShopSearchVariables } from "@/lib/storefront/search-params";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
+import { getProductSizePreviewsByIds } from "@/lib/products/sizeConfig";
 import { buildSocialImages } from "@/lib/seo/social-image";
 import { toTitleCase, unslugify } from "@/lib/utils";
 import type { Metadata } from "next";
@@ -110,7 +111,10 @@ async function CategoryPage({ params, searchParams }: CategoryPageProps) {
     initialSearchResult?.productsCollection?.edges?.map(
       ({ node }) => node.id,
     ) ?? [];
-  const initialPackLabels = await getProductPackLabelsByIds(initialProductIds);
+  const [initialPackLabels, initialSizePreviews] = await Promise.all([
+    getProductPackLabelsByIds(initialProductIds),
+    getProductSizePreviewsByIds(initialProductIds),
+  ]);
 
   return (
     <Shell>
@@ -139,6 +143,7 @@ async function CategoryPage({ params, searchParams }: CategoryPageProps) {
             initialSearchResult={initialSearchResult}
             initialDraftIds={initialDraftIds ?? []}
             initialPackLabels={initialPackLabels}
+            initialSizePreviews={initialSizePreviews}
           />
         </Suspense>
       )}

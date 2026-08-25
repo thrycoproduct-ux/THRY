@@ -4,10 +4,14 @@ import { withStorefrontCache } from "@/lib/cache/storefront-cache";
 import db from "@/lib/supabase/db";
 import { apiSettings } from "@/lib/supabase/schema";
 import { eq, inArray } from "drizzle-orm";
+import { withFallback } from "@/lib/resilience";
 import {
+  EMPTY_PRODUCT_SIZE_PREVIEW,
   normalizeProductSizeConfig,
   serializeProductSizeConfig,
+  toProductSizePreview,
   type ProductSizeConfig,
+  type ProductSizePreview,
 } from "./sizeConfig-shared";
 import { registerVariantTypeNames } from "./variant-type-catalog";
 
@@ -71,6 +75,33 @@ export async function getProductSizeConfigsByProductIds(productIds: string[]) {
   );
 
   return new Map(Object.entries(serialized));
+}
+
+/**
+ * Batch listing size previews by product id.
+ * Presentation-only: DB blips return empty previews rather than failing the PLP.
+ */
+export async function getProductSizePreviewsByIds(
+  productIds: string[],
+): Promise<Record<string, ProductSizePreview>> {
+  const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))];
+  if (ids.length === 0) return {};
+
+  const configs = await withFallback(
+    "size-previews",
+    () => getProductSizeConfigsByProductIds(ids),
+    new Map<string, ProductSizeConfig>(),
+    { attempts: 1 },
+  );
+
+  const previews: Record<string, ProductSizePreview> = {};
+  for (const id of ids) {
+    const config = configs.get(id);
+    previews[id] = config
+      ? toProductSizePreview(config)
+      : { ...EMPTY_PRODUCT_SIZE_PREVIEW };
+  }
+  return previews;
 }
 
 export async function upsertProductSizeConfig(params: {

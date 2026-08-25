@@ -6,6 +6,7 @@ import {
   resolveListPriceForSelection,
   serializeProductSizeConfig,
   sumSelectedOptionListPrices,
+  toProductSizePreview,
 } from "./sizeConfig-shared";
 
 describe("normalizeProductSizeConfig", () => {
@@ -184,5 +185,68 @@ describe("multi-group pricing", () => {
         preferMinWhenUnselected: true,
       }),
     ).toBe(400);
+  });
+});
+
+describe("toProductSizePreview", () => {
+  it("returns empty preview when disabled or out of stock", () => {
+    expect(
+      toProductSizePreview({
+        enabled: false,
+        options: [{ value: "XL", qty: 2 }],
+      }),
+    ).toEqual({
+      enabled: false,
+      optionName: DEFAULT_PRODUCT_OPTION_NAME,
+      labels: [],
+    });
+
+    expect(
+      toProductSizePreview({
+        enabled: true,
+        options: [{ value: "XL", qty: 0 }],
+      }),
+    ).toMatchObject({ enabled: false, labels: [] });
+  });
+
+  it("formats single-group letter sizes with qty", () => {
+    const preview = toProductSizePreview(
+      normalizeProductSizeConfig({
+        enabled: true,
+        options: [
+          { value: "S", qty: 2 },
+          { value: "XL", qty: 1 },
+        ],
+      }),
+    );
+
+    expect(preview.enabled).toBe(true);
+    expect(preview.optionName).toBe(DEFAULT_PRODUCT_OPTION_NAME);
+    expect(preview.labels).toEqual(["S : 2", "XL : 1"]);
+  });
+
+  it("prefixes multi-group labels with group name", () => {
+    const preview = toProductSizePreview(
+      normalizeProductSizeConfig({
+        enabled: true,
+        groups: [
+          {
+            id: "size",
+            name: "Size",
+            options: [{ value: "36", qty: 2 }],
+          },
+          {
+            id: "magnet",
+            name: "Magnet",
+            options: [{ value: "WITH MAGNET", qty: 5 }],
+          },
+        ],
+      }),
+    );
+
+    expect(preview.labels).toEqual([
+      "Size: 36",
+      "Magnet: WITH MAGNET",
+    ]);
   });
 });

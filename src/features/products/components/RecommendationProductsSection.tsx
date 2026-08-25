@@ -3,6 +3,7 @@ import ProductCard from "./ProductCard";
 import { getDraftProductIdsSafe } from "@/lib/storefront/draft-product-ids";
 import { getRecommendationProductsCached } from "@/lib/storefront/recommendations";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
+import { getProductSizePreviewsByIds } from "@/lib/products/sizeConfig";
 import { withFallback } from "@/lib/resilience";
 
 type Props = {
@@ -33,9 +34,11 @@ export default async function RecommendationProductsSection({
 
   if (edges.length === 0) return null;
 
-  const packLabels = await getProductPackLabelsByIds(
-    edges.map(({ node }) => node.id),
-  );
+  const recommendationIds = edges.map(({ node }) => node.id);
+  const [packLabels, sizePreviews] = await Promise.all([
+    getProductPackLabelsByIds(recommendationIds),
+    getProductSizePreviewsByIds(recommendationIds),
+  ]);
 
   return (
     <Header heading={`We Think You'll Love`}>
@@ -45,6 +48,7 @@ export default async function RecommendationProductsSection({
             key={node.id}
             product={node}
             packLabel={packLabels[node.id]}
+            sizePreview={sizePreviews[node.id] ?? null}
           />
         ))}
       </div>

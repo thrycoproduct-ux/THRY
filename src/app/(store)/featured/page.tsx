@@ -10,6 +10,7 @@ import { withFallback } from "@/lib/resilience";
 import { getDraftProductIdsSafe } from "@/lib/storefront/draft-product-ids";
 import { fetchFeaturedProductsCached } from "@/lib/storefront/product-queries";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
+import { getProductSizePreviewsByIds } from "@/lib/products/sizeConfig";
 
 export const revalidate = 120;
 
@@ -47,7 +48,10 @@ async function FeaturedProductsPage() {
   const productsCollection = featured ?? null;
   const initialProductIds =
     productsCollection?.edges?.map(({ node }) => node.id) ?? [];
-  const initialPackLabels = await getProductPackLabelsByIds(initialProductIds);
+  const [initialPackLabels, initialSizePreviews] = await Promise.all([
+    getProductPackLabelsByIds(initialProductIds),
+    getProductSizePreviewsByIds(initialProductIds),
+  ]);
 
   return (
     <Shell>
@@ -67,6 +71,7 @@ async function FeaturedProductsPage() {
             initialData={{ productsCollection }}
             initialDraftIds={initialDraftIds ?? []}
             initialPackLabels={initialPackLabels}
+            initialSizePreviews={initialSizePreviews}
           />
         </Suspense>
       )}

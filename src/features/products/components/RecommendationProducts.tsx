@@ -6,6 +6,7 @@ import Header from "@/components/layouts/Header";
 import ProductCard from "./ProductCard";
 import ProductCardSkeleton from "./RecommendationProductsSkeleton";
 import { useProductPackLabels } from "@/hooks/useProductPackLabels";
+import { useProductSizePreviews } from "@/hooks/useProductSizePreviews";
 
 export type RecommendationProductsProps =
   React.HTMLAttributes<HTMLDivElement> & {};
@@ -36,6 +37,7 @@ function RecommendationProducts({}: RecommendationProductsProps) {
     [data?.recommendations?.edges],
   );
   const packLabels = useProductPackLabels(productIds);
+  const sizePreviews = useProductSizePreviews(productIds);
 
   if (fetching)
     return (
@@ -59,6 +61,7 @@ function RecommendationProducts({}: RecommendationProductsProps) {
               key={node.id}
               product={node}
               packLabel={packLabels[node.id] ?? null}
+              sizePreview={sizePreviews[node.id] ?? null}
             />
           ))}
       </div>

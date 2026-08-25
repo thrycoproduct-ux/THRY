@@ -9,6 +9,7 @@ import {
 import { SectionErrorNotice } from "@/components/errors/SectionErrorNotice";
 import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
+import { getProductSizePreviewsByIds } from "@/lib/products/sizeConfig";
 import { withFallback } from "@/lib/resilience";
 import { getAllCollectionsCached } from "@/lib/storefront/collections-list";
 import { getDraftProductIdsSafe } from "@/lib/storefront/draft-product-ids";
@@ -69,7 +70,10 @@ async function ProductsPage({ searchParams }: ProductsPageProps) {
     initialSearchResult?.productsCollection?.edges?.map(
       ({ node }) => node.id,
     ) ?? [];
-  const initialPackLabels = await getProductPackLabelsByIds(initialProductIds);
+  const [initialPackLabels, initialSizePreviews] = await Promise.all([
+    getProductPackLabelsByIds(initialProductIds),
+    getProductSizePreviewsByIds(initialProductIds),
+  ]);
 
   const collectionsSection =
     collectionsData?.edges?.map(({ node }) => ({
@@ -110,6 +114,7 @@ async function ProductsPage({ searchParams }: ProductsPageProps) {
             initialSearchResult={initialSearchResult}
             initialDraftIds={initialDraftIds ?? []}
             initialPackLabels={initialPackLabels}
+            initialSizePreviews={initialSizePreviews}
           />
         </Suspense>
       )}
