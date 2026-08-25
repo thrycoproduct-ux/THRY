@@ -155,9 +155,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                         };
                       })
                       .filter(
-                        (
-                          row,
-                        ): row is NonNullable<typeof row> => row !== null,
+                        (row): row is NonNullable<typeof row> => row !== null,
                       );
 
                     void (async () => {

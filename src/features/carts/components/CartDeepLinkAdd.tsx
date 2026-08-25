@@ -153,11 +153,7 @@ function CartDeepLinkAddRunner({
           return;
         }
 
-        await upsertAuthDeepLinkLines(
-          user.id,
-          allowedLines,
-          replaceEntireCart,
-        );
+        await upsertAuthDeepLinkLines(user.id, allowedLines, replaceEntireCart);
 
         if (replaceEntireCart) {
           replaceCart(asCartItems);
