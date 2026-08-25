@@ -12,6 +12,10 @@ import {
   buildCartVariantKey,
   normalizeCartSize,
 } from "../cart-line";
+import {
+  fetchCartSizeConfigsByProductIds,
+  shouldBlockBareCartAdd,
+} from "../cart-options-guard";
 
 type AddOpts = {
   silent?: boolean;
@@ -32,12 +36,38 @@ function useCartActions(
 
   const supabase: SupabaseClient | null = user ? createSupabaseClient() : null;
 
+  const assertOptionsComplete = async (opts: AddOpts) => {
+    const configs = await fetchCartSizeConfigsByProductIds([productId]);
+    if (
+      shouldBlockBareCartAdd({
+        sizeConfig: configs[productId],
+        selections: opts.selections,
+        size: opts.size,
+      })
+    ) {
+      if (!opts.silent) {
+        const optionName =
+          String(configs[productId]?.name ?? "").trim() || "option";
+        toast({
+          title: `Select ${optionName} first`,
+          description: `This product has ${optionName.toLowerCase()} options. Open the product page and choose before adding to cart.`,
+        });
+      }
+      return false;
+    }
+    return true;
+  };
+
   const authAddOrUpdateProduct = async (
     quantity: number,
     opts: AddOpts = {},
   ) => {
     if (!user || !supabase) {
       return { blockedBulk: false, added: false };
+    }
+
+    if (quantity > 0 && !(await assertOptionsComplete(opts))) {
+      return { blockedBulk: false, added: false, blockedOptions: true };
     }
 
     const normalizedSize = opts.size ? normalizeCartSize(opts.size) : undefined;
@@ -73,7 +103,6 @@ function useCartActions(
     }
 
     const currentQuantity = existingRow?.quantity ?? 0;
-    const currentItem = guestCart[lineKey];
     if (
       bulkOrder.enabled &&
       isBulkOrderQuantity(currentQuantity + quantity, bulkOrder.threshold)
@@ -104,7 +133,6 @@ function useCartActions(
             .eq("id", existingRow.id);
           if (delErr) throw delErr;
         }
-        // Keep store consistent.
         addProductStorage(
           productId,
           -currentQuantity,
@@ -137,7 +165,6 @@ function useCartActions(
         if (insErr) throw insErr;
       }
 
-      // Update local store for immediate UI + checkout.
       const sizeOrSelections =
         selections && Object.keys(selections).length > 0
           ? selections
@@ -154,14 +181,13 @@ function useCartActions(
     }
   };
 
-  const guestAddProduct = (quantity: number, opts: AddOpts = {}) => {
+  const guestAddProduct = async (quantity: number, opts: AddOpts = {}) => {
+    if (quantity > 0 && !(await assertOptionsComplete(opts))) {
+      return { blockedBulk: false, added: false, blockedOptions: true };
+    }
+
     const normalizedSize = opts.size ? normalizeCartSize(opts.size) : undefined;
     const selections = opts.selections;
-    const variantKey = buildCartVariantKey({
-      productId,
-      size: normalizedSize,
-      selections,
-    });
     const lineKey = buildCartLineKey({
       productId,
       size: normalizedSize,

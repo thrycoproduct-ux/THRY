@@ -2,6 +2,7 @@
 
 import { useAuth } from "@/providers/AuthProvider";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
+import { useToast } from "@/components/ui/use-toast";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
@@ -12,6 +13,10 @@ import {
   useState,
 } from "react";
 import { buildCartLineKey, buildCartVariantKey } from "../cart-line";
+import {
+  fetchCartSizeConfigsByProductIds,
+  partitionProductIdsByOptionsRequired,
+} from "../cart-options-guard";
 import useCartStore, { type CartItems } from "../useCartStore";
 import {
   claimDeepLink,
@@ -92,6 +97,7 @@ function CartDeepLinkAddRunner({
   replaceEntireCart: boolean;
 }) {
   const { user } = useAuth();
+  const { toast } = useToast();
   const replaceCart = useCartStore((s) => s.replaceCart);
   const setProductQuantity = useCartStore((s) => s.setProductQuantity);
   const ran = useRef(false);
@@ -109,13 +115,37 @@ function CartDeepLinkAddRunner({
 
     const apply = async () => {
       try {
-        const asCartItems: CartItems = linesToCartItems(lines);
+        const configs = await fetchCartSizeConfigsByProductIds(
+          lines.map((line) => line.productId),
+        );
+        const { allowed, skipped } = partitionProductIdsByOptionsRequired(
+          lines.map((line) => line.productId),
+          configs,
+        );
+        const allowedSet = new Set(allowed);
+        const allowedLines = lines.filter((line) =>
+          allowedSet.has(line.productId),
+        );
+
+        if (skipped.length > 0) {
+          toast({
+            title: "Select options first",
+            description:
+              skipped.length === 1
+                ? "That product has options. Open the product page and choose before adding to cart."
+                : `${skipped.length} products need options chosen on their product pages before they can be added.`,
+          });
+        }
+
+        if (allowedLines.length === 0) return;
+
+        const asCartItems: CartItems = linesToCartItems(allowedLines);
 
         if (!user) {
           if (replaceEntireCart) {
             replaceCart(asCartItems);
           } else {
-            for (const line of lines) {
+            for (const line of allowedLines) {
               const lineKey = buildCartLineKey({ productId: line.productId });
               setProductQuantity(lineKey, line.quantity);
             }
@@ -123,12 +153,16 @@ function CartDeepLinkAddRunner({
           return;
         }
 
-        await upsertAuthDeepLinkLines(user.id, lines, replaceEntireCart);
+        await upsertAuthDeepLinkLines(
+          user.id,
+          allowedLines,
+          replaceEntireCart,
+        );
 
         if (replaceEntireCart) {
           replaceCart(asCartItems);
         } else {
-          for (const line of lines) {
+          for (const line of allowedLines) {
             const lineKey = buildCartLineKey({ productId: line.productId });
             setProductQuantity(lineKey, line.quantity);
           }
@@ -139,7 +173,15 @@ function CartDeepLinkAddRunner({
     };
 
     void apply();
-  }, [finish, lines, replaceCart, replaceEntireCart, setProductQuantity, user]);
+  }, [
+    finish,
+    lines,
+    replaceCart,
+    replaceEntireCart,
+    setProductQuantity,
+    toast,
+    user,
+  ]);
 
   return null;
 }

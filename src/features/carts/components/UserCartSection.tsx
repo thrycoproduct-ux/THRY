@@ -64,6 +64,7 @@ import {
   buildCartVariantKey,
   normalizeCartOptionSelections,
 } from "../cart-line";
+import { shouldPurgeBareCartLine } from "../cart-options-guard";
 
 export { FetchCartQuery };
 
@@ -432,7 +433,7 @@ function UserCartSection({
 
   useEffect(() => {
     let active = true;
-    const productIds = cart.map(({ node }) => node.product_id);
+    const productIds = cartProductIds;
     if (productIds.length === 0) {
       setSizeConfigsByProductId({});
       return;
@@ -478,7 +479,39 @@ function UserCartSection({
     return () => {
       active = false;
     };
-  }, [cart]);
+  }, [cartProductIds, prefetchedIdsKey]);
+
+  // Remove legacy bare/default lines for products that require options.
+  useEffect(() => {
+    if (dbCartRows.length === 0) return;
+    if (Object.keys(sizeConfigsByProductId).length === 0) return;
+
+    const bareRows = dbCartRows.filter((row) =>
+      shouldPurgeBareCartLine({
+        sizeConfig: sizeConfigsByProductId[row.product_id],
+        variantKey: row.variant_key,
+        selections: row.selections,
+        size: row.size,
+      }),
+    );
+    if (bareRows.length === 0) return;
+
+    let active = true;
+    void (async () => {
+      for (const row of bareRows) {
+        await supabase.from("carts").delete().eq("id", row.id);
+      }
+      if (!active) return;
+      setDbCartRows((prev) =>
+        prev.filter((row) => !bareRows.some((bare) => bare.id === row.id)),
+      );
+      reexecuteQuery({ requestPolicy: "network-only" });
+    })();
+
+    return () => {
+      active = false;
+    };
+  }, [dbCartRows, reexecuteQuery, sizeConfigsByProductId, supabase]);
 
   const missingSizeProductNames = useMemo(() => {
     const source =

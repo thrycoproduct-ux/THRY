@@ -31,6 +31,7 @@ import useCartStore, {
   CartItems,
   calcProductCountStorage,
 } from "../useCartStore";
+import { shouldPurgeBareCartLine } from "../cart-options-guard";
 import { guestCartProductIds } from "@/lib/storefront/guest-cart-cookie";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useCourierChargesConfig } from "@/providers/CourierChargesProvider";
@@ -325,6 +326,29 @@ function GuestCartSection({
       active = false;
     };
   }, [cartProductIds]);
+
+  // Remove legacy bare/default guest lines for products that require options.
+  useEffect(() => {
+    if (Object.keys(sizeConfigsByProductId).length === 0) return;
+    const bareKeys: string[] = [];
+    for (const [lineKey, item] of Object.entries(cartItems)) {
+      const productId = item?.productId ?? lineKey.split("::")[0];
+      if (!productId) continue;
+      if (
+        shouldPurgeBareCartLine({
+          sizeConfig: sizeConfigsByProductId[productId],
+          variantKey: item?.variantKey,
+          selections: item?.selections,
+          size: item?.size,
+        })
+      ) {
+        bareKeys.push(lineKey);
+      }
+    }
+    for (const lineKey of bareKeys) {
+      removeProduct(lineKey);
+    }
+  }, [cartItems, removeProduct, sizeConfigsByProductId]);
 
   const missingSizeProductNames = useMemo(
     () =>

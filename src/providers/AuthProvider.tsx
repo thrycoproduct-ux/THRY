@@ -5,6 +5,10 @@ import {
   buildCartVariantKey,
   extractProductIdFromCartLineKey,
 } from "@/features/carts/cart-line";
+import {
+  fetchCartSizeConfigsByProductIds,
+  shouldBlockBareCartAdd,
+} from "@/features/carts/cart-options-guard";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthUser, Session } from "@supabase/supabase-js";
 import { nanoid } from "nanoid";
@@ -130,7 +134,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                   const parsed = JSON.parse(raw) as { cart?: CartItems };
                   const cart = parsed?.cart;
                   if (cart && typeof cart === "object") {
-                    const storageCarts = Object.entries(cart)
+                    const entries = Object.entries(cart)
                       .map(([lineKey, productValue]) => {
                         const productId = extractProductIdFromCartLineKey(
                           lineKey,
@@ -144,27 +148,50 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                         }
 
                         return {
-                          id: nanoid(),
-                          product_id: productId,
-                          user_id: data.user!.id,
+                          lineKey,
+                          productId,
+                          productValue,
                           quantity,
-                          variant_key:
-                            productValue.variantKey ??
-                            buildCartVariantKey({
-                              size: productValue.size,
-                              selections: productValue.selections,
-                            }),
-                          size: productValue.size ?? null,
-                          selections: productValue.selections ?? null,
                         };
                       })
                       .filter(
-                        (row): row is NonNullable<typeof row> => row !== null,
+                        (
+                          row,
+                        ): row is NonNullable<typeof row> => row !== null,
                       );
 
-                    if (storageCarts.length > 0) {
-                      supabase.from("carts").insert(storageCarts);
-                    }
+                    void (async () => {
+                      const configs = await fetchCartSizeConfigsByProductIds(
+                        entries.map((row) => row.productId),
+                      );
+                      const storageCarts = entries
+                        .filter(
+                          (row) =>
+                            !shouldBlockBareCartAdd({
+                              sizeConfig: configs[row.productId],
+                              selections: row.productValue.selections,
+                              size: row.productValue.size,
+                            }),
+                        )
+                        .map((row) => ({
+                          id: nanoid(),
+                          product_id: row.productId,
+                          user_id: data.user!.id,
+                          quantity: row.quantity,
+                          variant_key:
+                            row.productValue.variantKey ??
+                            buildCartVariantKey({
+                              size: row.productValue.size,
+                              selections: row.productValue.selections,
+                            }),
+                          size: row.productValue.size ?? null,
+                          selections: row.productValue.selections ?? null,
+                        }));
+
+                      if (storageCarts.length > 0) {
+                        await supabase.from("carts").insert(storageCarts);
+                      }
+                    })();
                   }
                 }
               } catch {
