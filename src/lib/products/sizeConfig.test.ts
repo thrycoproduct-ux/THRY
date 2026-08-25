@@ -244,9 +244,6 @@ describe("toProductSizePreview", () => {
       }),
     );
 
-    expect(preview.labels).toEqual([
-      "Size: 36",
-      "Magnet: WITH MAGNET",
-    ]);
+    expect(preview.labels).toEqual(["Size: 36", "Magnet: WITH MAGNET"]);
   });
 });
