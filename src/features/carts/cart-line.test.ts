@@ -92,8 +92,8 @@ describe("cart line identity", () => {
     });
 
     expect(new Set([a, b, c]).size).toBe(3);
-    expect(buildCartVariantKey({ selections: { size: "M", color: "RED" } })).toBe(
-      "color=RED|size=M",
-    );
+    expect(
+      buildCartVariantKey({ selections: { size: "M", color: "RED" } }),
+    ).toBe("color=RED|size=M");
   });
 });

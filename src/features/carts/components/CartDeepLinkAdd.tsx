@@ -11,10 +11,7 @@ import {
   useRef,
   useState,
 } from "react";
-import {
-  buildCartLineKey,
-  buildCartVariantKey,
-} from "../cart-line";
+import { buildCartLineKey, buildCartVariantKey } from "../cart-line";
 import useCartStore, { type CartItems } from "../useCartStore";
 import {
   claimDeepLink,
@@ -142,14 +139,7 @@ function CartDeepLinkAddRunner({
     };
 
     void apply();
-  }, [
-    finish,
-    lines,
-    replaceCart,
-    replaceEntireCart,
-    setProductQuantity,
-    user,
-  ]);
+  }, [finish, lines, replaceCart, replaceEntireCart, setProductQuantity, user]);
 
   return null;
 }
