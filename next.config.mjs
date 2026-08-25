@@ -104,10 +104,8 @@ const nextConfig = {
     ],
   },
   experimental: {
-    // Cloudflare shop-edge proxies thryco.com → thry-thryco.vercel.app.
-    // Vercel then sets x-forwarded-host to the *.vercel.app host while the
-    // browser Origin stays thryco.com, which Next.js rejects as a forged
-    // Server Action (POST /cart 500 after Razorpay returns to the cart).
+    // Allow Server Actions from the public shop hosts and the Vercel
+    // production alias (used by previews / legacy callbacks).
     serverActions: {
       allowedOrigins: [
         "thryco.com",

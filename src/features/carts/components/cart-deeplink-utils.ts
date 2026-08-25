@@ -1,3 +1,5 @@
+import { buildCartLineKey } from "../cart-line";
+
 export type CartDeepLinkLine = { productId: string; quantity: number };
 
 const MAX_QTY = 99;
@@ -69,8 +71,19 @@ export function isReplaceEntireCartDeepLink(searchParams: URLSearchParams) {
 }
 
 export function linesToCartItems(lines: CartDeepLinkLine[]) {
+  // Deep links are product+qty only (default variant). Use line keys so they
+  // do not collide with sized/coloured lines of the same product.
   return Object.fromEntries(
-    lines.map((line) => [line.productId, { quantity: line.quantity }]),
+    lines.map((line) => {
+      const lineKey = buildCartLineKey({ productId: line.productId });
+      return [
+        lineKey,
+        {
+          productId: line.productId,
+          quantity: line.quantity,
+        },
+      ];
+    }),
   );
 }
 

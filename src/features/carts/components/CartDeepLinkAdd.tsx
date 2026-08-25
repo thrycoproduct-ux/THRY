@@ -1,6 +1,7 @@
 "use client";
 
 import { useAuth } from "@/providers/AuthProvider";
+import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import { useRouter, useSearchParams } from "next/navigation";
 import {
   Suspense,
@@ -10,14 +11,11 @@ import {
   useRef,
   useState,
 } from "react";
-import { useClient, useMutation } from "@urql/next";
-import useCartStore from "../useCartStore";
-import { FetchCartQuery } from "./UserCartSection";
 import {
-  createCartMutation,
-  RemoveCartsMutation,
-  updateCartsMutation,
-} from "../query";
+  buildCartLineKey,
+  buildCartVariantKey,
+} from "../cart-line";
+import useCartStore, { type CartItems } from "../useCartStore";
 import {
   claimDeepLink,
   isReplaceEntireCartDeepLink,
@@ -31,6 +29,62 @@ import {
 
 export { parseCartItemsParam } from "./cart-deeplink-utils";
 
+const DEFAULT_VARIANT = buildCartVariantKey({});
+
+async function upsertAuthDeepLinkLines(
+  userId: string,
+  lines: CartDeepLinkLine[],
+  replaceEntireCart: boolean,
+) {
+  const supabase = createSupabaseClient();
+  const { data: existingRows, error: loadErr } = await supabase
+    .from("carts")
+    .select("id,product_id,quantity,variant_key")
+    .eq("user_id", userId);
+  if (loadErr) throw loadErr;
+
+  const rows = existingRows ?? [];
+  const targetProductIds = new Set(lines.map((line) => line.productId));
+
+  if (replaceEntireCart) {
+    const toRemove = rows.filter(
+      (row) => !targetProductIds.has(String(row.product_id)),
+    );
+    for (const row of toRemove) {
+      const { error } = await supabase.from("carts").delete().eq("id", row.id);
+      if (error) throw error;
+    }
+  }
+
+  for (const line of lines) {
+    const variantKey = DEFAULT_VARIANT;
+    const existing = rows.find(
+      (row) =>
+        String(row.product_id) === line.productId &&
+        String(row.variant_key ?? DEFAULT_VARIANT) === variantKey,
+    );
+
+    if (existing?.id) {
+      const { error } = await supabase
+        .from("carts")
+        .update({
+          quantity: line.quantity,
+          variant_key: variantKey,
+        })
+        .eq("id", existing.id);
+      if (error) throw error;
+    } else {
+      const { error } = await supabase.from("carts").insert({
+        user_id: userId,
+        product_id: line.productId,
+        quantity: line.quantity,
+        variant_key: variantKey,
+      });
+      if (error) throw error;
+    }
+  }
+}
+
 function CartDeepLinkAddRunner({
   lines,
   fingerprint,
@@ -41,14 +95,10 @@ function CartDeepLinkAddRunner({
   replaceEntireCart: boolean;
 }) {
   const { user } = useAuth();
-  const urqlClient = useClient();
   const replaceCart = useCartStore((s) => s.replaceCart);
   const setProductQuantity = useCartStore((s) => s.setProductQuantity);
   const ran = useRef(false);
   const finishedRef = useRef(false);
-  const [, createCart] = useMutation(createCartMutation);
-  const [, updateCart] = useMutation(updateCartsMutation);
-  const [, removeCart] = useMutation(RemoveCartsMutation);
 
   const finish = useCallback(() => {
     if (finishedRef.current) return;
@@ -62,58 +112,28 @@ function CartDeepLinkAddRunner({
 
     const apply = async () => {
       try {
+        const asCartItems: CartItems = linesToCartItems(lines);
+
         if (!user) {
           if (replaceEntireCart) {
-            replaceCart(linesToCartItems(lines));
+            replaceCart(asCartItems);
           } else {
             for (const line of lines) {
-              setProductQuantity(line.productId, line.quantity);
+              const lineKey = buildCartLineKey({ productId: line.productId });
+              setProductQuantity(lineKey, line.quantity);
             }
           }
           return;
         }
 
-        const cartResult = await urqlClient
-          .query(FetchCartQuery, { userId: user.id })
-          .toPromise();
-        const edges = cartResult.data?.cartsCollection?.edges ?? [];
-        const targetIds = new Set(lines.map((line) => line.productId));
+        await upsertAuthDeepLinkLines(user.id, lines, replaceEntireCart);
 
         if (replaceEntireCart) {
-          for (const edge of edges) {
-            if (!targetIds.has(edge.node.product_id)) {
-              await removeCart({
-                productId: edge.node.product_id,
-                userId: user.id,
-              });
-            }
-          }
-        }
-
-        for (const line of lines) {
-          const existed = edges.some(
-            (edge) => edge.node.product_id === line.productId,
-          );
-          if (existed) {
-            await updateCart({
-              productId: line.productId,
-              userId: user.id,
-              newQuantity: line.quantity,
-            });
-          } else {
-            await createCart({
-              productId: line.productId,
-              userId: user.id,
-              quantity: line.quantity,
-            });
-          }
-        }
-
-        if (replaceEntireCart) {
-          replaceCart(linesToCartItems(lines));
+          replaceCart(asCartItems);
         } else {
           for (const line of lines) {
-            setProductQuantity(line.productId, line.quantity);
+            const lineKey = buildCartLineKey({ productId: line.productId });
+            setProductQuantity(lineKey, line.quantity);
           }
         }
       } finally {
@@ -123,15 +143,11 @@ function CartDeepLinkAddRunner({
 
     void apply();
   }, [
-    createCart,
     finish,
     lines,
-    removeCart,
     replaceCart,
     replaceEntireCart,
     setProductQuantity,
-    updateCart,
-    urqlClient,
     user,
   ]);
 

@@ -59,9 +59,41 @@ describe("cart line identity", () => {
     expect(migrated.prod_shirt).toBeUndefined();
   });
 
-  it("uses a stable default variant when no size is selected", () => {
-    expect(buildCartVariantKey({ productId: "p1" })).toBe(
-      DEFAULT_CART_VARIANT_KEY,
+  it("keeps different colours of the same product as separate lines", () => {
+    const productId = "prod_stamp";
+    const red = buildCartLineKey({
+      productId,
+      selections: { color: "RED" },
+    });
+    const blue = buildCartLineKey({
+      productId,
+      selections: { color: "BLUE" },
+    });
+
+    expect(red).not.toBe(blue);
+    expect(buildCartVariantKey({ selections: { color: "RED" } })).toBe(
+      "color=RED",
+    );
+  });
+
+  it("keeps multi-group colour+size combinations distinct", () => {
+    const productId = "prod_stamp";
+    const a = buildCartLineKey({
+      productId,
+      selections: { color: "RED", size: "M" },
+    });
+    const b = buildCartLineKey({
+      productId,
+      selections: { color: "RED", size: "L" },
+    });
+    const c = buildCartLineKey({
+      productId,
+      selections: { color: "BLUE", size: "M" },
+    });
+
+    expect(new Set([a, b, c]).size).toBe(3);
+    expect(buildCartVariantKey({ selections: { size: "M", color: "RED" } })).toBe(
+      "color=RED|size=M",
     );
   });
 });

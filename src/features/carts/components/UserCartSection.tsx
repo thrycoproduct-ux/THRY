@@ -112,6 +112,7 @@ function UserCartSection({
     query: FetchCartQuery,
     variables: {
       userId: user.id,
+      first: 200,
     },
     requestPolicy: "network-only",
   });
@@ -152,13 +153,18 @@ function UserCartSection({
   const cart: CartEdge[] =
     cartData?.cartsCollection?.edges?.filter((edge) => edge.node.product) ?? [];
 
+  const cartProductIds = useMemo(() => {
+    const fromGraphql = cart
+      .map((edge) => edge.node.product_id)
+      .filter((productId): productId is string => Boolean(productId));
+    const fromDb = dbCartRows.map((row) => row.product_id);
+    return [...new Set([...fromGraphql, ...fromDb])];
+  }, [cart, dbCartRows]);
+  const cartProductIdsKey = cartProductIds.slice().sort().join(",");
+
   useEffect(() => {
     let active = true;
     async function loadDbCartRows() {
-      if (cart.length === 0) {
-        if (active) setDbCartRows([]);
-        return;
-      }
       try {
         const { data, error } = await supabase
           .from("carts")
@@ -187,14 +193,9 @@ function UserCartSection({
     return () => {
       active = false;
     };
-  }, [cart, supabase, user.id]);
-  const cartProductIds = useMemo(
-    () =>
-      cart
-        .map((edge) => edge.node.product_id)
-        .filter((productId): productId is string => Boolean(productId)),
-    [cart],
-  );
+    // Reload when GraphQL cart identity changes (qty/add/remove) or user changes.
+  }, [cart.length, cartProductIdsKey, supabase, user.id]);
+
   const { pricing: livePricing } = useCartLivePricing(cartProductIds);
 
   const productById = useMemo(() => {
@@ -814,7 +815,8 @@ function UserCartSection({
 
   return (
     <>
-      {cartData?.cartsCollection && cart.length > 0 ? (
+      {dbCartRows.length > 0 ||
+      (cartData?.cartsCollection && cart.length > 0) ? (
         <section
           aria-label="Cart Section"
           className={cn(

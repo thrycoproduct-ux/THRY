@@ -19,7 +19,6 @@
     "validate:wrangler": "npm run validate:identity && node scripts/validate-wrangler-production.mjs wrangler.workers.new-account.jsonc",
     "validate:media-proxy": "npm run validate:identity && node scripts/validate-thry-media-proxy.mjs",
     "deploy:media-proxy": "npm run validate:identity && wrangler deploy --config workers/r2-media-proxy/wrangler.jsonc",
-    "deploy:shop-edge": "npm run validate:identity && wrangler deploy --config workers/thry-shop-edge/wrangler.jsonc",
     "auth:setup": "npm run validate:identity && node scripts/setup-auth-config.mjs",
     "auth:verify": "npm run validate:identity && node scripts/verify-auth.mjs",
     "pages:build": "cross-env SKIP_ENV_VALIDATION=true opennextjs-cloudflare build --config wrangler.jsonc && node scripts/cf-pages-postbuild.mjs",

@@ -15,7 +15,7 @@ export function useCartCount() {
 
   const [{ data }] = useQuery({
     query: FetchCartQuery,
-    variables: { userId: user?.id },
+    variables: { userId: user?.id, first: 200 },
     pause: !user,
   });
 
