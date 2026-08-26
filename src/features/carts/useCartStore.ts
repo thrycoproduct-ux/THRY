@@ -1,5 +1,5 @@
 import { create } from "zustand";
-import { persistNSync } from "persist-and-sync";
+import { persistNSync } from "@/lib/store/persist-n-sync-safe";
 import {
   buildCartLineKey,
   buildCartVariantKey,

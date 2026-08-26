@@ -29,7 +29,7 @@ const QuantityInput = React.forwardRef<HTMLInputElement, QuantitiyInputProps>(
           type="number"
           value={value}
           ref={ref}
-          onChange={(event) => onChange(event.target.valueAsNumber)}
+          onChange={(event) => onChange?.(event.target.valueAsNumber)}
           className="w-6 flex-1 text-center shadow-none  focus:ring-transparent focus:ring-0 active:ring-0 focus:border-none focus:ring-offset-0 max-w-6 order-2 h-8"
         />
         <button

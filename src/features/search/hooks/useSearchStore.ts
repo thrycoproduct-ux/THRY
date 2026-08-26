@@ -1,5 +1,5 @@
 import { SortEnum } from "@/validations/products";
-import { persistNSync } from "persist-and-sync";
+import { persistNSync } from "@/lib/store/persist-n-sync-safe";
 import { create } from "zustand";
 
 export type SearchQuery = {

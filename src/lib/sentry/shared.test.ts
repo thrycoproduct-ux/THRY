@@ -88,6 +88,16 @@ describe("sentry shared helpers", () => {
         "Failed to execute 'removeChild' on 'Node': The node to be removed is not a child of this node.",
       ),
     ).toBe(true);
+    expect(
+      isSentryClientNoiseMessage(
+        "SecurityError: Failed to read the 'localStorage' property from 'Window': Access is denied for this document.",
+      ),
+    ).toBe(true);
+    expect(
+      isSentryClientNoiseMessage(
+        "InvalidStateError: Transition was aborted because of invalid state",
+      ),
+    ).toBe(true);
   });
 
   it("drops noisy Sentry events via beforeSend helper", () => {
@@ -106,6 +116,36 @@ describe("sentry shared helpers", () => {
     expect(
       shouldDropSentryClientEvent({
         exception: { values: [{ type: "Error", value: "Real checkout bug" }] },
+      }),
+    ).toBe(false);
+    expect(
+      shouldDropSentryClientEvent({
+        exception: {
+          values: [
+            {
+              type: "TypeError",
+              value: "Cannot read properties of undefined (reading 'call')",
+              stacktrace: {
+                frames: [{ filename: "app:///_next/static/chunks/webpack-abc.js" }],
+              },
+            },
+          ],
+        },
+      }),
+    ).toBe(true);
+    expect(
+      shouldDropSentryClientEvent({
+        exception: {
+          values: [
+            {
+              type: "TypeError",
+              value: "Cannot read properties of undefined (reading 'call')",
+              stacktrace: {
+                frames: [{ filename: "app:///src/features/carts/hooks/useCartActions.tsx" }],
+              },
+            },
+          ],
+        },
       }),
     ).toBe(false);
   });

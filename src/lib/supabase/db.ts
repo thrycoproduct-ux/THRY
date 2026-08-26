@@ -14,53 +14,84 @@ if (!connectionString) {
 
 export type AppDatabase = PostgresJsDatabase<typeof schema>;
 
+type GlobalDb = typeof globalThis & {
+  __thryPgDb?: AppDatabase;
+};
+
 /**
  * Cloudflare Workers forbid reusing TCP/DB I/O across requests.
- * A module-global postgres client causes hung admin APIs (integrations, medias, orders).
- * Create one client per request and cache it for that request only.
+ * Vercel Node isolates must use a singleton (max: 1) or they exhaust
+ * Supabase pooler client limits (EMAXCONN ~200).
  */
-function createDb(): AppDatabase {
-  const client = postgres(connectionString, {
+function isCloudflareWorkerRuntime(): boolean {
+  return (
+    typeof navigator !== "undefined" &&
+    navigator.userAgent === "Cloudflare-Workers"
+  );
+}
+
+function createPostgresClient(max: number) {
+  return postgres(connectionString, {
     prepare: false,
-    // Parallel queries are OK within one request; never reuse this client across requests.
-    max: 5,
-    idle_timeout: 5,
+    max,
+    idle_timeout: max === 1 ? 20 : 5,
     connect_timeout: 8,
-    max_lifetime: 30,
+    max_lifetime: max === 1 ? 60 * 30 : 30,
     connection: {
       statement_timeout: 8000,
     },
   });
-  return drizzle(client, { schema });
+}
+
+function createDb(max = 5): AppDatabase {
+  return drizzle(createPostgresClient(max), { schema });
+}
+
+function getSingletonDb(): AppDatabase {
+  const g = globalThis as GlobalDb;
+  if (!g.__thryPgDb) {
+    g.__thryPgDb = createDb(1);
+  }
+  return g.__thryPgDb;
 }
 
 const requestDb = new AsyncLocalStorage<AppDatabase>();
 
-/** RSC fallback: one client per React request when ALS is not set. */
-const getDbForReactRequest = cache(() => createDb());
+/** RSC fallback: one client per React request when ALS is not set (Workers only). */
+const getDbForReactRequest = cache(() => createDb(5));
 
 /** Prefer this in new code. ALS (route handlers) wins over react.cache (RSC). */
 export function getDb(): AppDatabase {
+  if (!isCloudflareWorkerRuntime()) {
+    return getSingletonDb();
+  }
   return requestDb.getStore() ?? getDbForReactRequest();
 }
 
 /**
  * Run work with a request-scoped DB (route handlers that touch DB many times).
  * Safe no-op nesting if already inside a scope.
+ * On Vercel/Node this uses the process singleton (no per-call pools).
  */
 export function withDb<T>(fn: () => T): T {
+  if (!isCloudflareWorkerRuntime()) {
+    return fn();
+  }
   if (requestDb.getStore()) return fn();
-  return requestDb.run(createDb(), fn);
+  return requestDb.run(createDb(5), fn);
 }
 
 export async function withDbAsync<T>(fn: () => Promise<T>): Promise<T> {
+  if (!isCloudflareWorkerRuntime()) {
+    return fn();
+  }
   if (requestDb.getStore()) return fn();
-  return requestDb.run(createDb(), fn);
+  return requestDb.run(createDb(5), fn);
 }
 
 /**
- * Backward-compatible default: every property access uses a per-request client,
- * never a process-global connection.
+ * Backward-compatible default: property access uses getDb()
+ * (singleton on Vercel, request-scoped on Workers).
  */
 const db = new Proxy({} as AppDatabase, {
   get(_target, prop, receiver) {
