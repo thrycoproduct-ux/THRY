@@ -126,7 +126,9 @@ describe("sentry shared helpers", () => {
               type: "TypeError",
               value: "Cannot read properties of undefined (reading 'call')",
               stacktrace: {
-                frames: [{ filename: "app:///_next/static/chunks/webpack-abc.js" }],
+                frames: [
+                  { filename: "app:///_next/static/chunks/webpack-abc.js" },
+                ],
               },
             },
           ],
@@ -141,7 +143,12 @@ describe("sentry shared helpers", () => {
               type: "TypeError",
               value: "Cannot read properties of undefined (reading 'call')",
               stacktrace: {
-                frames: [{ filename: "app:///src/features/carts/hooks/useCartActions.tsx" }],
+                frames: [
+                  {
+                    filename:
+                      "app:///src/features/carts/hooks/useCartActions.tsx",
+                  },
+                ],
               },
             },
           ],

@@ -105,9 +105,7 @@ function getItem(options: PersistNSyncOptionsType): string | null {
     return cookie ?? safeGetSession(options.name) ?? safeGetLocal(options.name);
   }
   if (options.storage === "sessionStorage") {
-    return (
-      safeGetSession(options.name) ?? cookie ?? safeGetLocal(options.name)
-    );
+    return safeGetSession(options.name) ?? cookie ?? safeGetLocal(options.name);
   }
   return safeGetLocal(options.name) ?? cookie ?? safeGetSession(options.name);
 }
@@ -139,7 +137,10 @@ export function clearStorage(name: string, storage?: StorageType): void {
   }
 }
 
-function matchPatternOrKey(key: string, patterns: (string | RegExp)[]): boolean {
+function matchPatternOrKey(
+  key: string,
+  patterns: (string | RegExp)[],
+): boolean {
   for (const patternOrKey of patterns) {
     if (typeof patternOrKey === "string" && key === patternOrKey) return true;
     if (patternOrKey instanceof RegExp && patternOrKey.test(key)) return true;
@@ -171,8 +172,9 @@ function saveAndSync<T extends Record<string, unknown>>(args: {
   options: PersistNSyncOptionsType;
 }) {
   const { newState, prevState, options } = args;
-  const persistOptions = (newState as { __persistNSyncOptions?: PersistNSyncOptionsType })
-    .__persistNSyncOptions;
+  const persistOptions = (
+    newState as { __persistNSyncOptions?: PersistNSyncOptionsType }
+  ).__persistNSyncOptions;
   if (persistOptions) {
     const prevStorage =
       (prevState as { __persistNSyncOptions?: PersistNSyncOptionsType })
