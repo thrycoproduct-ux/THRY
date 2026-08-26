@@ -138,7 +138,7 @@ export async function fetchCartSizeConfigsByProductIds(
 ): Promise<Record<string, CartSizeConfigPayload>> {
   const unique = [
     ...new Set(productIds.map((id) => id.trim()).filter(Boolean)),
-  ];
+  ].sort();
   if (unique.length === 0) return {};
 
   const res = await fetch(

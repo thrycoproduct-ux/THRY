@@ -149,7 +149,6 @@ function CheckoutButton({
                 try {
                   const res = await fetchWithTimeout(
                     `/api/products/size-config?productId=${encodeURIComponent(productId)}`,
-                    { cache: "no-store" },
                   );
                   if (!res.ok) return { productId, required: false };
                   const payload = (await res.json()) as { enabled?: boolean };

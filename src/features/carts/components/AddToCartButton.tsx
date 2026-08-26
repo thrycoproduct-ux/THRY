@@ -52,7 +52,6 @@ function AddToCartButton({
           if (isOutOfStock) return;
           const sizeConfigRes = await fetch(
             `/api/products/size-config?productId=${encodeURIComponent(productId)}`,
-            { cache: "no-store" },
           );
           if (sizeConfigRes.ok) {
             const sizeConfig = (await sizeConfigRes.json()) as {

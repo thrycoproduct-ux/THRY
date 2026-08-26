@@ -8,7 +8,9 @@ import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 import { NextRequest, NextResponse } from "next/server";
 
 export const revalidate = 120;
-export const dynamic = "force-dynamic";
+
+const PUBLIC_CACHE = `public, s-maxage=${STOREFRONT_REVALIDATE_SECONDS}, stale-while-revalidate=${STOREFRONT_REVALIDATE_SECONDS * 2}`;
+const NO_STORE = "private, no-store";
 
 function toApiPayload(config: ProductSizeConfig) {
   const groups = (config.groups ?? [])
@@ -62,11 +64,11 @@ export async function GET(request: NextRequest) {
             .map((id) => id.trim())
             .filter(Boolean),
         ),
-      ];
+      ].sort();
       if (productIds.length === 0) {
         return NextResponse.json(
           { message: "Missing productIds" },
-          { status: 400 },
+          { status: 400, headers: { "Cache-Control": NO_STORE } },
         );
       }
 
@@ -83,27 +85,26 @@ export async function GET(request: NextRequest) {
         );
       });
       return NextResponse.json(payload, {
-        headers: {
-          "Cache-Control": `public, s-maxage=${STOREFRONT_REVALIDATE_SECONDS}, stale-while-revalidate=${STOREFRONT_REVALIDATE_SECONDS * 2}`,
-        },
+        headers: { "Cache-Control": PUBLIC_CACHE },
       });
     }
 
     if (!productId) {
       return NextResponse.json(
         { message: "Missing productId or productIds" },
-        { status: 400 },
+        { status: 400, headers: { "Cache-Control": NO_STORE } },
       );
     }
 
     const config = await getProductSizeConfig(productId);
     return NextResponse.json(toApiPayload(config), {
-      headers: {
-        "Cache-Control": `public, s-maxage=${STOREFRONT_REVALIDATE_SECONDS}, stale-while-revalidate=${STOREFRONT_REVALIDATE_SECONDS * 2}`,
-      },
+      headers: { "Cache-Control": PUBLIC_CACHE },
     });
   } catch (error) {
     console.error("[size-config] GET failed:", error);
-    return NextResponse.json(emptyPayload, { status: 200 });
+    return NextResponse.json(emptyPayload, {
+      status: 200,
+      headers: { "Cache-Control": NO_STORE },
+    });
   }
 }

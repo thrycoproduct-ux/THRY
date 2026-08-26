@@ -95,6 +95,6 @@
     "Cloudflare account: thrycoproduct@gmail.com / 77dfa9b757691b2321fe0630f01c8c6a",
     "Supabase project azqgyxdzwlhdmjvkngbs is the only allowed DB/auth project.",
     "Run npm run validate:identity before auth, R2, wrangler, or deploy work.",
-    "Shop DNS: thryco.com / www are DNS-only A records to Vercel (76.76.21.21). Cloudflare nameservers stay for the zone. Media is media.thryco.com (thry-media). thry-shop-edge is retired."
+    "Shop DNS: thryco.com / www are Cloudflare Worker custom domains on thry-shop-edge → Vercel origin (thry-thryco.vercel.app). Media is media.thryco.com (thry-media). Zone may stay Free; Workers Paid (standard) is required for shop-edge traffic."
   ]
 }

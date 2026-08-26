@@ -447,8 +447,9 @@ function UserCartSection({
 
     const loadSizeConfigs = async () => {
       try {
+        const sortedIds = [...productIds].sort();
         const res = await fetchWithTimeout(
-          `/api/products/size-config?productIds=${encodeURIComponent(productIds.join(","))}`,
+          `/api/products/size-config?productIds=${encodeURIComponent(sortedIds.join(","))}`,
         );
         if (!active) return;
         if (!res.ok) {

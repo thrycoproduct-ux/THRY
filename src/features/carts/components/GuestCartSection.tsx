@@ -293,8 +293,9 @@ function GuestCartSection({
 
     const loadSizeConfigs = async () => {
       try {
+        const sortedIds = [...cartProductIds].sort();
         const res = await fetchWithTimeout(
-          `/api/products/size-config?productIds=${encodeURIComponent(cartProductIds.join(","))}`,
+          `/api/products/size-config?productIds=${encodeURIComponent(sortedIds.join(","))}`,
         );
         if (!active) return;
         if (!res.ok) {
