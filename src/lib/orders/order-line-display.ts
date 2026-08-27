@@ -46,3 +46,37 @@ export function resolveOrderLineImageAlt(row: OrderLineDisplayFields): string {
     "Product image"
   );
 }
+
+function humanizeOptionKey(key: string): string {
+  const trimmed = String(key ?? "").trim();
+  if (!trimmed) return "";
+  if (trimmed.toLowerCase() === "size") return "Size";
+  return trimmed.charAt(0).toUpperCase() + trimmed.slice(1).replace(/_/g, " ");
+}
+
+/** Human-readable variant for admin lists, PDFs, and copy text. */
+export function formatOrderLineVariant(input: {
+  size?: string | null;
+  selections?: Record<string, unknown> | null;
+}): string | null {
+  const selections: Record<string, string> = {};
+  if (input.selections && typeof input.selections === "object") {
+    for (const [key, value] of Object.entries(input.selections)) {
+      const normalizedKey = String(key ?? "").trim();
+      const normalizedValue = String(value ?? "").trim();
+      if (normalizedKey && normalizedValue) {
+        selections[normalizedKey] = normalizedValue;
+      }
+    }
+  }
+
+  if (Object.keys(selections).length > 0) {
+    return Object.entries(selections)
+      .sort(([left], [right]) => left.localeCompare(right))
+      .map(([key, value]) => `${humanizeOptionKey(key)}: ${value}`)
+      .join(" • ");
+  }
+
+  const sizeOnly = String(input.size ?? "").trim();
+  return sizeOnly ? `Size: ${sizeOnly}` : null;
+}

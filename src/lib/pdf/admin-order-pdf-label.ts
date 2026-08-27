@@ -22,6 +22,7 @@ export function adminOrderToPackingSlip(
       name: line.productName,
       quantity: line.quantity,
       imageUrl: line.imageUrl,
+      variantLabel: line.variantLabel,
     })),
   };
 }

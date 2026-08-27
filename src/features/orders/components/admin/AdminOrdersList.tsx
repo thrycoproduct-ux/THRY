@@ -167,7 +167,11 @@ function AdminOrderRow({
                       {line.productName}
                     </p>
                     <p className="text-xs text-muted-foreground">
-                      Code: {line.productCode ?? "—"} • Qty: {line.quantity}
+                      Code: {line.productCode ?? "—"}
+                      {line.variantLabel
+                        ? ` • Variant: ${line.variantLabel}`
+                        : ""}{" "}
+                      • Qty: {line.quantity}
                     </p>
                   </div>
                 </div>

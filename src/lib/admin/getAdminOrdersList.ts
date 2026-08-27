@@ -1,4 +1,5 @@
 import { buildShippingAddressCopyText } from "@/lib/orders/shipping-address-text";
+import { formatOrderLineVariant } from "@/lib/orders/order-line-display";
 import db from "@/lib/supabase/db";
 import {
   address,
@@ -28,6 +29,7 @@ export type AdminOrderLineView = {
   quantity: number;
   productName: string;
   productCode: string | null;
+  variantLabel: string | null;
   imageUrl: string;
   imageAlt: string;
 };
@@ -111,6 +113,8 @@ async function loadOrderLinesByOrderId(
       id: orderLines.id,
       orderId: orderLines.orderId,
       quantity: orderLines.quantity,
+      size: orderLines.size,
+      selections: orderLines.selections,
       productName: products.name,
       productCode: products.productCode,
       imageKey: medias.key,
@@ -127,6 +131,10 @@ async function loadOrderLinesByOrderId(
       quantity: row.quantity,
       productName: row.productName || "Product",
       productCode: row.productCode ?? null,
+      variantLabel: formatOrderLineVariant({
+        size: row.size,
+        selections: row.selections as Record<string, unknown> | null,
+      }),
       imageUrl: keytoUrl(row.imageKey ?? undefined),
       imageAlt: row.imageAlt || row.productName || "Product image",
     };

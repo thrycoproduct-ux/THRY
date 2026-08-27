@@ -53,6 +53,7 @@ type OrderItemView = {
   productName: string;
   productSlug: string | null;
   productCode: string | null;
+  variantLabel: string | null;
   imageUrl: string;
   imageAlt: string;
   quantity: number;
@@ -361,6 +362,7 @@ export function AdminOrderDetailView({
             quantity: item.quantity,
             productName: item.productName,
             productCode: item.productCode,
+            variantLabel: item.variantLabel,
             imageUrl: item.imageUrl,
             imageAlt: item.imageAlt,
           })),
@@ -574,8 +576,12 @@ export function AdminOrderDetailView({
                       </p>
                     )}
                     <p className="text-xs text-muted-foreground">
-                      Code: {item.productCode ?? "—"} • Qty: {item.quantity} •
-                      Unit: {formatPrice(item.unitPrice)}
+                      Code: {item.productCode ?? "—"}
+                      {item.variantLabel
+                        ? ` • Variant: ${item.variantLabel}`
+                        : ""}{" "}
+                      • Qty: {item.quantity} • Unit:{" "}
+                      {formatPrice(item.unitPrice)}
                     </p>
                   </div>
                   <div className="text-sm font-semibold">

@@ -1,6 +1,7 @@
 import AdminShell from "@/components/admin/AdminShell";
 import AdminOrderDetailView from "@/features/orders/components/admin/AdminOrderDetailView";
 import {
+  formatOrderLineVariant,
   resolveOrderLineImageAlt,
   resolveOrderLineImageKey,
   resolveOrderLineProductCode,
@@ -44,6 +45,7 @@ function buildCourierCopyText(payload: {
     productName: string;
     productCode: string | null;
     quantity: number;
+    variantLabel?: string | null;
   }[];
   addressText: string;
   dispatchInfo?: {
@@ -55,7 +57,8 @@ function buildCourierCopyText(payload: {
 }) {
   const itemLines = payload.items.map((item, idx) => {
     const code = item.productCode ? ` [${item.productCode}]` : "";
-    return `${idx + 1}. ${item.productName}${code} x ${item.quantity}`;
+    const variant = item.variantLabel ? ` (${item.variantLabel})` : "";
+    return `${idx + 1}. ${item.productName}${code}${variant} x ${item.quantity}`;
   });
 
   const base = [
@@ -133,6 +136,8 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
       productId: orderLines.productId,
       quantity: orderLines.quantity,
       unitPrice: orderLines.price,
+      size: orderLines.size,
+      selections: orderLines.selections,
       productName: products.name,
       productSlug: products.slug,
       productCode: products.productCode,
@@ -158,6 +163,10 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
       productName,
       productSlug: resolveOrderLineProductSlug(row),
       productCode: resolveOrderLineProductCode(row),
+      variantLabel: formatOrderLineVariant({
+        size: row.size,
+        selections: row.selections as Record<string, unknown> | null,
+      }),
       imageUrl: keytoUrl(imageKey ?? undefined),
       imageAlt: resolveOrderLineImageAlt(row),
       quantity: row.quantity,
@@ -218,6 +227,7 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
       productName: item.productName,
       productCode: item.productCode,
       quantity: item.quantity,
+      variantLabel: item.variantLabel,
     })),
     addressText,
     dispatchInfo: dispatchInfo

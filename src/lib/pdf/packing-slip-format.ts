@@ -48,6 +48,7 @@ export type PackingSlipItem = {
   name: string;
   quantity: number;
   imageUrl: string;
+  variantLabel?: string | null;
 };
 
 export type PackingSlipOrder = {
