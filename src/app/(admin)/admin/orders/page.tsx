@@ -1,5 +1,6 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
+import { Skeleton } from "@/components/ui/skeleton";
 import {
   AdminOrdersSegmentTabs,
   type OrdersSegment,
@@ -12,6 +13,24 @@ import {
 } from "@/lib/admin/getAdminOrdersList";
 import { publicErrorMessage } from "@/lib/api/public-error";
 import { withDbAsync } from "@/lib/supabase/db";
+import { Suspense } from "react";
+
+function OrdersTabsSkeleton() {
+  return (
+    <div className="space-y-4">
+      <div className="grid gap-4 md:grid-cols-2">
+        <Skeleton className="h-24 w-full rounded-lg" />
+        <Skeleton className="h-24 w-full rounded-lg" />
+      </div>
+      <Skeleton className="h-5 w-48" />
+      <div className="space-y-3">
+        {Array.from({ length: 5 }).map((_, index) => (
+          <Skeleton key={index} className="h-24 w-full rounded-lg" />
+        ))}
+      </div>
+    </div>
+  );
+}
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -41,9 +60,6 @@ export default async function OrdersPage({
   searchParams,
 }: AdminOrdersPageProps) {
   const resolved = await searchParams;
-  // Route-level loading.tsx handles first paint — no inner Suspense here.
-  // An inner boundary + router.refresh() on tab switches re-showed the full
-  // skeleton and aborted in-flight RSC ("Connection closed." / THRY-T).
   return (
     <AdminShell heading="Orders">
       <OrdersPageContent searchParams={resolved} />
@@ -130,16 +146,21 @@ async function OrdersPageContent({
         </Alert>
       ) : null}
 
-      <AdminOrdersSegmentTabs
-        segment={segment}
-        counts={counts}
-        paid={paid}
-        unpaid={unpaid}
-        paidPageParam={PAID_PAGE_PARAM}
-        unpaidPageParam={PENDING_PAGE_PARAM}
-        pageSizeParam={PAGE_SIZE_PARAM}
-        resetPageParams={resetPageParams}
-      />
+      {/* Suspense required: AdminOrdersList uses useSearchParams(). Without this
+          boundary Next keeps route loading.tsx up forever after we removed the
+          old full-page Suspense. */}
+      <Suspense fallback={<OrdersTabsSkeleton />}>
+        <AdminOrdersSegmentTabs
+          segment={segment}
+          counts={counts}
+          paid={paid}
+          unpaid={unpaid}
+          paidPageParam={PAID_PAGE_PARAM}
+          unpaidPageParam={PENDING_PAGE_PARAM}
+          pageSizeParam={PAGE_SIZE_PARAM}
+          resetPageParams={resetPageParams}
+        />
+      </Suspense>
     </div>
   );
 }

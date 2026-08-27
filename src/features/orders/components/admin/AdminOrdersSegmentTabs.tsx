@@ -2,7 +2,7 @@
 
 import * as React from "react";
 import Link from "next/link";
-import { useRouter, useSearchParams } from "next/navigation";
+import { useRouter } from "next/navigation";
 import { FileDown, Loader2 } from "lucide-react";
 
 import AdminOrdersList from "@/features/orders/components/admin/AdminOrdersList";
@@ -77,66 +77,65 @@ export function AdminOrdersSegmentTabs({
   resetPageParams,
 }: Props) {
   const router = useRouter();
-  const searchParams = useSearchParams();
   const { toast } = useToast();
   const [isNavPending, startNavTransition] = React.useTransition();
+  const [pendingSegment, setPendingSegment] =
+    React.useState<OrdersSegment | null>(null);
   const [downloadingBulkPdf, setDownloadingBulkPdf] = React.useState(false);
   const [navError, setNavError] = React.useState<string | null>(null);
 
-  const urlSegment = parseOrdersSegment(searchParams?.get("status"));
+  // Server `segment` prop is source of truth — do not use useSearchParams()
+  // (it suspends without Suspense and kept /admin/orders on loading.tsx forever).
   const pageSize = clampAdminOrdersPageSize(
-    Number.parseInt(String(searchParams?.get(pageSizeParam) ?? ""), 10) ||
-      paid.pageSize ||
-      unpaid.pageSize ||
-      undefined,
+    paid.pageSize || unpaid.pageSize || undefined,
   );
 
-  // Props caught up with the URL — navigation succeeded.
   React.useEffect(() => {
-    if (segment === urlSegment && !isNavPending) {
+    if (pendingSegment == null) return;
+    if (segment === pendingSegment) {
+      setPendingSegment(null);
       setNavError(null);
     }
-  }, [isNavPending, segment, urlSegment]);
+  }, [pendingSegment, segment]);
 
-  // Stall watchdog: never leave the unpaid/paid switch hanging forever.
   React.useEffect(() => {
-    if (!isNavPending && segment === urlSegment) return;
-    const waitingFor = urlSegment;
+    if (pendingSegment == null) return;
+    const waitingFor = pendingSegment;
     const timer = window.setTimeout(() => {
-      if (segment !== waitingFor || isNavPending) {
-        setNavError(
-          `Could not load ${waitingFor} orders. Check your connection and retry.`,
-        );
-      }
+      setNavError(
+        `Could not load ${waitingFor} orders. Check your connection and retry.`,
+      );
+      setPendingSegment(null);
     }, NAV_STALL_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [isNavPending, segment, urlSegment]);
+  }, [pendingSegment]);
 
-  const displaySegment = isNavPending || segment !== urlSegment ? urlSegment : segment;
-  const dataReady = segment === urlSegment && !isNavPending;
-  const isLoading = !dataReady;
+  const displaySegment = pendingSegment ?? segment;
+  const isLoading = pendingSegment != null || isNavPending;
   const active = segment === "unpaid" ? unpaid : paid;
-  const showPdfToolbar = dataReady && segment === "paid";
+  const showPdfToolbar = !isLoading && segment === "paid";
 
   const navigateTo = React.useCallback(
     (next: OrdersSegment) => {
-      if (next === segment && next === urlSegment && !isNavPending) return;
+      if (next === segment && pendingSegment == null && !isNavPending) return;
       setNavError(null);
+      setPendingSegment(next);
       const href = segmentHref(next, pageSize);
-      // push only — push+refresh aborted in-flight RSC and left the page on skeleton.
       startNavTransition(() => {
         router.push(href, { scroll: false });
       });
     },
-    [isNavPending, pageSize, router, segment, startNavTransition, urlSegment],
+    [isNavPending, pageSize, pendingSegment, router, segment, startNavTransition],
   );
 
   const retryNavigation = React.useCallback(() => {
     setNavError(null);
+    const target = pendingSegment ?? segment;
+    setPendingSegment(target);
     startNavTransition(() => {
-      router.refresh();
+      router.push(segmentHref(target, pageSize), { scroll: false });
     });
-  }, [router, startNavTransition]);
+  }, [pageSize, pendingSegment, router, segment, startNavTransition]);
 
   const downloadBulkPdf = React.useCallback(async () => {
     if (downloadingBulkPdf || paid.rows.length === 0) return;
