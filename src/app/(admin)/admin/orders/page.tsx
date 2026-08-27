@@ -14,7 +14,6 @@ import {
 import { publicErrorMessage } from "@/lib/api/public-error";
 import { runLazyRazorpayPaymentRecovery } from "@/lib/payments/lazy-razorpay-recovery";
 import { withDbAsync } from "@/lib/supabase/db";
-import { after } from "next/server";
 import { Suspense } from "react";
 
 function OrdersContentSkeleton() {
@@ -127,9 +126,10 @@ async function OrdersPageContent({
     paid = result.paid;
     unpaid = result.unpaid;
 
-    // Best-effort sync after the response starts streaming (throttled inside).
-    after(() => {
-      void runLazyRazorpayPaymentRecovery();
+    // Fire-and-forget — never await on the RSC path (THRY-T). Do not use after()
+    // here; it was logging Vercel Runtime errors and leaving the page on skeleton.
+    void runLazyRazorpayPaymentRecovery().catch((error) => {
+      console.error("[admin/orders] lazy recovery failed:", error);
     });
   } catch (error) {
     console.error(

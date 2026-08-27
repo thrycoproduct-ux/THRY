@@ -129,11 +129,18 @@ export function AdminOrdersSegmentTabs({
       setNavError(null);
       setLoadingTo(next);
       const href = segmentHref(next, pageSize);
-      // Single soft nav — push+refresh aborted in-flight RSC and caused THRY-T.
       router.push(href, { scroll: false });
+      // Recovery no longer blocks RSC — refresh is safe again for ?status= switches.
+      router.refresh();
     },
     [loadingTo, pageSize, router, segment, urlSegment],
   );
+
+  const retryNavigation = React.useCallback(() => {
+    setNavError(null);
+    setLoadingTo(urlSegment);
+    router.refresh();
+  }, [router, urlSegment]);
 
   const downloadBulkPdf = React.useCallback(async () => {
     if (downloadingBulkPdf || paid.rows.length === 0) return;
@@ -294,7 +301,7 @@ export function AdminOrdersSegmentTabs({
             type="button"
             size="sm"
             variant="outline"
-            onClick={() => navigateTo(urlSegment)}
+            onClick={retryNavigation}
           >
             Retry
           </Button>
