@@ -138,6 +138,19 @@ export function getActiveOptionGroups(
   );
 }
 
+/** Group id → display name for packing labels, including disabled configs. */
+export function optionGroupDisplayNames(
+  config: ProductSizeConfig | null | undefined,
+): Record<string, string> {
+  const names: Record<string, string> = {};
+  for (const group of config?.groups ?? []) {
+    const id = String(group.id ?? "").trim();
+    if (!id) continue;
+    names[id] = normalizeOptionName(group.name);
+  }
+  return names;
+}
+
 export function getSelectableGroupOptions(
   group: ProductOptionGroup | null | undefined,
 ): ProductOptionChoice[] {

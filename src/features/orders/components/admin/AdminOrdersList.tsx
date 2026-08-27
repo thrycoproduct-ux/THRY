@@ -16,6 +16,7 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
+import { AdminOrderLinePackingMeta } from "@/features/orders/components/admin/AdminOrderLinePackingMeta";
 import { adminOrderToPackingSlip } from "@/lib/pdf/admin-order-pdf-label";
 import { downloadOrderPdf } from "@/lib/pdf/packing-slip-pdf";
 import { cn, formatPrice } from "@/lib/utils";
@@ -166,13 +167,11 @@ function AdminOrderRow({
                     <p className="line-clamp-1 font-medium">
                       {line.productName}
                     </p>
-                    <p className="text-xs text-muted-foreground">
-                      Code: {line.productCode ?? "—"}
-                      {line.variantLabel
-                        ? ` • Variant: ${line.variantLabel}`
-                        : ""}{" "}
-                      • Qty: {line.quantity}
-                    </p>
+                    <AdminOrderLinePackingMeta
+                      productCode={line.productCode}
+                      quantity={line.quantity}
+                      variantLabel={line.variantLabel}
+                    />
                   </div>
                 </div>
               ))

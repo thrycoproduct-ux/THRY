@@ -291,10 +291,12 @@ async function drawPackingSlip(
     const nameLines = doc
       .splitTextToSize(item.name || "Item", nameWidth)
       .slice(0, 2);
-    const variantLines =
-      item.variantLabel?.trim()
-        ? doc.splitTextToSize(item.variantLabel.trim(), nameWidth).slice(0, 2)
-        : [];
+    const variantLines = doc
+      .splitTextToSize(
+        `Variant: ${item.variantLabel?.trim() || "Standard"}`,
+        nameWidth,
+      )
+      .slice(0, 2);
     const textBlockLines = nameLines.length + variantLines.length;
     const rowH = Math.max(THUMB_MM + 5, textBlockLines * 5 + 6);
     y = ensureSpace(doc, y, rowH);
@@ -312,7 +314,11 @@ async function drawPackingSlip(
     if (variantLines.length > 0) {
       doc.setFontSize(8);
       doc.setTextColor(90, 90, 90);
-      doc.text(variantLines, MARGIN + THUMB_MM + 4, y + 2 + nameLines.length * 5);
+      doc.text(
+        variantLines,
+        MARGIN + THUMB_MM + 4,
+        y + 2 + nameLines.length * 5,
+      );
       doc.setTextColor(0, 0, 0);
       doc.setFontSize(10);
     }

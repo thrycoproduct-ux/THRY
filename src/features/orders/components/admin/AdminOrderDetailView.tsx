@@ -38,6 +38,7 @@ import { parseTrackingNumberFromBarcodeText } from "@/lib/dispatch/barcode-parsi
 import { buildCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
 import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
 import type { OrderDispatchInfo } from "@/lib/dispatch/get-order-dispatch-info";
+import { AdminOrderLinePackingMeta } from "@/features/orders/components/admin/AdminOrderLinePackingMeta";
 
 const ADD_NEW_COURIER_VALUE = "__add_new_courier__";
 
@@ -575,14 +576,12 @@ export function AdminOrderDetailView({
                         {item.productName}
                       </p>
                     )}
-                    <p className="text-xs text-muted-foreground">
-                      Code: {item.productCode ?? "—"}
-                      {item.variantLabel
-                        ? ` • Variant: ${item.variantLabel}`
-                        : ""}{" "}
-                      • Qty: {item.quantity} • Unit:{" "}
-                      {formatPrice(item.unitPrice)}
-                    </p>
+                    <AdminOrderLinePackingMeta
+                      productCode={item.productCode}
+                      quantity={item.quantity}
+                      variantLabel={item.variantLabel}
+                      extra={`Unit: ${formatPrice(item.unitPrice)}`}
+                    />
                   </div>
                   <div className="text-sm font-semibold">
                     {formatPrice(item.lineTotal)}

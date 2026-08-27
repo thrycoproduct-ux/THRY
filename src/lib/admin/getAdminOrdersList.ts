@@ -1,5 +1,9 @@
 import { buildShippingAddressCopyText } from "@/lib/orders/shipping-address-text";
 import { formatOrderLineVariant } from "@/lib/orders/order-line-display";
+import {
+  getProductSizeConfigsByProductIds,
+  optionGroupDisplayNames,
+} from "@/lib/products/sizeConfig";
 import db from "@/lib/supabase/db";
 import {
   address,
@@ -124,6 +128,7 @@ async function loadOrderLinesByOrderId(
       quantity: orderLines.quantity,
       size: orderLines.size,
       selections: orderLines.selections,
+      productId: orderLines.productId,
       productName: products.name,
       productCode: products.productCode,
       imageKey: medias.key,
@@ -134,7 +139,22 @@ async function loadOrderLinesByOrderId(
     .leftJoin(medias, eq(products.featuredImageId, medias.id))
     .where(inArray(orderLines.orderId, orderIds));
 
+  const productIds = [
+    ...new Set(
+      lineRows
+        .map((row) => row.productId)
+        .filter((id): id is string => Boolean(id)),
+    ),
+  ];
+  const sizeConfigs =
+    productIds.length > 0
+      ? await getProductSizeConfigsByProductIds(productIds)
+      : new Map();
+
   for (const row of lineRows) {
+    const groupNames = row.productId
+      ? optionGroupDisplayNames(sizeConfigs.get(row.productId))
+      : undefined;
     const line: AdminOrderLineView = {
       id: row.id,
       quantity: row.quantity,
@@ -143,6 +163,7 @@ async function loadOrderLinesByOrderId(
       variantLabel: formatOrderLineVariant({
         size: row.size,
         selections: row.selections as Record<string, unknown> | null,
+        groupNames,
       }),
       imageUrl: keytoUrl(row.imageKey ?? undefined),
       imageAlt: row.imageAlt || row.productName || "Product image",

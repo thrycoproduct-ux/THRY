@@ -48,5 +48,13 @@ describe("order-line-display", () => {
     expect(formatOrderLineVariant({ size: "M" })).toBe("Size: M");
 
     expect(formatOrderLineVariant({ size: null, selections: {} })).toBeNull();
+
+    expect(
+      formatOrderLineVariant({
+        size: "10CM",
+        selections: { group_mszou8qd_l9ttz: "10CM" },
+        groupNames: { group_mszou8qd_l9ttz: "Size" },
+      }),
+    ).toBe("Size: 10CM");
   });
 });

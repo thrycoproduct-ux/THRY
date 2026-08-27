@@ -15,6 +15,10 @@ import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 import { keytoUrl } from "@/lib/utils";
 import db from "@/lib/supabase/db";
+import {
+  getProductSizeConfigsByProductIds,
+  optionGroupDisplayNames,
+} from "@/lib/products/sizeConfig";
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
 import {
   address,
@@ -153,6 +157,12 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
     .leftJoin(medias, eq(products.featuredImageId, medias.id))
     .where(eq(orderLines.orderId, orderId));
 
+  const sizeConfigs = await getProductSizeConfigsByProductIds(
+    lineRows
+      .map((row) => row.productId)
+      .filter((id): id is string => Boolean(id)),
+  );
+
   const itemViews = lineRows.map((row) => {
     const unitPrice = Number(row.unitPrice ?? 0);
     const productName = resolveOrderLineProductName(row);
@@ -166,6 +176,9 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
       variantLabel: formatOrderLineVariant({
         size: row.size,
         selections: row.selections as Record<string, unknown> | null,
+        groupNames: row.productId
+          ? optionGroupDisplayNames(sizeConfigs.get(row.productId))
+          : undefined,
       }),
       imageUrl: keytoUrl(imageKey ?? undefined),
       imageAlt: resolveOrderLineImageAlt(row),
