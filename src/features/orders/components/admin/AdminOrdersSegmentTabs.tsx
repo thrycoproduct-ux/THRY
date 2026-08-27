@@ -79,8 +79,8 @@ export function AdminOrdersSegmentTabs({
   const router = useRouter();
   const searchParams = useSearchParams();
   const { toast } = useToast();
+  const [isNavPending, startNavTransition] = React.useTransition();
   const [downloadingBulkPdf, setDownloadingBulkPdf] = React.useState(false);
-  const [loadingTo, setLoadingTo] = React.useState<OrdersSegment | null>(null);
   const [navError, setNavError] = React.useState<string | null>(null);
 
   const urlSegment = parseOrdersSegment(searchParams?.get("status"));
@@ -93,54 +93,50 @@ export function AdminOrdersSegmentTabs({
 
   // Props caught up with the URL — navigation succeeded.
   React.useEffect(() => {
-    if (segment === urlSegment) {
-      setLoadingTo((current) =>
-        current == null || current === segment ? null : current,
-      );
+    if (segment === urlSegment && !isNavPending) {
       setNavError(null);
     }
-  }, [segment, urlSegment]);
+  }, [isNavPending, segment, urlSegment]);
 
   // Stall watchdog: never leave the unpaid/paid switch hanging forever.
   React.useEffect(() => {
-    if (loadingTo == null && segment === urlSegment) return;
-    const waitingFor = loadingTo ?? urlSegment;
+    if (!isNavPending && segment === urlSegment) return;
+    const waitingFor = urlSegment;
     const timer = window.setTimeout(() => {
-      // Still out of sync after timeout — surface retry instead of blank/stuck UI.
-      if (segment !== waitingFor) {
+      if (segment !== waitingFor || isNavPending) {
         setNavError(
           `Could not load ${waitingFor} orders. Check your connection and retry.`,
         );
-        setLoadingTo(null);
       }
     }, NAV_STALL_TIMEOUT_MS);
     return () => window.clearTimeout(timer);
-  }, [loadingTo, segment, urlSegment]);
+  }, [isNavPending, segment, urlSegment]);
 
-  const displaySegment = loadingTo ?? urlSegment;
-  const dataReady = segment === urlSegment && loadingTo == null;
+  const displaySegment = isNavPending || segment !== urlSegment ? urlSegment : segment;
+  const dataReady = segment === urlSegment && !isNavPending;
   const isLoading = !dataReady;
   const active = segment === "unpaid" ? unpaid : paid;
   const showPdfToolbar = dataReady && segment === "paid";
 
   const navigateTo = React.useCallback(
     (next: OrdersSegment) => {
-      if (next === segment && next === urlSegment && loadingTo == null) return;
+      if (next === segment && next === urlSegment && !isNavPending) return;
       setNavError(null);
-      setLoadingTo(next);
       const href = segmentHref(next, pageSize);
-      router.push(href, { scroll: false });
-      // Recovery no longer blocks RSC — refresh is safe again for ?status= switches.
-      router.refresh();
+      // push only — push+refresh aborted in-flight RSC and left the page on skeleton.
+      startNavTransition(() => {
+        router.push(href, { scroll: false });
+      });
     },
-    [loadingTo, pageSize, router, segment, urlSegment],
+    [isNavPending, pageSize, router, segment, startNavTransition, urlSegment],
   );
 
   const retryNavigation = React.useCallback(() => {
     setNavError(null);
-    setLoadingTo(urlSegment);
-    router.refresh();
-  }, [router, urlSegment]);
+    startNavTransition(() => {
+      router.refresh();
+    });
+  }, [router, startNavTransition]);
 
   const downloadBulkPdf = React.useCallback(async () => {
     if (downloadingBulkPdf || paid.rows.length === 0) return;

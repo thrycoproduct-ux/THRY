@@ -1,6 +1,5 @@
 import AdminShell from "@/components/admin/AdminShell";
 import { Alert, AlertDescription, AlertTitle } from "@/components/ui/alert";
-import { Skeleton } from "@/components/ui/skeleton";
 import {
   AdminOrdersSegmentTabs,
   type OrdersSegment,
@@ -12,26 +11,7 @@ import {
   parseAdminOrdersPage,
 } from "@/lib/admin/getAdminOrdersList";
 import { publicErrorMessage } from "@/lib/api/public-error";
-import { runLazyRazorpayPaymentRecovery } from "@/lib/payments/lazy-razorpay-recovery";
 import { withDbAsync } from "@/lib/supabase/db";
-import { Suspense } from "react";
-
-function OrdersContentSkeleton() {
-  return (
-    <div className="space-y-6">
-      <div className="grid gap-4 md:grid-cols-2">
-        <Skeleton className="h-24 w-full rounded-lg" />
-        <Skeleton className="h-24 w-full rounded-lg" />
-      </div>
-      <Skeleton className="h-10 w-full max-w-xl" />
-      <div className="space-y-3">
-        {Array.from({ length: 6 }).map((_, index) => (
-          <Skeleton key={index} className="h-24 w-full rounded-lg" />
-        ))}
-      </div>
-    </div>
-  );
-}
 
 export const dynamic = "force-dynamic";
 export const maxDuration = 60;
@@ -61,11 +41,12 @@ export default async function OrdersPage({
   searchParams,
 }: AdminOrdersPageProps) {
   const resolved = await searchParams;
+  // Route-level loading.tsx handles first paint — no inner Suspense here.
+  // An inner boundary + router.refresh() on tab switches re-showed the full
+  // skeleton and aborted in-flight RSC ("Connection closed." / THRY-T).
   return (
     <AdminShell heading="Orders">
-      <Suspense fallback={<OrdersContentSkeleton />}>
-        <OrdersPageContent searchParams={resolved} />
-      </Suspense>
+      <OrdersPageContent searchParams={resolved} />
     </AdminShell>
   );
 }
@@ -125,12 +106,6 @@ async function OrdersPageContent({
     counts = result.counts;
     paid = result.paid;
     unpaid = result.unpaid;
-
-    // Fire-and-forget — never await on the RSC path (THRY-T). Do not use after()
-    // here; it was logging Vercel Runtime errors and leaving the page on skeleton.
-    void runLazyRazorpayPaymentRecovery().catch((error) => {
-      console.error("[admin/orders] lazy recovery failed:", error);
-    });
   } catch (error) {
     console.error(
       `[admin/orders] page load failed (segment=${segment}):`,
@@ -156,7 +131,6 @@ async function OrdersPageContent({
       ) : null}
 
       <AdminOrdersSegmentTabs
-        key={segment}
         segment={segment}
         counts={counts}
         paid={paid}
