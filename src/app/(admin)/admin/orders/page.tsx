@@ -101,36 +101,28 @@ async function OrdersPageContent({
   let unpaid = emptyList;
 
   try {
-    const QUERY_TIMEOUT_MS = 15_000;
-    const queryWork = withDbAsync(async () => {
-      const countsPromise = getAdminOrdersCounts();
+    // Sequential on purpose: Vercel uses a single postgres.js connection
+    // (max: 1) against Supabase transaction pooler (port 6543). Concurrent
+    // queries pipeline on that socket and hang until the request dies —
+    // which previously looked like an endless skeleton, then this alert.
+    const result = await withDbAsync(async () => {
+      const nextCounts = await getAdminOrdersCounts();
       if (segment === "paid") {
-        const [nextCounts, nextPaid] = await Promise.all([
-          countsPromise,
-          getAdminOrdersList({ segment: "paid", page: paidPage, pageSize }),
-        ]);
+        const nextPaid = await getAdminOrdersList({
+          segment: "paid",
+          page: paidPage,
+          pageSize,
+        });
         return { counts: nextCounts, paid: nextPaid, unpaid: emptyList };
       }
 
-      const [nextCounts, nextUnpaid] = await Promise.all([
-        countsPromise,
-        getAdminOrdersList({
-          segment: "pending",
-          page: pendingPage,
-          pageSize,
-        }),
-      ]);
+      const nextUnpaid = await getAdminOrdersList({
+        segment: "pending",
+        page: pendingPage,
+        pageSize,
+      });
       return { counts: nextCounts, paid: emptyList, unpaid: nextUnpaid };
     });
-
-    const timeout = new Promise<never>((_, reject) =>
-      setTimeout(
-        () => reject(new Error("Orders query timed out after 15 s")),
-        QUERY_TIMEOUT_MS,
-      ),
-    );
-
-    const result = await Promise.race([queryWork, timeout]);
     counts = result.counts;
     paid = result.paid;
     unpaid = result.unpaid;
@@ -139,12 +131,15 @@ async function OrdersPageContent({
       `[admin/orders] page load failed (segment=${segment}):`,
       error,
     );
-    fetchError = publicErrorMessage(
-      error,
-      segment === "unpaid"
-        ? "Failed to load unpaid orders."
-        : "Failed to load paid orders.",
-    );
+    fetchError =
+      error instanceof Error && error.message.trim()
+        ? error.message
+        : publicErrorMessage(
+            error,
+            segment === "unpaid"
+              ? "Failed to load unpaid orders."
+              : "Failed to load paid orders.",
+          );
   }
 
   const resetPageParams = [PAID_PAGE_PARAM, PENDING_PAGE_PARAM];

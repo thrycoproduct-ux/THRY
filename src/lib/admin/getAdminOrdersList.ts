@@ -92,14 +92,23 @@ async function countOrders(where: SQL): Promise<number> {
   return Number(rows[0]?.count ?? 0);
 }
 
-/** Counts for the summary cards — cheap aggregate queries, no row payloads. */
+/** Counts for the summary cards — one aggregate round-trip, no row payloads. */
 export async function getAdminOrdersCounts(): Promise<{
   paid: number;
   pending: number;
 }> {
-  const paid = await countOrders(buildSegmentWhereClause("paid"));
-  const pending = await countOrders(buildSegmentWhereClause("pending"));
-  return { paid, pending };
+  const paymentStatus = sql`lower(trim(${orders.payment_status}))`;
+  const orderStatus = sql`lower(trim(coalesce(${orders.order_status}, '')))`;
+  const rows = await db
+    .select({
+      paid: sql<number>`count(*) filter (where ${paymentStatus} in ('paid', 'success', 'captured'))::int`,
+      pending: sql<number>`count(*) filter (where ${orderStatus} <> 'cancelled' and (${orderStatus} = 'pending' or ${paymentStatus} in ('unpaid', 'pending', 'failed')))::int`,
+    })
+    .from(orders);
+  return {
+    paid: Number(rows[0]?.paid ?? 0),
+    pending: Number(rows[0]?.pending ?? 0),
+  };
 }
 
 async function loadOrderLinesByOrderId(

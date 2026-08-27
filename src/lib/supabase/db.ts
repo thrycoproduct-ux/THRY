@@ -37,6 +37,8 @@ function createPostgresClient(max: number) {
     idle_timeout: max === 1 ? 20 : 5,
     connect_timeout: 8,
     max_lifetime: max === 1 ? 60 * 30 : 30,
+    // Transaction pooler (6543) does not support pipelining. Never fire
+    // concurrent queries on this client (no Promise.all of db.select).
     connection: {
       statement_timeout: 8000,
     },
