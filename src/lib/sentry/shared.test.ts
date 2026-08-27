@@ -98,6 +98,12 @@ describe("sentry shared helpers", () => {
         "InvalidStateError: Transition was aborted because of invalid state",
       ),
     ).toBe(true);
+    // THRY-T: Next.js RSC flight abort
+    expect(isSentryClientNoiseMessage("Connection closed.")).toBe(true);
+    expect(isSentryClientNoiseMessage("Error: Connection closed.")).toBe(true);
+    expect(isSentryClientNoiseMessage("write CONNECTION_CLOSED host:5432")).toBe(
+      false,
+    );
   });
 
   it("drops noisy Sentry events via beforeSend helper", () => {
@@ -110,6 +116,13 @@ describe("sentry shared helpers", () => {
               value: "Error invoking postMessage: Java object is gone",
             },
           ],
+        },
+      }),
+    ).toBe(true);
+    expect(
+      shouldDropSentryClientEvent({
+        exception: {
+          values: [{ type: "Error", value: "Connection closed." }],
         },
       }),
     ).toBe(true);

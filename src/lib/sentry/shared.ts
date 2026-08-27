@@ -14,6 +14,8 @@ export const SENTRY_CLIENT_IGNORE_ERRORS: Array<string | RegExp> = [
   /Failed to fetch/i,
   /Load failed/i,
   /Network request failed/i,
+  // Next.js RSC flight abort when soft-nav cancels a slow stream (THRY-T)
+  /^Connection closed\.?$/i,
   // Browser extensions / translators mutating the DOM during React reconcile
   /Failed to execute 'removeChild' on 'Node'/i,
   /Failed to execute 'insertBefore' on 'Node'/i,
@@ -35,7 +37,7 @@ export const SENTRY_CLIENT_DENY_URLS: RegExp[] = [
 ];
 
 const SENTRY_CLIENT_NOISE_MESSAGE =
-  /Java object is gone|Java exception was raised|webkit\.messageHandlers|enableDidUserTypeOnKeyboardLogging|Error invoking postMessage|NetworkError|Failed to fetch|Load failed|Network request failed|Failed to execute 'removeChild' on 'Node'|Failed to execute 'insertBefore' on 'Node'|@context.*toLowerCase|Failed to read the 'localStorage' property|Access is denied for this document|Transition was aborted because of invalid state|null is not an object \(evaluating '.*\.parentNode'\)|Cannot read properties of null \(reading 'parentNode'\)/i;
+  /Java object is gone|Java exception was raised|webkit\.messageHandlers|enableDidUserTypeOnKeyboardLogging|Error invoking postMessage|NetworkError|Failed to fetch|Load failed|Network request failed|(?:^|:\s*)Connection closed\.?$|Failed to execute 'removeChild' on 'Node'|Failed to execute 'insertBefore' on 'Node'|@context.*toLowerCase|Failed to read the 'localStorage' property|Access is denied for this document|Transition was aborted because of invalid state|null is not an object \(evaluating '.*\.parentNode'\)|Cannot read properties of null \(reading 'parentNode'\)/i;
 
 const WEBPACK_CALL_NOISE =
   /Cannot read properties of undefined \(reading 'call'\)/i;

@@ -129,9 +129,8 @@ export function AdminOrdersSegmentTabs({
       setNavError(null);
       setLoadingTo(next);
       const href = segmentHref(next, pageSize);
+      // Single soft nav — push+refresh aborted in-flight RSC and caused THRY-T.
       router.push(href, { scroll: false });
-      // Force RSC refetch — soft Link nav alone can stall on searchParam switches.
-      router.refresh();
     },
     [loadingTo, pageSize, router, segment, urlSegment],
   );

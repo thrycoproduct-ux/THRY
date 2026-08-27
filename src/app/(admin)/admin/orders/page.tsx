@@ -14,6 +14,7 @@ import {
 import { publicErrorMessage } from "@/lib/api/public-error";
 import { runLazyRazorpayPaymentRecovery } from "@/lib/payments/lazy-razorpay-recovery";
 import { withDbAsync } from "@/lib/supabase/db";
+import { after } from "next/server";
 import { Suspense } from "react";
 
 function OrdersContentSkeleton() {
@@ -99,9 +100,9 @@ async function OrdersPageContent({
   let unpaid = emptyList;
 
   try {
+    // List first — do not await Razorpay recovery on the critical RSC path
+    // (slow recovery + soft nav cancel → client "Connection closed." / THRY-T).
     const result = await withDbAsync(async () => {
-      // Recover captured-but-unpaid Razorpay orders before listing unpaid.
-      await runLazyRazorpayPaymentRecovery();
       const countsPromise = getAdminOrdersCounts();
       if (segment === "paid") {
         const [nextCounts, nextPaid] = await Promise.all([
@@ -125,6 +126,11 @@ async function OrdersPageContent({
     counts = result.counts;
     paid = result.paid;
     unpaid = result.unpaid;
+
+    // Best-effort sync after the response starts streaming (throttled inside).
+    after(() => {
+      void runLazyRazorpayPaymentRecovery();
+    });
   } catch (error) {
     console.error(
       `[admin/orders] page load failed (segment=${segment}):`,
