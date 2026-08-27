@@ -101,9 +101,9 @@ describe("sentry shared helpers", () => {
     // THRY-T: Next.js RSC flight abort
     expect(isSentryClientNoiseMessage("Connection closed.")).toBe(true);
     expect(isSentryClientNoiseMessage("Error: Connection closed.")).toBe(true);
-    expect(isSentryClientNoiseMessage("write CONNECTION_CLOSED host:5432")).toBe(
-      false,
-    );
+    expect(
+      isSentryClientNoiseMessage("write CONNECTION_CLOSED host:5432"),
+    ).toBe(false);
   });
 
   it("drops noisy Sentry events via beforeSend helper", () => {
