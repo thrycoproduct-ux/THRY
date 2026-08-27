@@ -15,7 +15,7 @@ import { publicErrorMessage } from "@/lib/api/public-error";
 import { withDbAsync } from "@/lib/supabase/db";
 import { Suspense } from "react";
 
-function OrdersTabsSkeleton() {
+function OrdersSkeleton() {
   return (
     <div className="space-y-4">
       <div className="grid gap-4 md:grid-cols-2">
@@ -62,7 +62,12 @@ export default async function OrdersPage({
   const resolved = await searchParams;
   return (
     <AdminShell heading="Orders">
-      <OrdersPageContent searchParams={resolved} />
+      {/* Suspense lets the shell stream immediately while DB queries run.
+          Tab switches use startTransition(router.push) so React keeps the
+          current content visible — the skeleton only shows on first load. */}
+      <Suspense fallback={<OrdersSkeleton />}>
+        <OrdersPageContent searchParams={resolved} />
+      </Suspense>
     </AdminShell>
   );
 }
@@ -96,9 +101,8 @@ async function OrdersPageContent({
   let unpaid = emptyList;
 
   try {
-    // List first — do not await Razorpay recovery on the critical RSC path
-    // (slow recovery + soft nav cancel → client "Connection closed." / THRY-T).
-    const result = await withDbAsync(async () => {
+    const QUERY_TIMEOUT_MS = 15_000;
+    const queryWork = withDbAsync(async () => {
       const countsPromise = getAdminOrdersCounts();
       if (segment === "paid") {
         const [nextCounts, nextPaid] = await Promise.all([
@@ -111,7 +115,6 @@ async function OrdersPageContent({
       const [nextCounts, nextUnpaid] = await Promise.all([
         countsPromise,
         getAdminOrdersList({
-          // DB segment key is "pending" (unpaid / needs attention).
           segment: "pending",
           page: pendingPage,
           pageSize,
@@ -119,6 +122,15 @@ async function OrdersPageContent({
       ]);
       return { counts: nextCounts, paid: emptyList, unpaid: nextUnpaid };
     });
+
+    const timeout = new Promise<never>((_, reject) =>
+      setTimeout(
+        () => reject(new Error("Orders query timed out after 15 s")),
+        QUERY_TIMEOUT_MS,
+      ),
+    );
+
+    const result = await Promise.race([queryWork, timeout]);
     counts = result.counts;
     paid = result.paid;
     unpaid = result.unpaid;
@@ -146,21 +158,16 @@ async function OrdersPageContent({
         </Alert>
       ) : null}
 
-      {/* Suspense required: AdminOrdersList uses useSearchParams(). Without this
-          boundary Next keeps route loading.tsx up forever after we removed the
-          old full-page Suspense. */}
-      <Suspense fallback={<OrdersTabsSkeleton />}>
-        <AdminOrdersSegmentTabs
-          segment={segment}
-          counts={counts}
-          paid={paid}
-          unpaid={unpaid}
-          paidPageParam={PAID_PAGE_PARAM}
-          unpaidPageParam={PENDING_PAGE_PARAM}
-          pageSizeParam={PAGE_SIZE_PARAM}
-          resetPageParams={resetPageParams}
-        />
-      </Suspense>
+      <AdminOrdersSegmentTabs
+        segment={segment}
+        counts={counts}
+        paid={paid}
+        unpaid={unpaid}
+        paidPageParam={PAID_PAGE_PARAM}
+        unpaidPageParam={PENDING_PAGE_PARAM}
+        pageSizeParam={PAGE_SIZE_PARAM}
+        resetPageParams={resetPageParams}
+      />
     </div>
   );
 }

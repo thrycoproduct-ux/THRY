@@ -125,7 +125,14 @@ export function AdminOrdersSegmentTabs({
         router.push(href, { scroll: false });
       });
     },
-    [isNavPending, pageSize, pendingSegment, router, segment, startNavTransition],
+    [
+      isNavPending,
+      pageSize,
+      pendingSegment,
+      router,
+      segment,
+      startNavTransition,
+    ],
   );
 
   const retryNavigation = React.useCallback(() => {
