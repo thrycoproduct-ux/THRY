@@ -67,7 +67,13 @@ import {
 } from "../cart-line";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
 import { dbCartRowsToCartItems } from "../cart-storage-sync";
-import { deleteAuthCartRow } from "../cart-db-delete";
+import {
+  clearAuthCartForUser,
+  deleteAuthCartRow,
+} from "../cart-db-delete";
+import {
+  markAuthCartCleared,
+} from "../cart-cleared-marker";
 
 export { FetchCartQuery };
 
@@ -244,7 +250,12 @@ function UserCartSection({
   );
 
   useEffect(() => {
+    void loadDbCartRows();
+  }, [loadDbCartRows]);
+
+  useEffect(() => {
     if (cartMutationInFlightRef.current) return;
+    if (!graphqlCartSignature) return;
     void loadDbCartRows();
     // Reload when GraphQL cart changes after server mutations — not on local optimistic edits.
   }, [graphqlCartSignature, loadDbCartRows]);
@@ -625,26 +636,15 @@ function UserCartSection({
       .filter((name): name is string => Boolean(name));
   }, [dbCartRows, order, productById, sizeConfigsByProductId]);
 
-  const graphqlCartRows = useMemo(
-    () =>
-      cart
-        .filter((edge) => edge.node.product_id)
-        .map((edge) => ({
-          id: String(edge.node.nodeId ?? edge.node.product_id),
-          product_id: edge.node.product_id!,
-          quantity: edge.node.quantity,
-          size: null as string | null,
-          selections: null as OptionSelections | null,
-          variant_key: null as string | null,
-        })),
-    [cart],
-  );
-
   const visibleCartRows = useMemo(() => {
-    const source = dbCartLoaded ? dbCartRows : graphqlCartRows;
-    return source.filter((row) => row.quantity > 0);
-  }, [dbCartLoaded, dbCartRows, graphqlCartRows]);
+    if (!dbCartLoaded) return [];
+    return dbCartRows.filter((row) => row.quantity > 0);
+  }, [dbCartLoaded, dbCartRows]);
   const hasCartItems = visibleCartRows.length > 0;
+
+  if (!dbCartLoaded) {
+    return <LoadingCartSection />;
+  }
 
   if (fetching && !cartData) {
     return <LoadingCartSection />;
@@ -787,9 +787,12 @@ function UserCartSection({
           : undefined,
     });
     cartMutationInFlightRef.current = true;
-    const snapshot = dbCartRows;
-    const optimisticRows = snapshot.filter((entry) => entry.id !== row.id);
-    setDbCartRows(optimisticRows);
+    loadDbCartRowsRequestId.current += 1;
+    let optimisticRows: DbCartRow[] = [];
+    setDbCartRows((prev) => {
+      optimisticRows = prev.filter((entry) => entry.id !== row.id);
+      return optimisticRows;
+    });
     removeProductStorage(lineKey);
     setIsLoading(true);
     try {
@@ -805,13 +808,27 @@ function UserCartSection({
         throw new Error("Could not remove item from cart. Please try again.");
       }
 
-      setDbCartRows(optimisticRows);
-      syncDbCartRowsToStorage(optimisticRows);
+      if (optimisticRows.length === 0) {
+        const { error: clearErr } = await clearAuthCartForUser({
+          supabase,
+          userId: user.id,
+        });
+        if (clearErr) {
+          throw clearErr;
+        }
+        markAuthCartCleared(user.id);
+        setDbCartRows([]);
+        replaceCart({});
+      } else {
+        setDbCartRows(optimisticRows);
+        syncDbCartRowsToStorage(optimisticRows);
+      }
+
       toast({ title: "Removed a Product." });
       reexecuteQuery({ requestPolicy: "network-only" });
+      await loadDbCartRows();
     } catch (e) {
-      setDbCartRows(snapshot);
-      syncDbCartRowsToStorage(snapshot);
+      await loadDbCartRows();
       toast({
         title: "Error",
         description: e instanceof Error ? e.message : "Unexpected error",

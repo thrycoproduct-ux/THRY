@@ -17,6 +17,7 @@ import {
   shouldBlockBareCartAdd,
 } from "../cart-options-guard";
 import { purgeStaleCartLinesAfterCompleteAdd } from "../cart-purge";
+import { clearAuthCartClearedMarker } from "../cart-cleared-marker";
 
 type AddOpts = {
   silent?: boolean;
@@ -186,6 +187,7 @@ function useCartActions(
           ? selections
           : normalizedSize;
       addProductStorage(productId, quantity, sizeOrSelections);
+      clearAuthCartClearedMarker();
 
       if (!opts.silent)
         toast({ title: "Success, Added a Product to the Cart." });

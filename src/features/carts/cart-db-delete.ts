@@ -58,3 +58,21 @@ export async function deleteAuthCartRow(args: {
     error: null,
   };
 }
+
+/** Remove every persisted cart line for the signed-in user (used when cart becomes empty). */
+export async function clearAuthCartForUser(args: {
+  supabase: SupabaseClient;
+  userId: string;
+}): Promise<{ deletedCount: number; error: PostgrestError | null }> {
+  const { data, error } = await args.supabase
+    .from("carts")
+    .delete()
+    .eq("user_id", args.userId)
+    .select("id");
+
+  if (error) {
+    return { deletedCount: 0, error };
+  }
+
+  return { deletedCount: (data ?? []).length, error: null };
+}
