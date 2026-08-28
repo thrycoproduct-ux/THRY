@@ -151,6 +151,7 @@ function UserCartSection({
     Boolean(initialSizeConfigs && prefetchedIdsKey),
   );
   const autoAppliedRef = useRef(false);
+  const loadDbCartRowsRequestId = useRef(0);
   const welcomeCode = getWelcomeOfferCode(offerCodesConfig)?.code ?? null;
   const { eligible: welcomeEligible } = useWelcomeOfferEligibility(
     Boolean(welcomeCode),
@@ -166,42 +167,58 @@ function UserCartSection({
     const fromDb = dbCartRows.map((row) => row.product_id);
     return [...new Set([...fromGraphql, ...fromDb])];
   }, [cart, dbCartRows]);
-  const cartProductIdsKey = cartProductIds.slice().sort().join(",");
+
+  /** GraphQL-only signature — must not include local dbCartRows or optimistic edits re-fetch stale rows. */
+  const graphqlCartSignature = useMemo(
+    () =>
+      cart
+        .map(
+          (edge) =>
+            `${edge.node.nodeId ?? edge.node.product_id}:${edge.node.quantity}`,
+        )
+        .sort()
+        .join("|"),
+    [cart],
+  );
 
   const loadDbCartRows = useCallback(async () => {
+    const requestId = ++loadDbCartRowsRequestId.current;
     try {
       const { data, error } = await supabase
         .from("carts")
         .select("id,product_id,quantity,size,selections,variant_key")
         .eq("user_id", user.id);
+      if (requestId !== loadDbCartRowsRequestId.current) return;
       if (error) {
         setDbCartRows([]);
         replaceCart({});
         setDbCartLoaded(true);
         return;
       }
-      setDbCartRows(
-        (data ?? []).map((row) => ({
+      const rows = (data ?? [])
+        .map((row) => ({
           id: String(row.id),
           product_id: String(row.product_id),
           quantity: Number(row.quantity ?? 0),
           size: (row.size as string | null) ?? null,
           selections: (row.selections as OptionSelections | null) ?? null,
           variant_key: (row.variant_key as string | null) ?? null,
-        })),
-      );
+        }))
+        .filter((row) => row.quantity > 0);
+      setDbCartRows(rows);
       replaceCart(
         dbCartRowsToCartItems(
-          (data ?? []).map((row) => ({
-            product_id: String(row.product_id),
-            quantity: Number(row.quantity ?? 0),
-            size: (row.size as string | null) ?? null,
-            selections: (row.selections as OptionSelections | null) ?? null,
+          rows.map((row) => ({
+            product_id: row.product_id,
+            quantity: row.quantity,
+            size: row.size,
+            selections: row.selections,
           })),
         ),
       );
       setDbCartLoaded(true);
     } catch {
+      if (requestId !== loadDbCartRowsRequestId.current) return;
       setDbCartRows([]);
       replaceCart({});
       setDbCartLoaded(true);
@@ -210,8 +227,8 @@ function UserCartSection({
 
   useEffect(() => {
     void loadDbCartRows();
-    // Reload when GraphQL cart identity changes (qty/add/remove) or user changes.
-  }, [cart.length, cartProductIdsKey, loadDbCartRows]);
+    // Reload when GraphQL cart changes after server mutations — not on local optimistic edits.
+  }, [graphqlCartSignature, loadDbCartRows]);
 
   const { pricing: livePricing } = useCartLivePricing(cartProductIds);
 
@@ -289,7 +306,10 @@ function UserCartSection({
   }, [cart, livePricing, order, sizeConfigsByProductId]);
   const productCount = useMemo(() => {
     if (dbCartLoaded) {
-      return dbCartRows.reduce((acc, row) => acc + row.quantity, 0);
+      return dbCartRows.reduce(
+        (acc, row) => (row.quantity > 0 ? acc + row.quantity : acc),
+        0,
+      );
     }
     return calcProductCount(cart);
   }, [cart, dbCartLoaded, dbCartRows]);
@@ -601,8 +621,11 @@ function UserCartSection({
     [cart],
   );
 
-  const visibleCartRows = dbCartLoaded ? dbCartRows : graphqlCartRows;
-  const hasCartItems = dbCartLoaded ? dbCartRows.length > 0 : cart.length > 0;
+  const visibleCartRows = useMemo(() => {
+    const source = dbCartLoaded ? dbCartRows : graphqlCartRows;
+    return source.filter((row) => row.quantity > 0);
+  }, [dbCartLoaded, dbCartRows, graphqlCartRows]);
+  const hasCartItems = visibleCartRows.length > 0;
 
   if (fetching && !cartData) {
     return <LoadingCartSection />;
@@ -641,6 +664,7 @@ function UserCartSection({
       });
       return;
     }
+    loadDbCartRowsRequestId.current += 1;
     const snapshot = dbCartRows;
     setDbCartRows((rows) =>
       rows.map((row) =>
@@ -654,6 +678,7 @@ function UserCartSection({
         .update({ quantity: quantity + 1 })
         .eq("id", cartId);
       if (updErr) {
+        loadDbCartRowsRequestId.current += 1;
         setDbCartRows(snapshot);
         toast({
           title: "Error",
@@ -662,7 +687,7 @@ function UserCartSection({
         });
       } else {
         reexecuteQuery({ requestPolicy: "network-only" });
-        void loadDbCartRows();
+        await loadDbCartRows();
       }
     } catch (e) {
       setDbCartRows(snapshot);
@@ -682,6 +707,7 @@ function UserCartSection({
     quantity: number,
   ) => {
     if (quantity > 1) {
+      loadDbCartRowsRequestId.current += 1;
       const snapshot = dbCartRows;
       setDbCartRows((rows) =>
         rows.map((row) =>
@@ -697,6 +723,7 @@ function UserCartSection({
           .update({ quantity: quantity - 1 })
           .eq("id", cartId);
         if (updErr) {
+          loadDbCartRowsRequestId.current += 1;
           setDbCartRows(snapshot);
           toast({
             title: "Error",
@@ -705,7 +732,7 @@ function UserCartSection({
           });
         } else {
           reexecuteQuery({ requestPolicy: "network-only" });
-          void loadDbCartRows();
+          await loadDbCartRows();
         }
       } catch (e) {
         setDbCartRows(snapshot);
@@ -731,6 +758,7 @@ function UserCartSection({
           ? row.selections
           : undefined,
     });
+    loadDbCartRowsRequestId.current += 1;
     const snapshot = dbCartRows;
     setDbCartRows((rows) => rows.filter((entry) => entry.id !== row.id));
     removeProductStorage(lineKey);
@@ -741,6 +769,7 @@ function UserCartSection({
         .delete()
         .eq("id", row.id);
       if (delErr) {
+        loadDbCartRowsRequestId.current += 1;
         setDbCartRows(snapshot);
         toast({
           title: "Error",
@@ -750,9 +779,10 @@ function UserCartSection({
       } else {
         toast({ title: "Removed a Product." });
         reexecuteQuery({ requestPolicy: "network-only" });
-        void loadDbCartRows();
+        await loadDbCartRows();
       }
     } catch (e) {
+      loadDbCartRowsRequestId.current += 1;
       setDbCartRows(snapshot);
       toast({
         title: "Error",
@@ -1007,7 +1037,7 @@ function UserCartSection({
 
               return (
                 <CartItemCard
-                  key={lineKey}
+                  key={row.id}
                   product={withLiveLinePricing(
                     product,
                     livePricing[row.product_id],
