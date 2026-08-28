@@ -5,15 +5,18 @@ import {
 } from "@/lib/api/public-error";
 import { sanitizeTrackingNumber } from "@/lib/dispatch/tracking-sanitizer";
 import { resolveCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
-import { notifyOrderDispatchEmail } from "@/lib/email/order-dispatch-email";
-import db from "@/lib/supabase/db";
 import {
-  dispatchCouriers,
-  orderDispatchEvents,
-  orders,
-} from "@/lib/supabase/schema";
-import { createId } from "@paralleldrive/cuid2";
-import { and, eq, sql } from "drizzle-orm";
+  DispatchConflictError,
+  mapDispatchPersistenceError,
+} from "@/lib/dispatch/dispatch-errors";
+import {
+  persistOrderDispatch,
+  resolveDispatchCreatedBy,
+} from "@/lib/dispatch/persist-order-dispatch";
+import { notifyOrderDispatchEmail } from "@/lib/email/order-dispatch-email";
+import db, { withDbAsync } from "@/lib/supabase/db";
+import { dispatchCouriers, orders } from "@/lib/supabase/schema";
+import { and, eq } from "drizzle-orm";
 import { z } from "zod";
 import { NextRequest, NextResponse } from "next/server";
 
@@ -71,6 +74,7 @@ export async function POST(
     );
   }
 
+  return withDbAsync(async () => {
   const courierId = parsedBody.data.courierId;
 
   // Validate courier exists + active.
@@ -137,60 +141,27 @@ export async function POST(
     );
   }
 
-  const DISPATCH_GUARD_MISMATCH_MESSAGE =
-    "Dispatch guard mismatch (order already dispatched or not preparing).";
-
   let dispatchEventId = "";
-  const dispatchedAtIso = new Date().toISOString();
+  let dispatchedAtIso = "";
   try {
-    await db.transaction(async (tx) => {
-      // Transactional guard: only one concurrent caller can win.
-      const [updated] = await tx
-        .update(orders)
-        .set({ order_status: "DISPATCHED" })
-        .where(
-          and(
-            eq(orders.id, orderId),
-            sql`lower(trim(${orders.order_status})) = 'preparing'`,
-            sql`lower(trim(${orders.payment_status})) in ('paid','success','captured')`,
-          ),
-        )
-        .returning({ id: orders.id });
-
-      if (!updated) {
-        throw new Error(DISPATCH_GUARD_MISMATCH_MESSAGE);
-      }
-
-      const eventId = createId();
-      dispatchEventId = eventId;
-
-      await tx.insert(orderDispatchEvents).values({
-        id: eventId,
-        orderId: orderId,
-        courierId: courier.id,
-        courierName: courier.name,
-        trackingUrlTemplate: courier.trackingUrlTemplate,
-        trackingNumber,
-        dispatchStatus: "DISPATCHED",
-        dispatchedAt: dispatchedAtIso,
-        createdBy: user.id,
-      });
+    const createdBy = await resolveDispatchCreatedBy(user.id);
+    const persisted = await persistOrderDispatch({
+      orderId,
+      courier,
+      trackingNumber,
+      createdBy,
     });
+    dispatchEventId = persisted.dispatchEventId;
+    dispatchedAtIso = persisted.dispatchedAtIso;
   } catch (error) {
-    // Best-effort mapping to a helpful client response.
-    if (
-      error instanceof Error &&
-      error.message === DISPATCH_GUARD_MISMATCH_MESSAGE
-    ) {
-      return NextResponse.json(
-        { message: "Order is already dispatched (or no longer PREPARING)." },
-        { status: 409 },
-      );
+    const mapped = mapDispatchPersistenceError(error);
+    if (mapped instanceof DispatchConflictError) {
+      return NextResponse.json({ message: mapped.message }, { status: 409 });
     }
 
     logServerError("admin/orders/[orderId]/dispatch POST", error);
     return NextResponse.json(
-      { message: "Dispatch failed. Please retry." },
+      { message: mapped.message || "Dispatch failed. Please retry." },
       { status: 500 },
     );
   }
@@ -226,5 +197,6 @@ export async function POST(
     trackingNumber,
     trackingUrl,
     dispatchedAt: dispatchedAtIso,
+  });
   });
 }
