@@ -1,9 +1,12 @@
 import { getCartProductPricingByIds } from "@/lib/storefront/cart-pricing";
-import { sweepExpiredStockReservationsIfEnabled } from "@/lib/orders/lazy-stock-reservation-sweep";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";
 
+/**
+ * Read-only cart pricing. Stock reservation cleanup runs on checkout and via
+ * /api/cron/release-expired-stock-reservations — not on this hot path.
+ */
 export async function GET(request: NextRequest) {
   const idsParam = request.nextUrl.searchParams.get("ids")?.trim() ?? "";
   const productIds = [
@@ -27,7 +30,6 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    await sweepExpiredStockReservationsIfEnabled();
     const pricing = await getCartProductPricingByIds(productIds);
     return NextResponse.json(
       { pricing },

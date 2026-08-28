@@ -182,10 +182,17 @@ export async function POST(request: Request) {
     );
 
     if (stockControlSetting?.isEnabled) {
-      await sweepExpiredStockReservationsIfEnabled({
-        force: true,
-        stockControlEnabled: true,
-      });
+      try {
+        await sweepExpiredStockReservationsIfEnabled({
+          force: true,
+          stockControlEnabled: true,
+        });
+      } catch (error) {
+        console.warn(
+          "[checkout] stock reservation sweep failed, continuing:",
+          error instanceof Error ? error.message : error,
+        );
+      }
     }
 
     if (razorpaySetting?.isEnabled && !razorpayConfig) {

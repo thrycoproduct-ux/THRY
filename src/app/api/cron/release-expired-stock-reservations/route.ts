@@ -1,4 +1,5 @@
 import { releaseExpiredStockReservations } from "@/lib/orders/stock-reservation";
+import { withRetry } from "@/lib/resilience";
 import { NextRequest, NextResponse } from "next/server";
 
 function isAuthorized(request: NextRequest) {
@@ -20,7 +21,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await releaseExpiredStockReservations();
+    const result = await withRetry(
+      () => releaseExpiredStockReservations(),
+      { label: "cron:release-expired-stock", attempts: 3 },
+    );
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     console.error("[cron] release-expired-stock-reservations failed:", error);

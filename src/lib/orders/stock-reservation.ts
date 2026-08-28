@@ -1,4 +1,5 @@
 import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
+import { withRetry } from "@/lib/resilience";
 import { mergePaymentMeta, readPaymentMeta } from "@/lib/orders/payment-meta";
 import {
   getActiveOptionGroups,
@@ -673,6 +674,7 @@ export async function releaseExpiredStockReservations(options?: {
     .limit(limit);
 
   let released = 0;
+  let failed = 0;
 
   for (const order of candidates) {
     const meta = readPaymentMeta(order.payment_meta);
@@ -686,15 +688,25 @@ export async function releaseExpiredStockReservations(options?: {
 
     if (!shouldReleaseTracked && !shouldReleaseOrphan) continue;
 
-    const result = await releaseStockReservation(
-      order.id,
-      "reservation_expired",
-      { allowOrphanFallback: true },
-    );
-    if (result.released) released += 1;
+    try {
+      const result = await withRetry(
+        () =>
+          releaseStockReservation(order.id, "reservation_expired", {
+            allowOrphanFallback: true,
+          }),
+        { label: `stock:release:${order.id}`, attempts: 3 },
+      );
+      if (result.released) released += 1;
+    } catch (error) {
+      failed += 1;
+      console.warn(
+        `[stock-reservation] expired release failed for order ${order.id}:`,
+        error instanceof Error ? error.message : error,
+      );
+    }
   }
 
-  return { scanned: candidates.length, released };
+  return { scanned: candidates.length, released, failed };
 }
 
 export async function loadOrderReservationLines(

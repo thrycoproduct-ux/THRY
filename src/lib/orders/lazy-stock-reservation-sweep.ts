@@ -3,6 +3,7 @@ import {
   INTEGRATION_KEYS,
 } from "@/lib/integrations/settings";
 import { releaseExpiredStockReservations } from "@/lib/orders/stock-reservation";
+import { withRetry } from "@/lib/resilience";
 import {
   getLastLazyStockSweepAtMs,
   markLazyStockSweepRan,
@@ -20,6 +21,7 @@ export type LazyStockReservationSweepResult = {
   skippedReason?: "stock_control_disabled" | "throttled";
   scanned?: number;
   released?: number;
+  failed?: number;
   error?: string;
 };
 
@@ -54,14 +56,23 @@ export async function sweepExpiredStockReservationsIfEnabled(options?: {
   markLazyStockSweepRan(nowMs);
 
   try {
-    const result = await releaseExpiredStockReservations({
-      lookbackHours: options?.lookbackHours ?? 168,
-      limit: options?.limit ?? 100,
-    });
+    const result = await withRetry(
+      () =>
+        releaseExpiredStockReservations({
+          lookbackHours: options?.lookbackHours ?? 168,
+          limit: options?.limit ?? 100,
+        }),
+      { label: "stock:lazy-sweep", attempts: 3 },
+    );
 
     if (result.released > 0) {
       console.info(
         `[stock-reservation] lazy sweep released ${result.released} expired hold(s)`,
+      );
+    }
+    if (result.failed > 0) {
+      console.warn(
+        `[stock-reservation] lazy sweep could not release ${result.failed} hold(s)`,
       );
     }
 
@@ -69,6 +80,7 @@ export async function sweepExpiredStockReservationsIfEnabled(options?: {
       ran: true,
       scanned: result.scanned,
       released: result.released,
+      failed: result.failed,
     };
   } catch (error) {
     console.error("[stock-reservation] lazy sweep failed:", error);
