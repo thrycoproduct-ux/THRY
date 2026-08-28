@@ -1,4 +1,4 @@
-import type { SupabaseClient } from "@supabase/supabase-js";
+import type { PostgrestError, SupabaseClient } from "@supabase/supabase-js";
 import { buildCartVariantKey } from "./cart-line";
 import type { OptionSelections } from "./useCartStore";
 
@@ -15,7 +15,7 @@ export async function deleteAuthCartRow(args: {
   supabase: SupabaseClient;
   userId: string;
   row: AuthCartRowRef;
-}): Promise<{ deletedIds: string[]; error: Error | null }> {
+}): Promise<{ deletedIds: string[]; error: PostgrestError | null }> {
   const { supabase, userId, row } = args;
   const variantKey =
     row.variant_key ??
