@@ -34,6 +34,8 @@ describe("security headers", () => {
     expect(CONTENT_SECURITY_POLICY).toContain("https://*.ingest.sentry.io");
     expect(CONTENT_SECURITY_POLICY).toContain("worker-src 'self' blob:");
     expect(CONTENT_SECURITY_POLICY).toContain("https://www.clarity.ms");
+    expect(CONTENT_SECURITY_POLICY).toContain("https://scripts.clarity.ms");
     expect(CONTENT_SECURITY_POLICY).toContain("https://*.clarity.ms");
+    expect(CONTENT_SECURITY_POLICY).toContain("https://c.bing.com");
   });
 });
