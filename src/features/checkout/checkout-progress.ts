@@ -41,9 +41,6 @@ export function openingPaymentProgress(
   return {
     title: "Almost there",
     message: `Opening ${label}. Please do not close or refresh this page.`,
-    // Razorpay’s iframe is a body overlay. Keep our spinner from covering it
-    // on small phones while checkout.js is attaching.
-    suppressOverlay: provider === "razorpay",
   };
 }
 

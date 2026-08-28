@@ -21,6 +21,14 @@ describe("formatCheckoutErrorMessage", () => {
     ).toMatch(/could not load/i);
   });
 
+  it("maps payment window open failures", () => {
+    expect(
+      formatCheckoutErrorMessage(
+        new Error("Payment window did not open. Please retry checkout."),
+      ),
+    ).toMatch(/did not open/i);
+  });
+
   it("passes through other messages", () => {
     expect(formatCheckoutErrorMessage(new Error("Cart is empty"))).toBe(
       "Cart is empty",

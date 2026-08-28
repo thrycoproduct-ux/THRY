@@ -5,6 +5,7 @@ import {
 } from "@/lib/payments/razorpay-standards";
 
 const SCRIPT_TIMEOUT_MS = 12_000;
+const MODAL_OPEN_TIMEOUT_MS = 15_000;
 const RETRY_DELAYS_MS = [0, 600, 1600] as const;
 
 type RazorpayCtor = new (options: Record<string, unknown>) => {
@@ -252,6 +253,16 @@ export function preconnectRazorpayCheckout(): void {
   document.head.appendChild(link);
 }
 
+function isRazorpayModalVisible(): boolean {
+  if (typeof document === "undefined") return false;
+  return Boolean(
+    document.querySelector("iframe[src*='razorpay']") ||
+      document.querySelector("iframe[src*='rzp.io']") ||
+      document.querySelector(".razorpay-container") ||
+      document.querySelector(".razorpay-checkout-frame"),
+  );
+}
+
 export async function openRazorpayCheckout(params: {
   payload: RazorpayCheckoutSessionPayload;
   onDismiss?: () => void;
@@ -270,9 +281,18 @@ export async function openRazorpayCheckout(params: {
 
   return new Promise((resolve, reject) => {
     let settled = false;
+    const timers: {
+      poll?: ReturnType<typeof window.setInterval>;
+      open?: ReturnType<typeof window.setTimeout>;
+      hide?: ReturnType<typeof window.setTimeout>;
+    } = {};
+
     const settle = (fn: () => void) => {
       if (settled) return;
       settled = true;
+      if (timers.poll) window.clearInterval(timers.poll);
+      if (timers.open) window.clearTimeout(timers.open);
+      if (timers.hide) window.clearTimeout(timers.hide);
       stopHostGuard();
       fn();
     };
@@ -324,7 +344,6 @@ export async function openRazorpayCheckout(params: {
 
     try {
       checkout.open();
-      params.onOpened?.();
     } catch (error) {
       settle(() =>
         reject(
@@ -333,6 +352,40 @@ export async function openRazorpayCheckout(params: {
             : new Error("Razorpay checkout failed to open."),
         ),
       );
+      return;
     }
+
+    let openedAnnounced = false;
+    const announceOpened = () => {
+      if (settled || openedAnnounced) return;
+      openedAnnounced = true;
+      params.onOpened?.();
+    };
+
+    if (isRazorpayModalVisible()) {
+      announceOpened();
+    }
+
+    timers.poll = window.setInterval(() => {
+      if (isRazorpayModalVisible()) {
+        if (timers.poll) window.clearInterval(timers.poll);
+        timers.poll = undefined;
+        announceOpened();
+      }
+    }, 120);
+
+    timers.hide = window.setTimeout(announceOpened, 1800);
+
+    timers.open = window.setTimeout(() => {
+      if (isRazorpayModalVisible()) {
+        announceOpened();
+        return;
+      }
+      settle(() =>
+        reject(
+          new Error("Payment window did not open. Please retry checkout."),
+        ),
+      );
+    }, MODAL_OPEN_TIMEOUT_MS);
   });
 }

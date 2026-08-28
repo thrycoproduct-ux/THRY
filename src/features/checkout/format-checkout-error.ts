@@ -13,5 +13,9 @@ export function formatCheckoutErrorMessage(err: unknown): string {
     return "Payment page could not load. Check your connection and try again.";
   }
 
+  if (/payment window did not open/i.test(message)) {
+    return "Payment window did not open. Please retry checkout.";
+  }
+
   return message;
 }

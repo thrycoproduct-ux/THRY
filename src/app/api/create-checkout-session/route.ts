@@ -21,7 +21,6 @@ import {
   shouldReserveStockAtCheckout,
   StockReservationError,
 } from "@/lib/orders/stock-reservation";
-import { sweepExpiredStockReservationsIfEnabled } from "@/lib/orders/lazy-stock-reservation-sweep";
 import type { CartItems } from "@/features/carts";
 import { extractProductIdFromCartLineKey } from "@/features/carts/cart-line";
 import { createPhonePePayment } from "@/lib/payments/phonepe";
@@ -159,42 +158,23 @@ export async function POST(request: Request) {
   let createdOrderId: string | null = null;
 
   try {
-    const [
-      razorpayConfig,
-      cashfreeConfig,
-      phonePeConfig,
-      razorpaySetting,
-      cashfreeSetting,
-      phonepeSetting,
-      courierConfig,
-      offerCodesConfig,
-    ] = await Promise.all([
-      getRazorpayConfig(),
-      getCashfreeConfig(),
-      getPhonePeConfig(),
-      getIntegrationSetting(INTEGRATION_KEYS.razorpay),
-      getIntegrationSetting(INTEGRATION_KEYS.cashfree),
-      getIntegrationSetting(INTEGRATION_KEYS.phonepe),
-      resolveCourierChargesConfig(),
-      resolveOfferCodesConfig(),
-    ]);
+    const razorpayConfig = await getRazorpayConfig();
+    const cashfreeConfig = await getCashfreeConfig();
+    const phonePeConfig = await getPhonePeConfig();
+    const razorpaySetting = await getIntegrationSetting(
+      INTEGRATION_KEYS.razorpay,
+    );
+    const cashfreeSetting = await getIntegrationSetting(
+      INTEGRATION_KEYS.cashfree,
+    );
+    const phonepeSetting = await getIntegrationSetting(
+      INTEGRATION_KEYS.phonepe,
+    );
+    const courierConfig = await resolveCourierChargesConfig();
+    const offerCodesConfig = await resolveOfferCodesConfig();
     const stockControlSetting = await getIntegrationSetting(
       INTEGRATION_KEYS.stockControl,
     );
-
-    if (stockControlSetting?.isEnabled) {
-      try {
-        await sweepExpiredStockReservationsIfEnabled({
-          force: true,
-          stockControlEnabled: true,
-        });
-      } catch (error) {
-        console.warn(
-          "[checkout] stock reservation sweep failed, continuing:",
-          error instanceof Error ? error.message : error,
-        );
-      }
-    }
 
     if (razorpaySetting?.isEnabled && !razorpayConfig) {
       return NextResponse.json(
