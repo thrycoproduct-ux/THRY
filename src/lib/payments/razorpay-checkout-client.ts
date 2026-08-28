@@ -282,17 +282,17 @@ export async function openRazorpayCheckout(params: {
   return new Promise((resolve, reject) => {
     let settled = false;
     const timers: {
-      poll?: ReturnType<typeof window.setInterval>;
-      open?: ReturnType<typeof window.setTimeout>;
-      hide?: ReturnType<typeof window.setTimeout>;
+      poll?: ReturnType<typeof window.setInterval> | number;
+      open?: ReturnType<typeof window.setTimeout> | number;
+      hide?: ReturnType<typeof window.setTimeout> | number;
     } = {};
 
     const settle = (fn: () => void) => {
       if (settled) return;
       settled = true;
-      if (timers.poll) window.clearInterval(timers.poll);
-      if (timers.open) window.clearTimeout(timers.open);
-      if (timers.hide) window.clearTimeout(timers.hide);
+      if (timers.poll !== undefined) window.clearInterval(timers.poll);
+      if (timers.open !== undefined) window.clearTimeout(timers.open);
+      if (timers.hide !== undefined) window.clearTimeout(timers.hide);
       stopHostGuard();
       fn();
     };
