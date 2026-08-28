@@ -1,6 +1,6 @@
 "use client";
 
-import useCartStore, { type CartItems } from "@/features/carts/useCartStore";
+import useCartStore from "@/features/carts/useCartStore";
 import {
   buildCartVariantKey,
   extractProductIdFromCartLineKey,
@@ -15,8 +15,13 @@ import {
   clearAuthCartClearedMarker,
   hasAuthCartClearedForUser,
 } from "@/features/carts/cart-cleared-marker";
+import { clearPersistedCartStorage } from "@/features/carts/clear-persisted-cart";
+import {
+  cartHasLines,
+  decideGuestCartMerge,
+} from "@/features/carts/guest-cart-merge";
+import type { AuthUser, Session, SupabaseClient } from "@supabase/supabase-js";
 import { useToast } from "@/components/ui/use-toast";
-import { AuthUser, Session } from "@supabase/supabase-js";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../lib/supabase/client";
@@ -76,19 +81,142 @@ function clearMergedGuestCartMarker() {
   }
 }
 
-function hasMergedGuestCartForUser(userId: string) {
-  try {
-    return sessionStorage.getItem(MERGED_GUEST_CART_KEY) === userId;
-  } catch {
-    return false;
-  }
-}
-
 function markGuestCartMergedForUser(userId: string) {
   try {
     sessionStorage.setItem(MERGED_GUEST_CART_KEY, userId);
   } catch {
     // Ignore storage access failures (private mode/restrictions).
+  }
+}
+
+function applyDbCartToCookie(
+  dbRows: Array<{
+    product_id?: string | null;
+    quantity?: number | null;
+    size?: string | null;
+    selections?: Record<string, string> | null;
+  }>,
+) {
+  const mapped = dbRows.map((row) => ({
+    product_id: String(row.product_id ?? ""),
+    quantity: Number(row.quantity ?? 0),
+    size: row.size ?? null,
+    selections: row.selections ?? null,
+  }));
+  const dbHasLines = mapped.some((row) => row.quantity > 0);
+  if (dbHasLines) {
+    useCartStore.getState().replaceCart(dbCartRowsToCartItems(mapped));
+    return;
+  }
+  useCartStore.getState().replaceCart({});
+  clearPersistedCartStorage();
+  useCartStore.getState().replaceCart({});
+}
+
+async function mergeGuestCookieIntoDb(args: {
+  supabase: SupabaseClient;
+  userId: string;
+}) {
+  const cart = readClientCartCookie();
+  if (!cart || typeof cart !== "object") return;
+
+  const entries = Object.entries(cart)
+    .map(([lineKey, productValue]) => {
+      const productId = extractProductIdFromCartLineKey(
+        lineKey,
+        productValue.productId,
+      );
+      if (!productId) return null;
+
+      const quantity = Number(productValue.quantity ?? 0);
+      if (!Number.isFinite(quantity) || quantity <= 0) {
+        return null;
+      }
+
+      return {
+        lineKey,
+        productId,
+        productValue,
+        quantity,
+      };
+    })
+    .filter((row): row is NonNullable<typeof row> => row !== null);
+
+  if (entries.length === 0) return;
+
+  const configs = await fetchCartSizeConfigsByProductIds(
+    entries.map((row) => row.productId),
+  );
+  const storageCarts = entries
+    .filter(
+      (row) =>
+        !shouldBlockBareCartAdd({
+          sizeConfig: configs[row.productId],
+          selections: row.productValue.selections,
+          size: row.productValue.size,
+        }),
+    )
+    .map((row) => ({
+      product_id: row.productId,
+      user_id: args.userId,
+      quantity: row.quantity,
+      variant_key:
+        row.productValue.variantKey ??
+        buildCartVariantKey({
+          size: row.productValue.size,
+          selections: row.productValue.selections,
+        }),
+      size: row.productValue.size ?? null,
+      selections: row.productValue.selections ?? null,
+    }));
+
+  if (storageCarts.length === 0) return;
+
+  await args.supabase.from("carts").upsert(storageCarts, {
+    onConflict: "user_id,product_id,variant_key",
+  });
+  useCartStore.getState().replaceCart(dbCartRowsToCartItems(storageCarts));
+}
+
+async function syncAuthCartOnAuthEvent(args: {
+  supabase: SupabaseClient;
+  userId: string;
+  authEvent: string;
+  sawLoggedOutInThisRuntime: boolean;
+}) {
+  const { data: dbRows, error: dbErr } = await args.supabase
+    .from("carts")
+    .select("product_id,quantity,size,selections")
+    .eq("user_id", args.userId);
+
+  if (dbErr) {
+    markGuestCartMergedForUser(args.userId);
+    return;
+  }
+
+  const rows = dbRows ?? [];
+  const action = decideGuestCartMerge({
+    authEvent: args.authEvent,
+    sawLoggedOutInThisRuntime: args.sawLoggedOutInThisRuntime,
+    dbHasLines: rows.some((row) => Number(row.quantity ?? 0) > 0),
+    cookieHasLines: cartHasLines(readClientCartCookie()),
+    authCartCleared: hasAuthCartClearedForUser(args.userId),
+  });
+
+  markGuestCartMergedForUser(args.userId);
+
+  try {
+    if (action === "merge_cookie_to_db") {
+      await mergeGuestCookieIntoDb({
+        supabase: args.supabase,
+        userId: args.userId,
+      });
+      return;
+    }
+
+    applyDbCartToCookie(rows);
+  } catch {
+    applyDbCartToCookie(rows);
   }
 }
 
@@ -102,7 +230,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
   const { toast } = useToast();
   const router = useRouter();
   const lastWelcomedUserId = useRef<string | null>(null);
-  const sessionEstablishedRef = useRef(false);
+  const sawLoggedOutInThisRuntimeRef = useRef(false);
 
   const loadWishlistForUser = (userId: string) => {
     const supabase = createClient();
@@ -134,32 +262,21 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
 
         switch (_event) {
           case "INITIAL_SESSION":
-            sessionEstablishedRef.current = true;
             supabase.auth.getUser().then(async ({ data }) => {
               setUser(data.user);
-              if (!data.user?.id) return;
-
-              const userId = data.user.id;
-              markGuestCartMergedForUser(userId);
-              loadWishlistForUser(userId);
-
-              const { data: dbRows, error: dbErr } = await supabase
-                .from("carts")
-                .select("product_id,quantity,size,selections")
-                .eq("user_id", userId);
-
-              if (dbErr) return;
-
-              const dbHasLines = (dbRows ?? []).some(
-                (row) => Number(row.quantity ?? 0) > 0,
-              );
-              if (dbHasLines) {
-                useCartStore
-                  .getState()
-                  .replaceCart(dbCartRowsToCartItems(dbRows ?? []));
-              } else {
-                useCartStore.getState().replaceCart({});
+              if (!data.user?.id) {
+                sawLoggedOutInThisRuntimeRef.current = true;
+                return;
               }
+
+              loadWishlistForUser(data.user.id);
+              await syncAuthCartOnAuthEvent({
+                supabase,
+                userId: data.user.id,
+                authEvent: "INITIAL_SESSION",
+                sawLoggedOutInThisRuntime:
+                  sawLoggedOutInThisRuntimeRef.current,
+              });
             });
             break;
           case "PASSWORD_RECOVERY":
@@ -178,120 +295,18 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
             supabase.auth.getUser().then(({ data }) => {
               setUser(data.user);
 
-              if (!data.user) return;
+              if (!data.user) {
+                sawLoggedOutInThisRuntimeRef.current = true;
+                return;
+              }
 
-              void (async () => {
-                const userId = data.user!.id;
-                const { data: dbRows, error: dbErr } = await supabase
-                  .from("carts")
-                  .select("product_id,quantity,size,selections")
-                  .eq("user_id", userId);
-
-                if (dbErr) {
-                  markGuestCartMergedForUser(userId);
-                  return;
-                }
-
-                const dbHasLines = (dbRows ?? []).some(
-                  (row) => Number(row.quantity ?? 0) > 0,
-                );
-
-                if (hasAuthCartClearedForUser(userId)) {
-                  markGuestCartMergedForUser(userId);
-                  useCartStore.getState().replaceCart({});
-                  return;
-                }
-
-                // Returning session: DB is source of truth — never push stale cookie back into DB.
-                if (sessionEstablishedRef.current || dbHasLines) {
-                  markGuestCartMergedForUser(userId);
-                  if (dbHasLines) {
-                    useCartStore
-                      .getState()
-                      .replaceCart(dbCartRowsToCartItems(dbRows ?? []));
-                  } else {
-                    useCartStore.getState().replaceCart({});
-                  }
-                  return;
-                }
-
-                if (hasMergedGuestCartForUser(userId)) return;
-
-                try {
-                  const cart = readClientCartCookie();
-                  if (!cart || typeof cart !== "object") {
-                    markGuestCartMergedForUser(userId);
-                    return;
-                  }
-
-                  const entries = Object.entries(cart)
-                    .map(([lineKey, productValue]) => {
-                      const productId = extractProductIdFromCartLineKey(
-                        lineKey,
-                        productValue.productId,
-                      );
-                      if (!productId) return null;
-
-                      const quantity = Number(productValue.quantity ?? 0);
-                      if (!Number.isFinite(quantity) || quantity <= 0) {
-                        return null;
-                      }
-
-                      return {
-                        lineKey,
-                        productId,
-                        productValue,
-                        quantity,
-                      };
-                    })
-                    .filter(
-                      (row): row is NonNullable<typeof row> => row !== null,
-                    );
-
-                  if (entries.length === 0) {
-                    markGuestCartMergedForUser(userId);
-                    return;
-                  }
-
-                  const configs = await fetchCartSizeConfigsByProductIds(
-                    entries.map((row) => row.productId),
-                  );
-                  const storageCarts = entries
-                    .filter(
-                      (row) =>
-                        !shouldBlockBareCartAdd({
-                          sizeConfig: configs[row.productId],
-                          selections: row.productValue.selections,
-                          size: row.productValue.size,
-                        }),
-                    )
-                    .map((row) => ({
-                      product_id: row.productId,
-                      user_id: userId,
-                      quantity: row.quantity,
-                      variant_key:
-                        row.productValue.variantKey ??
-                        buildCartVariantKey({
-                          size: row.productValue.size,
-                          selections: row.productValue.selections,
-                        }),
-                      size: row.productValue.size ?? null,
-                      selections: row.productValue.selections ?? null,
-                    }));
-
-                  markGuestCartMergedForUser(userId);
-                  if (storageCarts.length > 0) {
-                    await supabase.from("carts").upsert(storageCarts, {
-                      onConflict: "user_id,product_id,variant_key",
-                    });
-                    useCartStore
-                      .getState()
-                      .replaceCart(dbCartRowsToCartItems(storageCarts));
-                  }
-                } catch {
-                  markGuestCartMergedForUser(userId);
-                }
-              })();
+              void syncAuthCartOnAuthEvent({
+                supabase,
+                userId: data.user.id,
+                authEvent: "SIGNED_IN",
+                sawLoggedOutInThisRuntime:
+                  sawLoggedOutInThisRuntimeRef.current,
+              });
             });
 
             if (session?.user?.id) {
@@ -314,11 +329,12 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
           case "SIGNED_OUT":
             setUser(null);
             lastWelcomedUserId.current = null;
-            sessionEstablishedRef.current = false;
+            sawLoggedOutInThisRuntimeRef.current = true;
             clearWelcomedInSession();
             clearMergedGuestCartMarker();
             clearAuthCartClearedMarker();
             removeAllCartStorage();
+            clearPersistedCartStorage();
             break;
 
           case "TOKEN_REFRESHED":

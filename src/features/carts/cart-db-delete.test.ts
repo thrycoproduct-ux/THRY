@@ -1,11 +1,14 @@
-import { deleteAuthCartRow } from "./cart-db-delete";
+import { clearAuthCartForUser, deleteAuthCartRow } from "./cart-db-delete";
 
 function mockSupabase(responses: {
   byId?: { data: { id: string }[] | null; error: Error | null };
   byVariant?: { data: { id: string }[] | null; error: Error | null };
 }) {
   let call = 0;
-  const chain = (result: { data: { id: string }[] | null; error: Error | null }) => ({
+  const chain = (result: {
+    data: { id: string }[] | null;
+    error: Error | null;
+  }) => ({
     eq: () => chain(result),
     select: () => Promise.resolve(result),
   });
@@ -15,9 +18,7 @@ function mockSupabase(responses: {
       delete: () => {
         call += 1;
         if (call === 1) {
-          return chain(
-            responses.byId ?? { data: [], error: null },
-          );
+          return chain(responses.byId ?? { data: [], error: null });
         }
         return chain(
           responses.byVariant ?? { data: [{ id: "fallback" }], error: null },
@@ -81,7 +82,35 @@ describe("deleteAuthCartRow", () => {
     expect(result.error).toBeNull();
 
     // UI can look removed optimistically, but DB still has the row → item returns on refresh.
-    const dbAfterRefresh = [{ id: "line-1", product_id: "prod-a", quantity: 1 }];
+    const dbAfterRefresh = [
+      { id: "line-1", product_id: "prod-a", quantity: 1 },
+    ];
     expect(dbAfterRefresh).toHaveLength(1);
+  });
+});
+
+describe("clearAuthCartForUser", () => {
+  it("deletes every row for the user", async () => {
+    const supabase = {
+      from: () => ({
+        delete: () => ({
+          eq: () => ({
+            select: () =>
+              Promise.resolve({
+                data: [{ id: "a" }, { id: "b" }, { id: "c" }, { id: "d" }],
+                error: null,
+              }),
+          }),
+        }),
+      }),
+    } as never;
+
+    const result = await clearAuthCartForUser({
+      supabase,
+      userId: "user-1",
+    });
+
+    expect(result.error).toBeNull();
+    expect(result.deletedCount).toBe(4);
   });
 });

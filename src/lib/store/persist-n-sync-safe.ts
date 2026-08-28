@@ -9,16 +9,12 @@ export interface PersistNSyncOptionsType {
   include?: (string | RegExp)[];
   exclude?: (string | RegExp)[];
   storage?: StorageType;
-  /** @defaultValue 100 */
-  initDelay?: number;
 }
 
 type PersistNSyncType = <T>(
   f: StateCreator<T, [], []>,
   options: PersistNSyncOptionsType,
 ) => StateCreator<T, [], []>;
-
-const DEFAULT_INIT_DELAY = 100;
 
 function canUseDom(): boolean {
   return typeof window !== "undefined" && typeof document !== "undefined";
@@ -114,6 +110,10 @@ function setItem(options: PersistNSyncOptionsType, value: string): void {
   const storage = options.storage ?? "localStorage";
   if (storage === "cookies") {
     safeSetCookie(options.name, value);
+    // Older builds dual-wrote localStorage. Leave a stale copy and a later
+    // cookie miss (or getItem fallback) can resurrect a deleted cart.
+    safeRemoveLocal(options.name);
+    safeRemoveSession(options.name);
     return;
   }
   if (storage === "sessionStorage") {
@@ -121,6 +121,14 @@ function setItem(options: PersistNSyncOptionsType, value: string): void {
     return;
   }
   safeSetLocal(options.name, value);
+}
+
+function parseStoredState(raw: string): Record<string, unknown> {
+  try {
+    return JSON.parse(decodeURIComponent(raw)) as Record<string, unknown>;
+  } catch {
+    return JSON.parse(raw) as Record<string, unknown>;
+  }
 }
 
 export function clearStorage(name: string, storage?: StorageType): void {
@@ -222,21 +230,6 @@ export const persistNSync: PersistNSyncType = (stateCreator, options) => {
 
     if (!options.storage) options.storage = "localStorage";
 
-    const delay =
-      options.initDelay === undefined ? DEFAULT_INIT_DELAY : options.initDelay;
-
-    setTimeout(() => {
-      try {
-        const initialState = get();
-        const savedState = getItem(options);
-        if (savedState) {
-          set({ ...initialState, ...JSON.parse(savedState) });
-        }
-      } catch {
-        /* corrupt cookie / blocked storage */
-      }
-    }, delay);
-
     const set_: typeof set = (newStateOrPartialOrFunction, replace) => {
       const prevState = get();
       set(newStateOrPartialOrFunction, replace);
@@ -252,7 +245,7 @@ export const persistNSync: PersistNSyncType = (stateCreator, options) => {
       window.addEventListener("storage", (e) => {
         if (e.key !== options.name) return;
         try {
-          set({ ...get(), ...JSON.parse(e.newValue || "{}") });
+          set({ ...get(), ...parseStoredState(e.newValue || "{}") });
         } catch {
           /* ignore */
         }
@@ -261,6 +254,19 @@ export const persistNSync: PersistNSyncType = (stateCreator, options) => {
       /* ignore */
     }
 
-    return stateCreator(set_, get, store);
+    const result = stateCreator(set_, get, store);
+
+    // Hydrate once, immediately. A delayed rehydrate used to overwrite
+    // replaceCart({}) after the user (or auth sync) emptied the cart.
+    try {
+      const savedState = getItem(options);
+      if (savedState) {
+        set({ ...get(), ...parseStoredState(savedState) });
+      }
+    } catch {
+      /* corrupt cookie / blocked storage */
+    }
+
+    return result;
   };
 };

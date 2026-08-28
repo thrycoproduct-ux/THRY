@@ -67,13 +67,9 @@ import {
 } from "../cart-line";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
 import { dbCartRowsToCartItems } from "../cart-storage-sync";
-import {
-  clearAuthCartForUser,
-  deleteAuthCartRow,
-} from "../cart-db-delete";
-import {
-  markAuthCartCleared,
-} from "../cart-cleared-marker";
+import { clearAuthCartForUser, deleteAuthCartRow } from "../cart-db-delete";
+import { markAuthCartCleared } from "../cart-cleared-marker";
+import { clearPersistedCartStorage } from "../clear-persisted-cart";
 
 export { FetchCartQuery };
 
@@ -160,6 +156,7 @@ function UserCartSection({
   const autoAppliedRef = useRef(false);
   const loadDbCartRowsRequestId = useRef(0);
   const cartMutationInFlightRef = useRef(false);
+  const removeChainRef = useRef(Promise.resolve());
   const welcomeCode = getWelcomeOfferCode(offerCodesConfig)?.code ?? null;
   const { eligible: welcomeEligible } = useWelcomeOfferEligibility(
     Boolean(welcomeCode),
@@ -176,17 +173,17 @@ function UserCartSection({
     return [...new Set([...fromGraphql, ...fromDb])];
   }, [cart, dbCartRows]);
 
-  /** GraphQL-only signature — must not include local dbCartRows or optimistic edits re-fetch stale rows. */
+  /** Live GraphQL only — do not key off stale SSR `initialCart`. */
   const graphqlCartSignature = useMemo(
     () =>
-      cart
+      (data?.cartsCollection?.edges ?? [])
         .map(
           (edge) =>
             `${edge.node.nodeId ?? edge.node.product_id}:${edge.node.quantity}`,
         )
         .sort()
         .join("|"),
-    [cart],
+    [data],
   );
 
   const loadDbCartRows = useCallback(async () => {
@@ -769,6 +766,7 @@ function UserCartSection({
   };
 
   const removeHandler = async (row: DbCartRow) => {
+    const run = async () => {
     if (!dbCartLoaded) {
       toast({
         title: "Cart still loading",
@@ -809,6 +807,7 @@ function UserCartSection({
       }
 
       if (optimisticRows.length === 0) {
+        markAuthCartCleared(user.id);
         const { error: clearErr } = await clearAuthCartForUser({
           supabase,
           userId: user.id,
@@ -816,8 +815,9 @@ function UserCartSection({
         if (clearErr) {
           throw clearErr;
         }
-        markAuthCartCleared(user.id);
         setDbCartRows([]);
+        replaceCart({});
+        clearPersistedCartStorage();
         replaceCart({});
       } else {
         setDbCartRows(optimisticRows);
@@ -838,6 +838,14 @@ function UserCartSection({
       cartMutationInFlightRef.current = false;
       setIsLoading(false);
     }
+    };
+
+    const next = removeChainRef.current.then(run, run);
+    removeChainRef.current = next.then(
+      () => undefined,
+      () => undefined,
+    );
+    await next;
   };
 
   const updateVariantFromSelections = async (
