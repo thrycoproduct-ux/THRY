@@ -68,3 +68,22 @@ export function mergeCheckoutAddressDefaults(
     ...draft,
   };
 }
+
+/** Prefill checkout address from the cart PIN the shopper already entered. */
+export function buildCartPincodeDefaults(input: {
+  postal_code?: string;
+  city?: string;
+  state?: string;
+}): Partial<AddressFormValues> {
+  const postal_code = String(input.postal_code ?? "")
+    .replace(/\D/g, "")
+    .slice(0, 6);
+  if (postal_code.length !== 6) return {};
+
+  const out: Partial<AddressFormValues> = { postal_code };
+  const city = String(input.city ?? "").trim();
+  const state = String(input.state ?? "").trim();
+  if (city) out.city = city;
+  if (state) out.state = state;
+  return out;
+}

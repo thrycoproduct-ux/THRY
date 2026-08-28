@@ -30,6 +30,7 @@ import { CartOrderSummaryFields } from "./CartOrderSummaryFields";
 import { CartItemsList, cartPageBottomSpacerClass } from "./CartItemsList";
 import { FreeShippingProgress } from "./FreeShippingProgress";
 import {
+  buildCartPincodeDefaults,
   loadCheckoutAddressDraft,
   saveCheckoutAddressDraft,
 } from "@/features/addresses/lib/checkoutAddressDraft";
@@ -371,6 +372,25 @@ function UserCartSection({
           .join(", ")
       : null;
 
+  const cartAddressDefaults = useMemo(
+    () =>
+      buildCartPincodeDefaults({
+        postal_code:
+          pincodeLookup.status === "ready" && pincodeLookup.result
+            ? pincodeLookup.result.pin
+            : deliveryPincode,
+        city:
+          pincodeLookup.status === "ready" && pincodeLookup.result
+            ? pincodeLookup.result.city
+            : undefined,
+        state:
+          pincodeLookup.status === "ready" && pincodeLookup.result
+            ? pincodeLookup.result.state
+            : undefined,
+      }),
+    [deliveryPincode, pincodeLookup.result, pincodeLookup.status],
+  );
+
   const onApplyPromo = () => {
     const normalized = promoInput.toUpperCase().replace(/\s+/g, "");
     if (!normalized) {
@@ -567,9 +587,7 @@ function UserCartSection({
   );
 
   const visibleCartRows = dbCartLoaded ? dbCartRows : graphqlCartRows;
-  const hasCartItems = dbCartLoaded
-    ? dbCartRows.length > 0
-    : cart.length > 0;
+  const hasCartItems = dbCartLoaded ? dbCartRows.length > 0 : cart.length > 0;
 
   if (fetching && !cartData) {
     return <LoadingCartSection />;
@@ -891,6 +909,7 @@ function UserCartSection({
       missingSizeProductNames={missingSizeProductNames}
       requireDeliveryStateSelection={courierEnabled}
       hasDeliveryStateSelected={!courierEnabled || hasDeliveryStateSelected}
+      cartAddressDefaults={cartAddressDefaults}
     />
   );
 

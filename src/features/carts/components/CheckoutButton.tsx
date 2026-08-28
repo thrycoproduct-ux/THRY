@@ -8,7 +8,8 @@ import { useToast } from "@/components/ui/use-toast";
 import type { CartItems } from "@/features/carts";
 import { CheckoutAddressDialog } from "@/features/addresses";
 import type { SavedShippingAddress } from "@/features/addresses";
-import { clearCheckoutAddressDraft } from "@/features/addresses/lib/checkoutAddressDraft";
+import { clearCheckoutAddressDraft, saveCheckoutAddressDraft } from "@/features/addresses/lib/checkoutAddressDraft";
+import type { AddressFormValues } from "@/features/addresses/validations/addressFormSchema";
 import { clearClaimedOfferCode } from "@/features/offers/lib/welcomeOffer";
 import { formatCheckoutErrorMessage } from "@/features/checkout/format-checkout-error";
 import { startCheckout } from "@/features/checkout/startCheckout";
@@ -30,6 +31,8 @@ type CheckoutButtonProps = React.ComponentProps<typeof Button> & {
   missingSizeProductNames?: string[];
   requireDeliveryStateSelection?: boolean;
   hasDeliveryStateSelected?: boolean;
+  /** PIN / city / state already captured on the cart page for shipping. */
+  cartAddressDefaults?: Partial<AddressFormValues>;
 };
 
 function CheckoutButton({
@@ -39,6 +42,7 @@ function CheckoutButton({
   missingSizeProductNames = [],
   requireDeliveryStateSelection = false,
   hasDeliveryStateSelected = true,
+  cartAddressDefaults,
   ...props
 }: CheckoutButtonProps) {
   const { user } = useAuth();
@@ -68,15 +72,17 @@ function CheckoutButton({
   );
 
   const accountDefaults = useMemo(
-    () =>
-      user?.email
+    () => ({
+      ...(user?.email
         ? {
             email: user.email,
             fullName:
               (user.user_metadata?.full_name as string | undefined) ?? "",
           }
-        : undefined,
-    [user?.email, user?.user_metadata?.full_name],
+        : {}),
+      ...cartAddressDefaults,
+    }),
+    [cartAddressDefaults, user?.email, user?.user_metadata?.full_name],
   );
 
   const handleCheckoutComplete = async (shipping: SavedShippingAddress) => {
@@ -173,6 +179,9 @@ function CheckoutButton({
           if (hasBulkLineItem) {
             setBulkGuardOpen(true);
             return;
+          }
+          if (cartAddressDefaults && Object.keys(cartAddressDefaults).length > 0) {
+            saveCheckoutAddressDraft(cartAddressDefaults);
           }
           setOpen(true);
         }}

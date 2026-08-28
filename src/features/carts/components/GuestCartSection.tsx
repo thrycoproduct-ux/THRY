@@ -39,6 +39,7 @@ import { useOfferCodesConfig } from "@/providers/OfferCodesProvider";
 import { getWelcomeOfferCode } from "@/features/offers/lib/welcomeOffer";
 import { useStockControlConfig } from "@/providers/StockControlProvider";
 import {
+  buildCartPincodeDefaults,
   loadCheckoutAddressDraft,
   saveCheckoutAddressDraft,
 } from "@/features/addresses/lib/checkoutAddressDraft";
@@ -214,6 +215,25 @@ function GuestCartSection({
           .filter(Boolean)
           .join(", ")
       : null;
+
+  const cartAddressDefaults = useMemo(
+    () =>
+      buildCartPincodeDefaults({
+        postal_code:
+          pincodeLookup.status === "ready" && pincodeLookup.result
+            ? pincodeLookup.result.pin
+            : deliveryPincode,
+        city:
+          pincodeLookup.status === "ready" && pincodeLookup.result
+            ? pincodeLookup.result.city
+            : undefined,
+        state:
+          pincodeLookup.status === "ready" && pincodeLookup.result
+            ? pincodeLookup.result.state
+            : undefined,
+      }),
+    [deliveryPincode, pincodeLookup.result, pincodeLookup.status],
+  );
 
   const onApplyPromo = () => {
     const normalized = promoInput.toUpperCase().replace(/\s+/g, "");
@@ -465,6 +485,7 @@ function GuestCartSection({
       missingSizeProductNames={missingSizeProductNames}
       requireDeliveryStateSelection={courierEnabled}
       hasDeliveryStateSelected={!courierEnabled || hasDeliveryStateSelected}
+      cartAddressDefaults={cartAddressDefaults}
     />
   );
 

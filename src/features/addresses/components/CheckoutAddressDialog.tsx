@@ -255,7 +255,7 @@ export function CheckoutAddressDialog({
               submitLabel={submitLabel}
               submittingMessage={activeProgressMessage}
               defaultValues={formDefaults}
-              persistDraft={guest}
+              persistDraft
               dialogOpen={open}
               checkoutQuantity={checkoutQuantity}
               disabled={busy}
