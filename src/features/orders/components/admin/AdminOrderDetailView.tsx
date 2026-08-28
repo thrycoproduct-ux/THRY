@@ -39,6 +39,8 @@ import { buildCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
 import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
 import type { OrderDispatchInfo } from "@/lib/dispatch/get-order-dispatch-info";
 import { AdminOrderLinePackingMeta } from "@/features/orders/components/admin/AdminOrderLinePackingMeta";
+import { AdminCheckoutOutcomeBadge } from "@/features/orders/components/admin/AdminCheckoutOutcomeBadge";
+import type { CheckoutOutcome, CheckoutTelemetryState } from "@/lib/checkout/checkout-outcome";
 
 const ADD_NEW_COURIER_VALUE = "__add_new_courier__";
 
@@ -73,6 +75,8 @@ type Props = {
     paymentProvider: string | null;
     paymentMethod: string | null;
     paymentReference: string | null;
+    checkoutOutcome: CheckoutOutcome | null;
+    checkoutTelemetry: CheckoutTelemetryState | null;
     customerName: string | null;
     customerEmail: string | null;
     customerMobile: string | null;
@@ -1117,6 +1121,32 @@ export function AdminOrderDetailView({
                 <p className="break-all text-xs text-muted-foreground">
                   Ref: {order.paymentReference}
                 </p>
+              ) : null}
+              {order.checkoutOutcome ? (
+                <div className="pt-2">
+                  <AdminCheckoutOutcomeBadge
+                    outcome={order.checkoutOutcome}
+                    showDetail
+                  />
+                </div>
+              ) : null}
+              {order.checkoutTelemetry?.events?.length ? (
+                <div className="space-y-1 pt-2">
+                  <p className="text-xs font-medium text-muted-foreground">
+                    Checkout events
+                  </p>
+                  <ul className="space-y-1 text-xs text-muted-foreground">
+                    {order.checkoutTelemetry.events
+                      .slice()
+                      .reverse()
+                      .map((event) => (
+                        <li key={`${event.at}-${event.type}`}>
+                          {event.type.replaceAll("_", " ")}
+                          {event.reason ? ` — ${event.reason}` : ""}
+                        </li>
+                      ))}
+                  </ul>
+                </div>
               ) : null}
             </CardContent>
           </Card>

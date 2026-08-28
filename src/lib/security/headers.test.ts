@@ -33,6 +33,7 @@ describe("security headers", () => {
     expect(CONTENT_SECURITY_POLICY).toContain("https://*.supabase.co");
     expect(CONTENT_SECURITY_POLICY).toContain("https://*.ingest.sentry.io");
     expect(CONTENT_SECURITY_POLICY).toContain("worker-src 'self' blob:");
-    expect(CONTENT_SECURITY_POLICY).toContain("frame-ancestors 'self'");
+    expect(CONTENT_SECURITY_POLICY).toContain("https://www.clarity.ms");
+    expect(CONTENT_SECURITY_POLICY).toContain("https://*.clarity.ms");
   });
 });

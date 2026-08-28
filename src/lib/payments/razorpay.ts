@@ -40,7 +40,9 @@ type RazorpayPaymentResponse = {
   currency?: string;
   status?: string;
   method?: string;
-  error?: { description?: string };
+  error_code?: string;
+  error_description?: string;
+  error?: { description?: string; code?: string };
 };
 
 function basicAuthHeader(keyId: string, keySecret: string) {

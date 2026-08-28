@@ -15,6 +15,7 @@ import {
 } from "@/lib/payments/razorpay";
 import { paiseToRupees } from "@/lib/payments/razorpay-standards";
 import { fulfillPaidOrderInventory } from "@/lib/orders/inventory-fulfillment";
+import { appendCheckoutTelemetryEvent } from "@/lib/checkout/checkout-telemetry";
 import { mergePaymentMeta, readPaymentMeta } from "@/lib/orders/payment-meta";
 import { detectPaidAmountMismatch } from "@/lib/payments/amount-check";
 import {
@@ -472,6 +473,17 @@ export async function syncRazorpayOrderPayment(
     orderStatus === "paid" ||
     paymentStatus === "captured";
   const isFailed = paymentStatus === "failed";
+  const razorpayFailureReason = isFailed
+    ? String(
+        rzpPayment?.error_description ??
+          rzpPayment?.error?.description ??
+          "",
+      ).trim() || null
+    : null;
+  const razorpayFailureCode = isFailed
+    ? String(rzpPayment?.error_code ?? rzpPayment?.error?.code ?? "").trim() ||
+      null
+    : null;
 
   const amountCheck = detectPaidAmountMismatch(
     currentOrder.amount,
@@ -505,6 +517,9 @@ export async function syncRazorpayOrderPayment(
         razorpayOrderStatus: orderStatus,
         razorpayPaymentStatus: paymentStatus || null,
         razorpayMethod: rzpPayment?.method ?? null,
+        ...(razorpayFailureReason
+          ? { razorpayFailureReason, razorpayFailureCode }
+          : {}),
         ...(amountMismatch
           ? {
               amountMismatch: {
@@ -539,6 +554,14 @@ export async function syncRazorpayOrderPayment(
       });
     }
   } else if (isFailed) {
+    await appendCheckoutTelemetryEvent({
+      orderId: updated.id,
+      type: "razorpay_webhook_failed",
+      reason: razorpayFailureReason,
+      source: "server",
+    }).catch((error) => {
+      console.warn("[payments] checkout telemetry failed:", error);
+    });
     await maybeReleaseUnpaidReservation(updated.id, "payment_failed");
   } else {
     await maybeReleaseExpiredReservation(updated.id);

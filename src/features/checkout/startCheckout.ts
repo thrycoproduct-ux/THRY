@@ -8,6 +8,8 @@ import {
   confirmingPaymentProgress,
   razorpayModalOpenProgress,
 } from "@/features/checkout/checkout-progress";
+import { classifyCheckoutError } from "@/lib/checkout/checkout-outcome";
+import { reportCheckoutEvent } from "@/lib/checkout/report-checkout-event.client";
 import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
 import {
   openCashfreeCheckout,
@@ -37,11 +39,28 @@ export async function startCheckout({
   promoCode,
   onProgress,
 }: StartCheckoutParams) {
+  let checkoutContext: {
+    orderId: string;
+    accessToken: string | null;
+  } | null = null;
+
+  const reportFailure = (err: unknown) => {
+    if (!checkoutContext) return;
+    const classified = classifyCheckoutError(err);
+    reportCheckoutEvent({
+      orderId: checkoutContext.orderId,
+      accessToken: checkoutContext.accessToken,
+      type: classified.type,
+      reason: classified.reason,
+    });
+  };
+
   onProgress?.(creatingOrderProgress());
   await prepareHostPageForRazorpayModal();
   // Official checkout.js from Razorpay CDN — start while the order is created.
   void ensureRazorpayCheckoutScript().catch(() => undefined);
 
+  try {
   const res = await fetchWithTimeout("/api/create-checkout-session", {
     method: "POST",
     headers: { "Content-Type": "application/json" },
@@ -73,11 +92,20 @@ export async function startCheckout({
   if (payload.provider === "razorpay") {
     onProgress?.(preparingPaymentProgress());
     const session = parseRazorpayCheckoutSessionPayload(payload);
+    checkoutContext = {
+      orderId: session.orderId,
+      accessToken: session.accessToken ?? null,
+    };
     onProgress?.(openingPaymentProgress("razorpay"));
     const result = await openRazorpayCheckout({
       payload: session,
       onOpened: () => {
         onProgress?.(razorpayModalOpenProgress());
+        reportCheckoutEvent({
+          orderId: session.orderId,
+          accessToken: session.accessToken ?? null,
+          type: "razorpay_modal_opened",
+        });
       },
     });
     onProgress?.(confirmingPaymentProgress());
@@ -110,6 +138,11 @@ export async function startCheckout({
           "Payment received by Razorpay but not confirmed on THRY yet. Please wait a moment or contact support with your order id.",
       );
     }
+    reportCheckoutEvent({
+      orderId: session.orderId,
+      accessToken: session.accessToken ?? null,
+      type: "payment_confirmed",
+    });
     const redirect =
       String(verifyPayload?.redirect ?? "").trim() ||
       (session.accessToken
@@ -138,4 +171,8 @@ export async function startCheckout({
   }
 
   throw new Error("Unsupported payment provider.");
+  } catch (error) {
+    reportFailure(error);
+    throw error;
+  }
 }

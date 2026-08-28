@@ -9,6 +9,7 @@ import {
 } from "@/lib/seo/social-image";
 import { getURL } from "@/lib/utils";
 import CustomProvider from "../providers/CustomProvider";
+import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
 
 const siteUrl = getURL();
 const defaultSocialImageUrl = absoluteSocialFallbackUrl();
@@ -101,6 +102,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <MicrosoftClarity />
         </body>
       </CustomProvider>
     </html>

@@ -9,6 +9,10 @@ import {
   resolveOrderLineProductSlug,
 } from "@/lib/orders/order-line-display";
 import { buildOrderPaymentBreakdown } from "@/lib/orders/order-payment-breakdown";
+import {
+  readCheckoutTelemetry,
+  resolveCheckoutOutcome,
+} from "@/lib/checkout/checkout-outcome";
 import { buildShippingAddressCopyText } from "@/lib/orders/shipping-address-text";
 import { getOrderDispatchInfo } from "@/lib/dispatch/get-order-dispatch-info";
 import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
@@ -221,6 +225,11 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
         quantity: item.quantity,
       })),
     }),
+    checkoutOutcome: resolveCheckoutOutcome({
+      paymentStatus: order.paymentStatus,
+      paymentMeta: order.paymentMeta,
+    }),
+    checkoutTelemetry: readCheckoutTelemetry(order.paymentMeta),
   };
 
   const dispatchInfo = await getOrderDispatchInfo(orderId);
