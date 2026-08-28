@@ -1,17 +1,13 @@
-import type {
-  ProductDetailPageQueryQuery,
-  ProductDetailPageQueryQueryVariables,
-} from "@/gql/graphql";
+import type { ProductDetailPageQueryQuery } from "@/gql/graphql";
 import { cache } from "react";
-import { getClient } from "@/lib/urql";
 import { CACHE_TAGS } from "@/lib/cache/constants";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
 import {
   filterDraftEdges,
   getDraftProductIdSet,
 } from "@/lib/storefront/filter-draft-products";
+import { loadProductDetailPageFromDb } from "@/lib/storefront/product-detail-drizzle.server";
 import { isProductSlugPublished } from "@/lib/storefront/product-visibility";
-import { ProductDetailPageQueryDocument } from "./documents";
 
 async function isProductSlugPublishedCached(slug: string): Promise<boolean> {
   return withStorefrontCache(
@@ -25,12 +21,21 @@ export async function getProductDetailCached(productSlug: string) {
   const data = await withStorefrontCache(
     `sf:product:${productSlug}`,
     async () => {
-      const { data, error } = await getClient().query<
-        ProductDetailPageQueryQuery,
-        ProductDetailPageQueryQueryVariables
-      >(ProductDetailPageQueryDocument, { productSlug });
-      if (error) throw error;
-      return data;
+      const loaded = await loadProductDetailPageFromDb(productSlug);
+      if (!loaded) {
+        return {
+          __typename: "Query",
+          productsCollection: {
+            __typename: "productsConnection",
+            edges: [],
+          },
+          recommendations: {
+            __typename: "productsConnection",
+            edges: [],
+          },
+        } satisfies ProductDetailPageQueryQuery;
+      }
+      return loaded;
     },
     { tags: [CACHE_TAGS.products, CACHE_TAGS.drafts] },
   );
@@ -41,7 +46,7 @@ export async function getProductDetailCached(productSlug: string) {
   return {
     ...data,
     recommendations: filterDraftEdges(data.recommendations, draftIds),
-  };
+  } satisfies ProductDetailPageQueryQuery;
 }
 
 /** Returns null when the slug is draft or missing. */
