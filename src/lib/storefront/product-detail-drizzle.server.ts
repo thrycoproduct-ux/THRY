@@ -1,6 +1,9 @@
 import "server-only";
 
-import type { ProductDetailPageQueryQuery } from "@/gql/graphql";
+import type {
+  ProductDetailPageData,
+  ProductDetailRecommendationNode,
+} from "@/lib/storefront/product-detail-page.types";
 import { withRetry } from "@/lib/resilience";
 import db from "@/lib/supabase/db";
 import {
@@ -11,11 +14,7 @@ import {
 } from "@/lib/supabase/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
-type ProductCardNode = NonNullable<
-  NonNullable<
-    ProductDetailPageQueryQuery["recommendations"]
-  >["edges"][number]["node"]
->;
+type ProductCardNode = ProductDetailRecommendationNode;
 
 type ProductRow = {
   id: string;
@@ -160,7 +159,7 @@ async function loadFeaturedRecommendations(limit: number) {
  */
 export async function loadProductDetailPageFromDb(
   productSlug: string,
-): Promise<ProductDetailPageQueryQuery | null> {
+): Promise<ProductDetailPageData | null> {
   const slug = productSlug.trim();
   if (!slug) return null;
 

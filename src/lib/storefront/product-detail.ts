@@ -1,4 +1,4 @@
-import type { ProductDetailPageQueryQuery } from "@/gql/graphql";
+import type { ProductDetailPageData } from "@/lib/storefront/product-detail-page.types";
 import { cache } from "react";
 import { CACHE_TAGS } from "@/lib/cache/constants";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
@@ -33,7 +33,7 @@ export async function getProductDetailCached(productSlug: string) {
             __typename: "productsConnection",
             edges: [],
           },
-        } satisfies ProductDetailPageQueryQuery;
+        } satisfies ProductDetailPageData;
       }
       return loaded;
     },
@@ -46,7 +46,7 @@ export async function getProductDetailCached(productSlug: string) {
   return {
     ...data,
     recommendations: filterDraftEdges(data.recommendations, draftIds),
-  } satisfies ProductDetailPageQueryQuery;
+  } satisfies ProductDetailPageData;
 }
 
 /** Returns null when the slug is draft or missing. */
