@@ -1,4 +1,4 @@
-import React, { Suspense } from "react";
+import React from "react";
 import { DocumentType, gql } from "@/gql";
 import { cn } from "@/lib/utils";
 import { ProductThumbnail } from "@/features/products/components/ProductThumbnail";
@@ -12,15 +12,11 @@ import {
   CardHeader,
   CardTitle,
 } from "@/components/ui/card";
-import { AddToCartButton } from "@/features/carts";
-import { AddToWishListButton } from "@/features/wishlists";
 import { Rating } from "@/components/ui/rating";
 import { BadgeType } from "@/lib/supabase/schema";
 import { Badge } from "@/components/ui/badge";
-import { Button } from "@/components/ui/button";
-import { Icons } from "@/components/layouts/icons";
 import LowStockNotice from "./LowStockNotice";
-import ProductSizePreview from "./ProductSizePreview";
+import { ProductCardBottom } from "./ProductCardBottom";
 import { ListingProductLink } from "./ListingProductLink";
 import {
   ProductDiscountBadge,
@@ -130,36 +126,18 @@ export function ProductCard({
           </p>
         ) : null}
         <LowStockNotice stock={stock} />
-        <ProductSizePreview preview={sizePreview} />
 
         <div className="hidden md:block">
           <Rating value={product.rating} precision={0.5} readOnly />
         </div>
       </CardHeader>
 
-      <CardFooter className="relative z-10 gap-x-2 md:gap-x-5 p-0 ">
-        <Suspense
-          fallback={
-            <Button
-              className="rounded-full p-0 min-h-11 min-w-11 h-11 w-11"
-              disabled
-            >
-              <Icons.basket className="h-5 w-5 md:h-4 md:w-4" />
-            </Button>
-          }
-        >
-          <AddToCartButton productId={id} stock={stock} />
-        </Suspense>
-
-        <Suspense
-          fallback={
-            <Button className="rounded-full p-3" variant="ghost" disabled>
-              <Icons.heart className={"w-4 h-4 fill-none"} />
-            </Button>
-          }
-        >
-          <AddToWishListButton productId={product.id} />
-        </Suspense>
+      <CardFooter className="relative z-10 flex-col items-stretch gap-0 p-0">
+        <ProductCardBottom
+          productId={id}
+          stock={stock}
+          sizePreview={sizePreview}
+        />
       </CardFooter>
     </Card>
   );

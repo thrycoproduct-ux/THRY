@@ -19,6 +19,21 @@ function compactEnabled(previews: SizePreviewMap): SizePreviewMap {
   return out;
 }
 
+function choicesEqual(
+  left: ProductSizePreview["choices"] | undefined,
+  right: ProductSizePreview["choices"] | undefined,
+) {
+  const a = left ?? [];
+  const b = right ?? [];
+  if (a.length !== b.length) return false;
+  for (let i = 0; i < a.length; i += 1) {
+    if (a[i].value !== b[i].value) return false;
+    if (a[i].label !== b[i].label) return false;
+    if (a[i].price !== b[i].price) return false;
+  }
+  return true;
+}
+
 function previewMapsEqual(a: SizePreviewMap, b: SizePreviewMap) {
   const aKeys = Object.keys(a);
   const bKeys = Object.keys(b);
@@ -29,6 +44,9 @@ function previewMapsEqual(a: SizePreviewMap, b: SizePreviewMap) {
     if (!right) return false;
     if (left.enabled !== right.enabled) return false;
     if (left.optionName !== right.optionName) return false;
+    if (left.groupId !== (right.groupId ?? "")) return false;
+    if (left.canPickOnListing !== Boolean(right.canPickOnListing)) return false;
+    if (!choicesEqual(left.choices, right.choices)) return false;
     if (left.labels.length !== right.labels.length) return false;
     for (let i = 0; i < left.labels.length; i += 1) {
       if (left.labels[i] !== right.labels[i]) return false;

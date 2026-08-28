@@ -12,18 +12,25 @@ import { cn } from "@/lib/utils";
 import BulkOrderGuardDialog from "./BulkOrderGuardDialog";
 import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartActions from "../hooks/useCartActions";
+import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 
 interface AddToCartButtonProps extends ButtonProps {
   productId: string;
   quantity?: number;
   cartId?: string;
   stock?: number | null;
+  /** Batched listing preview — skips per-click size-config fetch when set. */
+  sizePreview?: ProductSizePreview | null;
+  /** Selected variant value when `sizePreview.canPickOnListing`. */
+  selectedVariant?: string;
 }
 
 function AddToCartButton({
   productId,
   quantity = 1,
   stock,
+  sizePreview,
+  selectedVariant,
   disabled,
   className,
 }: AddToCartButtonProps) {
@@ -50,24 +57,56 @@ function AddToCartButton({
           event.preventDefault();
           event.stopPropagation();
           if (isOutOfStock) return;
-          const sizeConfigRes = await fetch(
-            `/api/products/size-config?productId=${encodeURIComponent(productId)}`,
-          );
-          if (sizeConfigRes.ok) {
-            const sizeConfig = (await sizeConfigRes.json()) as {
-              enabled?: boolean;
-              name?: string;
-            };
-            if (sizeConfig.enabled) {
+
+          let addOpts:
+            | { selections: Record<string, string>; size: string }
+            | undefined;
+
+          if (sizePreview?.canPickOnListing) {
+            const selected = String(selectedVariant ?? "")
+              .trim()
+              .toUpperCase();
+            if (!selected) {
               const optionName =
-                String(sizeConfig.name ?? "").trim() || "option";
+                String(sizePreview.optionName ?? "").trim() || "option";
               toast({
-                title: `Select ${optionName} first`,
-                description: `This product has ${optionName.toLowerCase()} options. Open the product page and choose before adding to cart.`,
+                title: `Choose ${optionName} first`,
+                description: `Tap a ${optionName.toLowerCase()} above, then add to cart.`,
               });
               return;
             }
+            addOpts = {
+              selections: { [sizePreview.groupId]: selected },
+              size: selected,
+            };
+          } else if (sizePreview?.enabled && !sizePreview.canPickOnListing) {
+            toast({
+              title: "Select options first",
+              description:
+                "This product has multiple options. Open the product page to choose.",
+            });
+            return;
+          } else if (!sizePreview) {
+            const sizeConfigRes = await fetch(
+              `/api/products/size-config?productId=${encodeURIComponent(productId)}`,
+            );
+            if (sizeConfigRes.ok) {
+              const sizeConfig = (await sizeConfigRes.json()) as {
+                enabled?: boolean;
+                name?: string;
+              };
+              if (sizeConfig.enabled) {
+                const optionName =
+                  String(sizeConfig.name ?? "").trim() || "option";
+                toast({
+                  title: `Select ${optionName} first`,
+                  description: `This product has ${optionName.toLowerCase()} options. Open the product page and choose before adding to cart.`,
+                });
+                return;
+              }
+            }
           }
+
           if (
             bulkOrder.enabled &&
             isBulkOrderQuantity(quantity, bulkOrder.threshold)
@@ -75,7 +114,7 @@ function AddToCartButton({
             setBulkGuardOpen(true);
             return;
           }
-          const res = await addProductToCart(quantity);
+          const res = await addProductToCart(quantity, addOpts);
           if (res?.blockedBulk) {
             setBulkGuardOpen(true);
           }

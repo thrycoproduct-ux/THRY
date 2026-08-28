@@ -199,6 +199,9 @@ describe("toProductSizePreview", () => {
       enabled: false,
       optionName: DEFAULT_PRODUCT_OPTION_NAME,
       labels: [],
+      groupId: "",
+      choices: [],
+      canPickOnListing: false,
     });
 
     expect(
@@ -206,10 +209,10 @@ describe("toProductSizePreview", () => {
         enabled: true,
         options: [{ value: "XL", qty: 0 }],
       }),
-    ).toMatchObject({ enabled: false, labels: [] });
+    ).toMatchObject({ enabled: false, labels: [], canPickOnListing: false });
   });
 
-  it("formats single-group letter sizes with qty", () => {
+  it("formats single-group letter sizes with qty and listing choices", () => {
     const preview = toProductSizePreview(
       normalizeProductSizeConfig({
         enabled: true,
@@ -223,9 +226,15 @@ describe("toProductSizePreview", () => {
     expect(preview.enabled).toBe(true);
     expect(preview.optionName).toBe(DEFAULT_PRODUCT_OPTION_NAME);
     expect(preview.labels).toEqual(["S : 2", "XL : 1"]);
+    expect(preview.canPickOnListing).toBe(true);
+    expect(preview.groupId).toBe(LEGACY_OPTION_GROUP_ID);
+    expect(preview.choices).toEqual([
+      { value: "S", label: "S", price: null },
+      { value: "XL", label: "XL", price: null },
+    ]);
   });
 
-  it("prefixes multi-group labels with group name", () => {
+  it("prefixes multi-group labels with group name and disables listing pick", () => {
     const preview = toProductSizePreview(
       normalizeProductSizeConfig({
         enabled: true,
@@ -245,5 +254,8 @@ describe("toProductSizePreview", () => {
     );
 
     expect(preview.labels).toEqual(["Size: 36", "Magnet: WITH MAGNET"]);
+    expect(preview.canPickOnListing).toBe(false);
+    expect(preview.choices).toEqual([]);
+    expect(preview.groupId).toBe("");
   });
 });

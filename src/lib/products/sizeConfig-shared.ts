@@ -443,17 +443,32 @@ export function serializeProductSizeConfig(
   };
 }
 
+/** One selectable choice for listing-card variant pills. */
+export type ProductSizePreviewChoice = {
+  value: string;
+  label: string;
+  price: number | null;
+};
+
 /** Slim listing-card size preview (Shopify-style light PLP payload). */
 export type ProductSizePreview = {
   enabled: boolean;
   optionName: string;
   labels: string[];
+  /** First active group id — used when adding from the listing card. */
+  groupId: string;
+  choices: ProductSizePreviewChoice[];
+  /** Single option group — shopper can pick on the listing card. */
+  canPickOnListing: boolean;
 };
 
 export const EMPTY_PRODUCT_SIZE_PREVIEW: ProductSizePreview = {
   enabled: false,
   optionName: DEFAULT_PRODUCT_OPTION_NAME,
   labels: [],
+  groupId: "",
+  choices: [],
+  canPickOnListing: false,
 };
 
 /** Format one in-stock option for listing pills (e.g. `XL : 2`). */
@@ -480,14 +495,28 @@ type SizePreviewSource = {
     qty?: number | null;
   }> | null;
   groups?: Array<{
+    id?: string | null;
     name?: string | null;
     options?: Array<{
       value?: string | null;
       size?: string | null;
       qty?: number | null;
+      price?: number | null;
     }> | null;
   }> | null;
 };
+
+function choiceListingLabel(option: {
+  value?: string | null;
+  size?: string | null;
+  qty?: number | null;
+}): string {
+  const value = String(option.value ?? option.size ?? "")
+    .trim()
+    .toUpperCase();
+  if (value) return value;
+  return String(Number(option.qty ?? 0));
+}
 
 /** Map full/API size config → listing preview labels (qty > 0 only). */
 export function toProductSizePreview(
@@ -497,31 +526,46 @@ export function toProductSizePreview(
     return { ...EMPTY_PRODUCT_SIZE_PREVIEW };
   }
 
-  const optionName =
-    String(config.name ?? "").trim() || DEFAULT_PRODUCT_OPTION_NAME;
-  const groups =
-    Array.isArray(config.groups) && config.groups.length > 0
-      ? config.groups
-      : [{ name: config.name, options: config.options ?? [] }];
+  const normalized = normalizeProductSizeConfig(config);
+  const activeGroups = getActiveOptionGroups(normalized);
+  if (activeGroups.length === 0) {
+    const optionName = getProductOptionDisplayName(normalized);
+    return { ...EMPTY_PRODUCT_SIZE_PREVIEW, optionName };
+  }
 
-  const labels = groups.flatMap((group) =>
-    (group.options ?? [])
-      .filter((option) => Number(option.qty ?? 0) > 0)
-      .map((option) => {
-        const label = formatSizeOptionLabel(option);
-        return groups.length > 1
-          ? `${String(group.name ?? optionName).trim() || optionName}: ${label}`
-          : label;
-      }),
+  const optionName = getProductOptionDisplayName(activeGroups[0]);
+  const labels = activeGroups.flatMap((group) =>
+    getSelectableGroupOptions(group).map((option) => {
+      const label = formatSizeOptionLabel(option);
+      return activeGroups.length > 1
+        ? `${getProductOptionDisplayName(group)}: ${label}`
+        : label;
+    }),
   );
 
   if (labels.length === 0) {
     return { ...EMPTY_PRODUCT_SIZE_PREVIEW, optionName };
   }
 
+  const canPickOnListing = activeGroups.length === 1;
+  const group = activeGroups[0];
+  const choices: ProductSizePreviewChoice[] = canPickOnListing
+    ? getSelectableGroupOptions(group).map((option) => {
+        const value = choiceListingLabel(option);
+        return {
+          value,
+          label: value,
+          price: getOptionListPrice(option),
+        };
+      })
+    : [];
+
   return {
     enabled: true,
     optionName,
     labels,
+    groupId: canPickOnListing ? group.id : "",
+    choices,
+    canPickOnListing,
   };
 }
