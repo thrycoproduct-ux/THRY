@@ -5,6 +5,7 @@ import {
   phonePeWebhookEventKey,
   withPaymentWebhookIdempotency,
 } from "@/lib/payments/webhook-idempotency";
+import { withRetry } from "@/lib/resilience";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -88,15 +89,19 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    const outcome = await withPaymentWebhookIdempotency({
-      provider: "phonepe",
-      eventId,
-      orderId: null,
-      handler: async () =>
-        syncPhonePeOrderPayment({
-          merchantTransactionId,
+    const outcome = await withRetry(
+      () =>
+        withPaymentWebhookIdempotency({
+          provider: "phonepe",
+          eventId,
+          orderId: null,
+          handler: async () =>
+            syncPhonePeOrderPayment({
+              merchantTransactionId,
+            }),
         }),
-    });
+      { label: "phonepe:webhook-sync", attempts: 3 },
+    );
 
     if (outcome.status === "skipped") {
       // Another delivery is mid-flight. If it crashes, a 200 here would end

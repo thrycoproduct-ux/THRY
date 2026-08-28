@@ -11,6 +11,7 @@ import {
   resolvePaymentReturnPath,
 } from "@/lib/auth/order-access";
 import { publicErrorMessage } from "@/lib/api/public-error";
+import { withRetry } from "@/lib/resilience";
 
 export async function POST(request: NextRequest) {
   const payload = await request.json().catch(() => null);
@@ -61,13 +62,17 @@ export async function POST(request: NextRequest) {
   }
 
   try {
-    const result = await syncRazorpayOrderPayment(
-      {
-        orderId: order.id,
-        razorpayOrderId: body.razorpay_order_id,
-        razorpayPaymentId: body.razorpay_payment_id,
-      },
-      { runSideEffects: false, treatAsPaid: true },
+    const result = await withRetry(
+      () =>
+        syncRazorpayOrderPayment(
+          {
+            orderId: order.id,
+            razorpayOrderId: body.razorpay_order_id,
+            razorpayPaymentId: body.razorpay_payment_id,
+          },
+          { runSideEffects: false, treatAsPaid: true },
+        ),
+      { label: "razorpay:verify-sync", attempts: 3 },
     );
 
     const redirectPath = resolvePaymentReturnPath({

@@ -37,6 +37,7 @@ import {
   resolveOptionSelections,
 } from "@/lib/products/sizeConfig";
 import db from "@/lib/supabase/db";
+import { getTransactionalDb } from "@/lib/supabase/transactional-db";
 import { address, medias, orderLines, orders } from "@/lib/supabase/schema";
 import {
   calculateCourierCharge,
@@ -412,7 +413,7 @@ export async function POST(request: Request) {
       productsQuantity.map((product) => [product.id, product.name]),
     );
 
-    const insertedOrder = await db.transaction(async (tx) => {
+    const insertedOrder = await getTransactionalDb().transaction(async (tx) => {
       const basePaymentMeta = {
         subtotalAmount,
         discountAmount,

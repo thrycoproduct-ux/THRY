@@ -1,8 +1,5 @@
 import { NextRequest, NextResponse } from "next/server";
-import {
-  recoverUnpaidRazorpayOrders,
-  repairPaidRazorpaySideEffects,
-} from "@/lib/payments/recover-unpaid-razorpay-orders";
+import { recoverAbandonedCarts } from "@/lib/payments/abandoned-cart-recovery";
 import { withRetry } from "@/lib/resilience";
 
 function isAuthorized(request: NextRequest) {
@@ -24,18 +21,26 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const recovered = await withRetry(
-      () => recoverUnpaidRazorpayOrders({ lookbackDays: 14, limit: 40 }),
-      { label: "cron:recover-unpaid-razorpay", attempts: 3 },
+    const result = await withRetry(
+      () =>
+        recoverAbandonedCarts({
+          minAgeMinutes: 20,
+          maxAgeHours: 24,
+          limit: 20,
+        }),
+      { label: "cron:recover-abandoned-carts", attempts: 2 },
     );
-    const repaired = await withRetry(
-      () => repairPaidRazorpaySideEffects({ lookbackDays: 14, limit: 30 }),
-      { label: "cron:repair-side-effects", attempts: 3 },
-    );
-    return NextResponse.json({ ok: true, recovered, repaired });
+
+    return NextResponse.json({ ok: true, ...result });
   } catch (error) {
-    console.error("[cron] recover-unpaid-razorpay failed:", error);
-    return NextResponse.json({ ok: false }, { status: 500 });
+    console.error("[cron] recover-abandoned-carts failed:", error);
+    return NextResponse.json(
+      {
+        ok: false,
+        message: error instanceof Error ? error.message : "Unknown error",
+      },
+      { status: 500 },
+    );
   }
 }
 

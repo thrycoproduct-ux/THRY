@@ -4,6 +4,7 @@ import {
   cashfreeWebhookEventKey,
   withPaymentWebhookIdempotency,
 } from "@/lib/payments/webhook-idempotency";
+import { withRetry } from "@/lib/resilience";
 import { NextRequest, NextResponse } from "next/server";
 
 export async function POST(request: NextRequest) {
@@ -70,12 +71,16 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    const outcome = await withPaymentWebhookIdempotency({
-      provider: "cashfree",
-      eventId,
-      orderId,
-      handler: async () => syncCashfreeOrderPayment(orderId),
-    });
+    const outcome = await withRetry(
+      () =>
+        withPaymentWebhookIdempotency({
+          provider: "cashfree",
+          eventId,
+          orderId,
+          handler: async () => syncCashfreeOrderPayment(orderId),
+        }),
+      { label: "cashfree:webhook-sync", attempts: 3 },
+    );
 
     if (outcome.status === "skipped") {
       // Another delivery is mid-flight. If it crashes, a 200 here would end

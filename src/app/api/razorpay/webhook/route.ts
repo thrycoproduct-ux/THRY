@@ -1,18 +1,17 @@
 import { NextRequest, NextResponse } from "next/server";
 import { getRazorpayConfig } from "@/lib/integrations/settings";
-import { verifyRazorpayWebhookSignature } from "@/lib/payments/razorpay";
+import {
+  fetchRazorpayPayment,
+  verifyRazorpayWebhookSignature,
+} from "@/lib/payments/razorpay";
 import { syncRazorpayOrderPayment } from "@/lib/payments/orderPaymentSync";
 import { isLikelyRazorpayWebhookSecret } from "@/lib/payments/razorpay-webhook-secret";
+import { resolveRazorpayWebhookIds } from "@/lib/payments/razorpay-webhook-payload";
 import {
   razorpayWebhookEventKey,
   withPaymentWebhookIdempotency,
 } from "@/lib/payments/webhook-idempotency";
-
-function asRecord(value: unknown): Record<string, unknown> | null {
-  return value && typeof value === "object"
-    ? (value as Record<string, unknown>)
-    : null;
-}
+import { withRetry } from "@/lib/resilience";
 
 export async function POST(request: NextRequest) {
   const signature = request.headers.get("x-razorpay-signature")?.trim() ?? "";
@@ -70,30 +69,21 @@ export async function POST(request: NextRequest) {
     );
   }
 
-  const event = String(body.event ?? "").trim();
-  const payload = asRecord(body.payload);
-  const paymentEntity = asRecord(asRecord(payload?.payment)?.entity);
-  const orderEntity = asRecord(asRecord(payload?.order)?.entity);
-
-  const razorpayPaymentId = String(paymentEntity?.id ?? "").trim();
-  const razorpayOrderId = String(
-    paymentEntity?.order_id ?? orderEntity?.id ?? "",
-  ).trim();
-  const notes = asRecord(paymentEntity?.notes) ?? asRecord(orderEntity?.notes);
-  const shopOrderId = String(
-    notes?.shop_order_id ?? orderEntity?.receipt ?? "",
-  ).trim();
-
-  if (
-    event &&
-    ![
-      "payment.captured",
-      "payment.authorized",
-      "order.paid",
-      "payment.failed",
-    ].includes(event)
-  ) {
+  const ids = resolveRazorpayWebhookIds(body);
+  if (ids.skipped) {
     return NextResponse.json({ ok: true, skipped: true });
+  }
+
+  let razorpayOrderId = ids.razorpayOrderId;
+  const razorpayPaymentId = ids.razorpayPaymentId;
+  const shopOrderId = ids.shopOrderId;
+  const event = ids.event;
+
+  if (!razorpayOrderId && razorpayPaymentId) {
+    const payment = await fetchRazorpayPayment(razorpayPaymentId).catch(
+      () => null,
+    );
+    razorpayOrderId = String(payment?.order_id ?? "").trim();
   }
 
   if (!shopOrderId || !razorpayOrderId) {
@@ -108,19 +98,29 @@ export async function POST(request: NextRequest) {
   });
 
   try {
-    const outcome = await withPaymentWebhookIdempotency({
-      provider: "razorpay",
-      eventId,
-      orderId: shopOrderId,
-      handler: async () =>
-        syncRazorpayOrderPayment({
+    const outcome = await withRetry(
+      () =>
+        withPaymentWebhookIdempotency({
+          provider: "razorpay",
+          eventId,
           orderId: shopOrderId,
-          razorpayOrderId,
-          razorpayPaymentId: razorpayPaymentId || null,
+          handler: async () =>
+            syncRazorpayOrderPayment({
+              orderId: shopOrderId,
+              razorpayOrderId,
+              razorpayPaymentId: razorpayPaymentId || null,
+            }),
         }),
-    });
+      { label: "razorpay:webhook-sync", attempts: 3 },
+    );
 
     if (outcome.status === "skipped") {
+      if (outcome.reason === "in_progress") {
+        return NextResponse.json(
+          { ok: false, retry: true, reason: outcome.reason },
+          { status: 503 },
+        );
+      }
       return NextResponse.json({ ok: true, skipped: true });
     }
 
