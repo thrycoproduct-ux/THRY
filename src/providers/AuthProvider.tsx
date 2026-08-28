@@ -9,9 +9,9 @@ import {
   fetchCartSizeConfigsByProductIds,
   shouldBlockBareCartAdd,
 } from "@/features/carts/cart-options-guard";
+import { dbCartRowsToCartItems } from "@/features/carts/cart-storage-sync";
 import { useToast } from "@/components/ui/use-toast";
 import { AuthUser, Session } from "@supabase/supabase-js";
-import { nanoid } from "nanoid";
 import { createContext, useContext, useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { createClient } from "../lib/supabase/client";
@@ -172,7 +172,6 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                             }),
                         )
                         .map((row) => ({
-                          id: nanoid(),
                           product_id: row.productId,
                           user_id: data.user!.id,
                           quantity: row.quantity,
@@ -187,7 +186,12 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                         }));
 
                       if (storageCarts.length > 0) {
-                        await supabase.from("carts").insert(storageCarts);
+                        await supabase.from("carts").upsert(storageCarts, {
+                          onConflict: "user_id,product_id,variant_key",
+                        });
+                        useCartStore
+                          .getState()
+                          .replaceCart(dbCartRowsToCartItems(storageCarts));
                       }
                     })();
                   }

@@ -123,6 +123,75 @@ export function shouldPurgeBareCartLine(args: {
   });
 }
 
+/** Any incomplete option line (used when a complete variant is added to the same product). */
+export function isIncompleteOptionCartLine(args: {
+  sizeConfig: ProductSizeConfig | CartSizeConfigPayload | null | undefined;
+  selections?: OptionSelections | null;
+  size?: string | null;
+}): boolean {
+  if (!productRequiresOptions(args.sizeConfig)) return false;
+  return !areCartSelectionsComplete({
+    sizeConfig: args.sizeConfig,
+    selections: args.selections,
+    size: args.size,
+  });
+}
+
+/**
+ * When shopper adds a fully selected variant, drop stale rows for the same product:
+ * incomplete/default lines and legacy `size=X` duplicates of the new selection.
+ */
+export function shouldPurgeStaleCartLineWhenAdding(args: {
+  sizeConfig: ProductSizeConfig | CartSizeConfigPayload | null | undefined;
+  existingVariantKey?: string | null;
+  existingSelections?: OptionSelections | null;
+  existingSize?: string | null;
+  keepVariantKey: string;
+  newSelections?: OptionSelections | null;
+  newSize?: string | null;
+}): boolean {
+  const keepKey = String(args.keepVariantKey ?? "").trim();
+  const existingKey = String(args.existingVariantKey ?? "").trim();
+  if (!keepKey || existingKey === keepKey) return false;
+  if (!productRequiresOptions(args.sizeConfig)) return false;
+
+  const newComplete = areCartSelectionsComplete({
+    sizeConfig: args.sizeConfig,
+    selections: args.newSelections,
+    size: args.newSize,
+  });
+  if (!newComplete) return false;
+
+  if (
+    isIncompleteOptionCartLine({
+      sizeConfig: args.sizeConfig,
+      selections: args.existingSelections,
+      size: args.existingSize,
+    })
+  ) {
+    return true;
+  }
+
+  const sizeOnlyMatch = existingKey.match(/^size=(.+)$/i);
+  if (sizeOnlyMatch) {
+    const resolved = resolveCartSelectionsForGuard({
+      sizeConfig: args.sizeConfig,
+      selections: args.newSelections,
+      size: args.newSize,
+    });
+    const target = sizeOnlyMatch[1].trim().toUpperCase();
+    if (
+      Object.values(resolved).some(
+        (value) => String(value).trim().toUpperCase() === target,
+      )
+    ) {
+      return true;
+    }
+  }
+
+  return false;
+}
+
 /** Whether an add without complete selections must be blocked. */
 export function shouldBlockBareCartAdd(args: {
   sizeConfig: ProductSizeConfig | CartSizeConfigPayload | null | undefined;

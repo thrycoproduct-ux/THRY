@@ -66,6 +66,7 @@ import {
   normalizeCartOptionSelections,
 } from "../cart-line";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
+import { dbCartRowsToCartItems } from "../cart-storage-sync";
 
 export { FetchCartQuery };
 
@@ -130,6 +131,8 @@ function UserCartSection({
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const supabase = useMemo(() => createSupabaseClient(), []);
   const localCart = useCartStore((s) => s.cart);
+  const replaceCart = useCartStore((s) => s.replaceCart);
+  const removeProductStorage = useCartStore((s) => s.removeProduct);
   type DbCartRow = {
     id: string;
     product_id: string;
@@ -173,6 +176,7 @@ function UserCartSection({
         .eq("user_id", user.id);
       if (error) {
         setDbCartRows([]);
+        replaceCart({});
         setDbCartLoaded(true);
         return;
       }
@@ -186,12 +190,23 @@ function UserCartSection({
           variant_key: (row.variant_key as string | null) ?? null,
         })),
       );
+      replaceCart(
+        dbCartRowsToCartItems(
+          (data ?? []).map((row) => ({
+            product_id: String(row.product_id),
+            quantity: Number(row.quantity ?? 0),
+            size: (row.size as string | null) ?? null,
+            selections: (row.selections as OptionSelections | null) ?? null,
+          })),
+        ),
+      );
       setDbCartLoaded(true);
     } catch {
       setDbCartRows([]);
+      replaceCart({});
       setDbCartLoaded(true);
     }
-  }, [supabase, user.id]);
+  }, [replaceCart, supabase, user.id]);
 
   useEffect(() => {
     void loadDbCartRows();
@@ -707,15 +722,24 @@ function UserCartSection({
     }
   };
 
-  const removeHandler = async (cartId: string) => {
+  const removeHandler = async (row: DbCartRow) => {
+    const lineKey = buildCartLineKey({
+      productId: row.product_id,
+      size: row.size ?? undefined,
+      selections:
+        row.selections && Object.keys(row.selections).length > 0
+          ? row.selections
+          : undefined,
+    });
     const snapshot = dbCartRows;
-    setDbCartRows((rows) => rows.filter((row) => row.id !== cartId));
+    setDbCartRows((rows) => rows.filter((entry) => entry.id !== row.id));
+    removeProductStorage(lineKey);
     setIsLoading(true);
     try {
       const { error: delErr } = await supabase
         .from("carts")
         .delete()
-        .eq("id", cartId);
+        .eq("id", row.id);
       if (delErr) {
         setDbCartRows(snapshot);
         toast({
@@ -1023,7 +1047,7 @@ function UserCartSection({
                   minusOneHandler={() =>
                     minusOneHandler(cartId, row.product_id, row.quantity)
                   }
-                  removeHandler={() => removeHandler(cartId)}
+                  removeHandler={() => removeHandler(row)}
                   disabled={isLoading}
                 />
               );

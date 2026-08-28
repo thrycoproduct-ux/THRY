@@ -6,8 +6,24 @@ import {
   productRequiresOptions,
   shouldBlockBareCartAdd,
   shouldPurgeBareCartLine,
+  shouldPurgeStaleCartLineWhenAdding,
   type CartSizeConfigPayload,
 } from "./cart-options-guard";
+
+const singleSizeConfig: CartSizeConfigPayload = {
+  enabled: true,
+  name: "Size",
+  groups: [
+    {
+      id: "legacy",
+      name: "Size",
+      options: [
+        { value: "6CM", qty: 5 },
+        { value: "10CM", qty: 3 },
+      ],
+    },
+  ],
+};
 
 const colourSizeConfig: CartSizeConfigPayload = {
   enabled: true,
@@ -111,6 +127,44 @@ describe("cart-options-guard", () => {
         sizeConfig: noOptionsConfig,
         variantKey: DEFAULT_CART_VARIANT_KEY,
         selections: null,
+      }),
+    ).toBe(false);
+  });
+
+  it("purges stale default and size-only lines when adding a complete variant", () => {
+    expect(
+      shouldPurgeStaleCartLineWhenAdding({
+        sizeConfig: singleSizeConfig,
+        existingVariantKey: DEFAULT_CART_VARIANT_KEY,
+        existingSelections: null,
+        existingSize: null,
+        keepVariantKey: "legacy=6CM",
+        newSelections: { legacy: "6CM" },
+        newSize: "6CM",
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldPurgeStaleCartLineWhenAdding({
+        sizeConfig: singleSizeConfig,
+        existingVariantKey: "size=6CM",
+        existingSelections: null,
+        existingSize: "6CM",
+        keepVariantKey: "legacy=6CM",
+        newSelections: { legacy: "6CM" },
+        newSize: "6CM",
+      }),
+    ).toBe(true);
+
+    expect(
+      shouldPurgeStaleCartLineWhenAdding({
+        sizeConfig: singleSizeConfig,
+        existingVariantKey: "legacy=10CM",
+        existingSelections: { legacy: "10CM" },
+        existingSize: "10CM",
+        keepVariantKey: "legacy=6CM",
+        newSelections: { legacy: "6CM" },
+        newSize: "6CM",
       }),
     ).toBe(false);
   });

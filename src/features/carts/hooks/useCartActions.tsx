@@ -16,6 +16,7 @@ import {
   fetchCartSizeConfigsByProductIds,
   shouldBlockBareCartAdd,
 } from "../cart-options-guard";
+import { purgeStaleCartLinesAfterCompleteAdd } from "../cart-purge";
 
 type AddOpts = {
   silent?: boolean;
@@ -32,6 +33,7 @@ function useCartActions(
   const bulkOrder = useBulkOrderGuardConfig();
   const stockControl = useStockControlConfig();
   const addProductStorage = useCartStore((s) => s.addProductToCart);
+  const removeProductStorage = useCartStore((s) => s.removeProduct);
   const guestCart = useCartStore((s) => s.cart);
 
   const supabase: SupabaseClient | null = user ? createSupabaseClient() : null;
@@ -124,6 +126,20 @@ function useCartActions(
       return { blockedBulk: false, added: false };
     }
     try {
+      if (quantity > 0) {
+        await purgeStaleCartLinesAfterCompleteAdd({
+          supabase,
+          userId: user.id,
+          productId,
+          keepVariantKey: variantKey,
+          keepLineKey: lineKey,
+          newSelections: selections,
+          newSize: normalizedSize,
+          cart: guestCart,
+          removeProduct: removeProductStorage,
+        });
+      }
+
       const nextQuantity = currentQuantity + quantity;
       if (nextQuantity <= 0) {
         if (existingRow?.id) {
@@ -219,6 +235,24 @@ function useCartActions(
       selections && Object.keys(selections).length > 0
         ? selections
         : normalizedSize;
+
+    if (quantity > 0) {
+      await purgeStaleCartLinesAfterCompleteAdd({
+        supabase: null,
+        userId: null,
+        productId,
+        keepVariantKey: buildCartVariantKey({
+          size: normalizedSize,
+          selections,
+        }),
+        keepLineKey: lineKey,
+        newSelections: selections,
+        newSize: normalizedSize,
+        cart: guestCart,
+        removeProduct: removeProductStorage,
+      });
+    }
+
     addProductStorage(productId, quantity, sizeOrSelections);
     if (!opts.silent) toast({ title: "Sucess, Added a Product to the Cart." });
     return { blockedBulk: false, added: true };
