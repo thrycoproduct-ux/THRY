@@ -38,7 +38,7 @@ describe("loadProductDetailPageFromDb", () => {
     expect(mockDb.select).not.toHaveBeenCalled();
   });
 
-  it("loads shell, gallery, comments, and recommendations sequentially", async () => {
+  it("loads shell, gallery, and recommendations sequentially (no comments query)", async () => {
     mockSelectChain([
       {
         id: "prod-1",
@@ -52,7 +52,6 @@ describe("loadProductDetailPageFromDb", () => {
         discountPercent: null,
         stock: 12,
         tags: ["craft"],
-        totalComments: 2,
         featured: false,
         createdAt: new Date("2026-01-01"),
         mediaId: "media-1",
@@ -73,20 +72,9 @@ describe("loadProductDetailPageFromDb", () => {
       ],
       "orderBy",
     );
-    mockSelectChain(
-      [
-        {
-          id: "comment-1",
-          comment: "Nice product",
-          profileName: "Ravi",
-        },
-      ],
-      "limit",
-    );
-    mockSelectChain(
-      [
-        {
-          id: "rec-1",
+    mockSelectChain([
+      {
+        id: "rec-1",
         name: "Featured item",
         description: null,
         rating: "4.0",
@@ -97,7 +85,6 @@ describe("loadProductDetailPageFromDb", () => {
         discountPercent: null,
         stock: 5,
         tags: [],
-        totalComments: 0,
         featured: true,
         createdAt: new Date("2026-01-02"),
         mediaId: "media-3",
@@ -111,15 +98,12 @@ describe("loadProductDetailPageFromDb", () => {
 
     const result = await loadProductDetailPageFromDb("kolam-stencil");
 
-    expect(mockDb.select).toHaveBeenCalledTimes(4);
+    expect(mockDb.select).toHaveBeenCalledTimes(3);
     expect(result?.productsCollection?.edges[0]?.node.name).toBe("Kolam Stencil");
     expect(result?.productsCollection?.edges[0]?.node.images?.edges).toHaveLength(
       1,
     );
-    expect(
-      result?.productsCollection?.edges[0]?.node.commentsCollection?.edges[0]
-        ?.node.comment,
-    ).toBe("Nice product");
+    expect(result?.productsCollection?.edges[0]?.node.commentsCollection).toBeUndefined();
     expect(result?.recommendations?.edges[0]?.node.slug).toBe("featured-item");
   });
 });

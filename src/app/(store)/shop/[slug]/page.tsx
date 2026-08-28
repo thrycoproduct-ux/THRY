@@ -8,7 +8,6 @@ import {
   AccordionTrigger,
 } from "@/components/ui/accordion";
 import { AddProductToCartForm } from "@/features/carts";
-import { ProductCommentsSection } from "@/features/comments";
 import {
   BuyNowButton,
   LowStockNotice,
@@ -103,8 +102,6 @@ async function ProductDetailPage({ params }: Props) {
     name,
     description,
     stock,
-    commentsCollection,
-    totalComments,
     featuredImage,
   } = productEdge.node;
   const productSlug = resolvedParams.slug;
@@ -343,14 +340,6 @@ async function ProductDetailPage({ params }: Props) {
           ))}
       </div>
 
-      <ProductCommentsSection
-        comments={
-          commentsCollection
-            ? commentsCollection.edges.map(({ node }) => node)
-            : []
-        }
-        totalComments={totalComments}
-      />
     </Shell>
   );
 }

@@ -5,16 +5,16 @@ import { withRetry } from "@/lib/resilience";
 import db from "@/lib/supabase/db";
 import {
   collections,
-  comments,
   medias,
   productMedias,
   products,
-  profiles,
 } from "@/lib/supabase/schema";
 import { and, desc, eq, inArray } from "drizzle-orm";
 
 type ProductCardNode = NonNullable<
-  NonNullable<ProductDetailPageQueryQuery["recommendations"]>["edges"][number]["node"]
+  NonNullable<
+    ProductDetailPageQueryQuery["recommendations"]
+  >["edges"][number]["node"]
 >;
 
 type ProductRow = {
@@ -29,7 +29,6 @@ type ProductRow = {
   discountPercent: number | null;
   stock: number | null;
   tags: string[];
-  totalComments: number;
   featured: boolean | null;
   createdAt: Date;
   mediaId: string | null;
@@ -91,7 +90,6 @@ const productCardSelect = {
   discountPercent: products.discountPercent,
   stock: products.stock,
   tags: products.tags,
-  totalComments: products.totalComments,
   featured: products.featured,
   createdAt: products.createdAt,
   mediaId: medias.id,
@@ -139,36 +137,6 @@ async function loadGalleryImages(productId: string) {
     .filter((media): media is NonNullable<typeof media> => media !== null);
 }
 
-async function loadRecentComments(productId: string) {
-  const rows = await withRetry(
-    () =>
-      db
-        .select({
-          id: comments.id,
-          comment: comments.comment,
-          profileName: profiles.name,
-        })
-        .from(comments)
-        .leftJoin(profiles, eq(comments.profileId, profiles.id))
-        .where(eq(comments.productId, productId))
-        .orderBy(desc(comments.createdAt))
-        .limit(5),
-    { label: "pdp:product-comments" },
-  );
-
-  return rows.map((row) => ({
-    __typename: "comments" as const,
-    id: row.id,
-    comment: row.comment,
-    profile: row.profileName
-      ? {
-          __typename: "profiles" as const,
-          name: row.profileName,
-        }
-      : null,
-  }));
-}
-
 async function loadFeaturedRecommendations(limit: number) {
   const rows = await withRetry(
     () =>
@@ -187,8 +155,8 @@ async function loadFeaturedRecommendations(limit: number) {
 }
 
 /**
- * Industry-standard PDP read path: small Drizzle SELECTs (sequential on one pooler
- * connection), shaped like the legacy GraphQL payload so UI code stays unchanged.
+ * PDP read path: three small Drizzle SELECTs (sequential on one pooler connection).
+ * Product user comments are intentionally omitted — feature not used on storefront.
  */
 export async function loadProductDetailPageFromDb(
   productSlug: string,
@@ -200,7 +168,6 @@ export async function loadProductDetailPageFromDb(
   if (!productRow) return null;
 
   const galleryMedias = await loadGalleryImages(productRow.id);
-  const commentNodes = await loadRecentComments(productRow.id);
   const recommendationNodes = await loadFeaturedRecommendations(4);
 
   const featuredImage = mapMedia(
@@ -225,7 +192,6 @@ export async function loadProductDetailPageFromDb(
             price: productRow.price,
             stock: productRow.stock,
             tags: productRow.tags,
-            totalComments: productRow.totalComments,
             discountEnabled: productRow.discountEnabled,
             discountPercent: productRow.discountPercent,
             featuredImage,
@@ -237,13 +203,6 @@ export async function loadProductDetailPageFromDb(
                   slug: productRow.collectionSlug ?? "",
                 }
               : null,
-            commentsCollection: {
-              __typename: "commentsConnection",
-              edges: commentNodes.map((node) => ({
-                __typename: "commentsEdge" as const,
-                node,
-              })),
-            },
             images: {
               __typename: "product_mediasConnection",
               edges: galleryMedias.map((media) => ({
