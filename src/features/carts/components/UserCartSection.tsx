@@ -67,6 +67,7 @@ import {
 } from "../cart-line";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
 import { dbCartRowsToCartItems } from "../cart-storage-sync";
+import { deleteAuthCartRow } from "../cart-db-delete";
 
 export { FetchCartQuery };
 
@@ -152,6 +153,7 @@ function UserCartSection({
   );
   const autoAppliedRef = useRef(false);
   const loadDbCartRowsRequestId = useRef(0);
+  const cartMutationInFlightRef = useRef(false);
   const welcomeCode = getWelcomeOfferCode(offerCodesConfig)?.code ?? null;
   const { eligible: welcomeEligible } = useWelcomeOfferEligibility(
     Boolean(welcomeCode),
@@ -225,7 +227,24 @@ function UserCartSection({
     }
   }, [replaceCart, supabase, user.id]);
 
+  const syncDbCartRowsToStorage = useCallback(
+    (rows: DbCartRow[]) => {
+      replaceCart(
+        dbCartRowsToCartItems(
+          rows.map((row) => ({
+            product_id: row.product_id,
+            quantity: row.quantity,
+            size: row.size,
+            selections: row.selections,
+          })),
+        ),
+      );
+    },
+    [replaceCart],
+  );
+
   useEffect(() => {
+    if (cartMutationInFlightRef.current) return;
     void loadDbCartRows();
     // Reload when GraphQL cart changes after server mutations — not on local optimistic edits.
   }, [graphqlCartSignature, loadDbCartRows]);
@@ -750,6 +769,15 @@ function UserCartSection({
   };
 
   const removeHandler = async (row: DbCartRow) => {
+    if (!dbCartLoaded) {
+      toast({
+        title: "Cart still loading",
+        description: "Please wait a moment and try again.",
+        variant: "destructive",
+      });
+      return;
+    }
+
     const lineKey = buildCartLineKey({
       productId: row.product_id,
       size: row.size ?? undefined,
@@ -758,40 +786,41 @@ function UserCartSection({
           ? row.selections
           : undefined,
     });
-    loadDbCartRowsRequestId.current += 1;
+    cartMutationInFlightRef.current = true;
     const snapshot = dbCartRows;
-    setDbCartRows((rows) => rows.filter((entry) => entry.id !== row.id));
+    const optimisticRows = snapshot.filter((entry) => entry.id !== row.id);
+    setDbCartRows(optimisticRows);
     removeProductStorage(lineKey);
     setIsLoading(true);
     try {
-      const { error: delErr } = await supabase
-        .from("carts")
-        .delete()
-        .eq("id", row.id);
+      const { deletedIds, error: delErr } = await deleteAuthCartRow({
+        supabase,
+        userId: user.id,
+        row,
+      });
       if (delErr) {
-        loadDbCartRowsRequestId.current += 1;
-        setDbCartRows(snapshot);
-        toast({
-          title: "Error",
-          description: delErr.message,
-          variant: "destructive",
-        });
-      } else {
-        toast({ title: "Removed a Product." });
-        reexecuteQuery({ requestPolicy: "network-only" });
-        await loadDbCartRows();
+        throw delErr;
       }
+      if (deletedIds.length === 0) {
+        throw new Error("Could not remove item from cart. Please try again.");
+      }
+
+      setDbCartRows(optimisticRows);
+      syncDbCartRowsToStorage(optimisticRows);
+      toast({ title: "Removed a Product." });
+      reexecuteQuery({ requestPolicy: "network-only" });
     } catch (e) {
-      loadDbCartRowsRequestId.current += 1;
       setDbCartRows(snapshot);
+      syncDbCartRowsToStorage(snapshot);
       toast({
         title: "Error",
         description: e instanceof Error ? e.message : "Unexpected error",
         variant: "destructive",
       });
+    } finally {
+      cartMutationInFlightRef.current = false;
+      setIsLoading(false);
     }
-
-    setIsLoading(false);
   };
 
   const updateVariantFromSelections = async (
@@ -1078,7 +1107,7 @@ function UserCartSection({
                     minusOneHandler(cartId, row.product_id, row.quantity)
                   }
                   removeHandler={() => removeHandler(row)}
-                  disabled={isLoading}
+                  disabled={isLoading || !dbCartLoaded}
                 />
               );
             })}
