@@ -49,15 +49,9 @@ export async function prepareHostPageForRazorpayModal(): Promise<void> {
   if (typeof document === "undefined") return;
 
   const active = document.activeElement;
+  // Only dismiss the focused field — blurring every button/input on the page
+  // can interrupt Razorpay's UPI intent / "Open app" handoff on mobile.
   if (active instanceof HTMLElement) active.blur();
-
-  document
-    .querySelectorAll("input, textarea, select, button")
-    .forEach((node) => {
-      if (node instanceof HTMLElement && node !== document.body) {
-        node.blur();
-      }
-    });
 
   // Radix Dialog sets body pointer-events:none while open. Razorpay’s iframe
   // is a body child, so Continue / Exit buttons never receive clicks.
@@ -65,34 +59,21 @@ export async function prepareHostPageForRazorpayModal(): Promise<void> {
   document.body.style.removeProperty("overflow");
   document.documentElement.style.removeProperty("overflow");
   document.body.removeAttribute("data-scroll-locked");
+  document.body.removeAttribute("inert");
+  document.body.removeAttribute("aria-hidden");
   document.querySelectorAll("[data-radix-scroll-lock]").forEach((node) => {
     node.parentElement?.removeChild(node);
   });
-  document.querySelectorAll("[data-aria-hidden='true']").forEach((node) => {
-    if (node instanceof HTMLElement && node !== document.body) {
-      node.removeAttribute("aria-hidden");
-      node.removeAttribute("data-aria-hidden");
-    }
-  });
-  document.querySelectorAll("[inert]").forEach((node) => {
-    node.removeAttribute("inert");
-  });
 
-  // Radix Dialog can stay mounted briefly after close; hide overlays so they
-  // do not sit above Razorpay or re-lock pointer events.
+  // Only Radix checkout dialog chrome — never generic [role="dialog"], which
+  // can match Razorpay's own UPI / "Open app" UI on mobile.
   document
     .querySelectorAll<HTMLElement>(
-      "[data-radix-dialog-overlay], [data-radix-focus-guard]",
+      "[data-radix-dialog-overlay], [data-radix-focus-guard], [data-radix-dialog-content]",
     )
     .forEach((node) => {
       node.style.setProperty("display", "none", "important");
       node.style.setProperty("pointer-events", "none", "important");
-    });
-  document
-    .querySelectorAll<HTMLElement>('[role="dialog"][data-state="open"]')
-    .forEach((node) => {
-      node.setAttribute("data-state", "closed");
-      node.style.setProperty("display", "none", "important");
     });
 
   await new Promise<void>((resolve) => {
@@ -113,8 +94,11 @@ function isHostBlocked(body: HTMLElement): boolean {
   );
 }
 
-/** Radix focus scopes mark body children inert once Razorpay appends its overlay. */
-function keepRazorpayOverlayInteractive(): void {
+/**
+ * Radix focus scopes can mark Razorpay's overlay inert once on attach.
+ * Run once when the modal opens — never poll; polling breaks UPI intent handoff.
+ */
+function ensureRazorpayOverlayInteractiveOnce(): void {
   document
     .querySelectorAll<HTMLElement>(".razorpay-container, .razorpay-backdrop")
     .forEach((node) => {
@@ -131,15 +115,18 @@ function keepRazorpayOverlayInteractive(): void {
 
 /**
  * Radix Dialog can re-apply pointer-events:none after we unlock. Keep the host
- * clickable for as long as Razorpay’s overlay is on screen (phone + desktop).
+ * clickable only until Razorpay owns the page — then stop so UPI/GPay intents
+ * are not interrupted by DOM writes.
  */
 export function startRazorpayModalHostGuard(): () => void {
   if (typeof document === "undefined") return () => undefined;
 
   const body = document.body;
   let observer: MutationObserver | null = null;
+  let stopped = false;
 
   const observe = () => {
+    if (stopped) return;
     observer?.observe(body, {
       attributes: true,
       attributeFilter: ["style", "data-scroll-locked", "aria-hidden", "inert"],
@@ -150,7 +137,7 @@ export function startRazorpayModalHostGuard(): () => void {
   // makes the observer react to its own mutation, which spins the microtask
   // queue forever and freezes the tab before Razorpay can paint.
   const unlock = () => {
-    if (!isHostBlocked(body)) return;
+    if (stopped || !isHostBlocked(body)) return;
     observer?.disconnect();
     body.style.removeProperty("pointer-events");
     body.removeAttribute("data-scroll-locked");
@@ -163,15 +150,11 @@ export function startRazorpayModalHostGuard(): () => void {
   unlock();
   observer = new MutationObserver(unlock);
   observe();
-  const timer = window.setInterval(() => {
-    unlock();
-    keepRazorpayOverlayInteractive();
-  }, 500);
 
   return () => {
+    stopped = true;
     observer?.disconnect();
     observer = null;
-    window.clearInterval(timer);
   };
 }
 
@@ -405,6 +388,14 @@ export async function openRazorpayCheckout(params: {
     const announceOpened = () => {
       if (settled || openedAnnounced) return;
       openedAnnounced = true;
+      if (timers.poll !== undefined) window.clearInterval(timers.poll);
+      if (timers.hide !== undefined) window.clearTimeout(timers.hide);
+      timers.poll = undefined;
+      timers.hide = undefined;
+      // Stop touching the host DOM once Razorpay is open — continued writes
+      // dismiss the mobile "Open GPay" banner and leave the coin spinner stuck.
+      stopHostGuard();
+      ensureRazorpayOverlayInteractiveOnce();
       params.onOpened?.();
     };
 

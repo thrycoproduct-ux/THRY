@@ -19,7 +19,6 @@ import {
   ensureRazorpayCheckoutScript,
   openRazorpayCheckout,
   parseRazorpayCheckoutSessionPayload,
-  prepareHostPageForRazorpayModal,
 } from "@/lib/payments/razorpay-checkout-client";
 
 const DISMISS_POLL_DELAY_MS = 3000;
@@ -59,9 +58,6 @@ export async function startCheckout({
   };
 
   onProgress?.(creatingOrderProgress());
-  // Dismiss the keyboard/focus trap now, but do not block order creation on it —
-  // openRazorpayCheckout awaits the same prep right before it opens the modal.
-  void prepareHostPageForRazorpayModal();
   // Official checkout.js from Razorpay CDN — start while the order is created.
   void ensureRazorpayCheckoutScript().catch(() => undefined);
 
