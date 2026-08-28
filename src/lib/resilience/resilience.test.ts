@@ -29,6 +29,11 @@ describe("isTransientError", () => {
     expect(
       isTransientError(new Error("wrapped", { cause: new Error("timeout") })),
     ).toBe(true);
+    expect(
+      isTransientError(
+        new TypeError("Cannot read properties of undefined (reading 'queue')"),
+      ),
+    ).toBe(true);
   });
 
   it("does not match deterministic failures", () => {

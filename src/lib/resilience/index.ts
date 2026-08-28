@@ -71,6 +71,7 @@ const TRANSIENT_PATTERNS = [
   "server closed the connection",
   "terminating connection",
   "setting 'onclose'",
+  "reading 'queue'",
   "cannot set properties of undefined",
   "503",
   "502",

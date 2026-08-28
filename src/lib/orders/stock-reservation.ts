@@ -11,7 +11,7 @@ import {
   type ProductSizeConfig,
 } from "@/lib/products/sizeConfig";
 import db from "@/lib/supabase/db";
-import { getTransactionalDb } from "@/lib/supabase/transactional-db";
+import { runSessionTransaction } from "@/lib/supabase/transactional-db";
 import {
   apiSettings,
   orderLines,
@@ -265,70 +265,106 @@ export async function reserveStockInTransaction(
     STOCK_HOLD_PRE_PAYMENT_MINUTES,
   );
   const reservationLines: StockReservationLine[] = [];
+  const applied: Array<{
+    productId: string;
+    quantity: number;
+    selections: OptionSelections;
+    selectedSize?: string;
+    sizeDecremented: boolean;
+  }> = [];
 
   const sortedLines = [...input.lines].sort((a, b) =>
     a.productId.localeCompare(b.productId),
   );
 
-  for (const line of sortedLines) {
-    const productName = input.productNames.get(line.productId);
-    const selectedSize = line.size ?? input.selectedSizes[line.productId] ?? "";
-    const selections =
-      line.selections ??
-      input.selectedSelections?.[line.productId] ??
-      (selectedSize
-        ? resolveOptionSelections({
-            sizeConfig: input.sizeConfigs.get(line.productId),
-            selectedSize,
-          })
-        : {});
+  try {
+    for (const line of sortedLines) {
+      const productName = input.productNames.get(line.productId);
+      const selectedSize =
+        line.size ?? input.selectedSizes[line.productId] ?? "";
+      const selections =
+        line.selections ??
+        input.selectedSelections?.[line.productId] ??
+        (selectedSize
+          ? resolveOptionSelections({
+              sizeConfig: input.sizeConfigs.get(line.productId),
+              selectedSize,
+            })
+          : {});
 
-    const productReserved = await lockAndDecrementProductStock(
-      tx,
-      line.productId,
-      line.quantity,
-    );
-
-    if (!productReserved) {
-      throw new StockReservationError(
-        productName
-          ? `${productName} just sold out. Please refresh and try again.`
-          : "An item in your cart just sold out. Please refresh and try again.",
-        line.productId,
-        productName,
-      );
-    }
-
-    const sizeConfig = input.sizeConfigs.get(line.productId);
-    const hasConfiguredSizes =
-      Boolean(sizeConfig?.enabled) &&
-      getActiveOptionGroups(sizeConfig).length > 0;
-
-    if (hasConfiguredSizes) {
-      const sizeReserved = await lockAndDecrementOptionStock(
+      const productReserved = await lockAndDecrementProductStock(
         tx,
         line.productId,
-        selections,
         line.quantity,
       );
 
-      if (!sizeReserved) {
+      if (!productReserved) {
         throw new StockReservationError(
           productName
-            ? `${productName} is no longer available for the selected options.`
-            : "Selected options are no longer available.",
+            ? `${productName} just sold out. Please refresh and try again.`
+            : "An item in your cart just sold out. Please refresh and try again.",
           line.productId,
           productName,
         );
       }
-    }
 
-    reservationLines.push({
-      productId: line.productId,
-      quantity: line.quantity,
-      ...(selectedSize ? { size: selectedSize } : {}),
-      ...(Object.keys(selections).length > 0 ? { selections } : {}),
-    });
+      const appliedLine = {
+        productId: line.productId,
+        quantity: line.quantity,
+        selections,
+        selectedSize: selectedSize || undefined,
+        sizeDecremented: false,
+      };
+      applied.push(appliedLine);
+
+      const sizeConfig = input.sizeConfigs.get(line.productId);
+      const hasConfiguredSizes =
+        Boolean(sizeConfig?.enabled) &&
+        getActiveOptionGroups(sizeConfig).length > 0;
+
+      if (hasConfiguredSizes) {
+        const sizeReserved = await lockAndDecrementOptionStock(
+          tx,
+          line.productId,
+          selections,
+          line.quantity,
+        );
+
+        if (!sizeReserved) {
+          throw new StockReservationError(
+            productName
+              ? `${productName} is no longer available for the selected options.`
+              : "Selected options are no longer available.",
+            line.productId,
+            productName,
+          );
+        }
+        appliedLine.sizeDecremented = true;
+      }
+
+      reservationLines.push({
+        productId: line.productId,
+        quantity: line.quantity,
+        ...(selectedSize ? { size: selectedSize } : {}),
+        ...(Object.keys(selections).length > 0 ? { selections } : {}),
+      });
+    }
+  } catch (error) {
+    for (const item of [...applied].reverse()) {
+      if (item.sizeDecremented) {
+        await incrementOptionStock(
+          tx,
+          item.productId,
+          item.selections,
+          item.quantity,
+          item.selectedSize,
+        ).catch(() => undefined);
+      }
+      await incrementProductStock(tx, item.productId, item.quantity).catch(
+        () => undefined,
+      );
+    }
+    throw error;
   }
 
   return {
@@ -424,7 +460,7 @@ export async function deductPaidOrderStockAtomic(
   lines: DeductLine[],
 ): Promise<{ ok: boolean; failedProductId?: string }> {
   try {
-    await getTransactionalDb().transaction(async (tx) => {
+    await runSessionTransaction(async (tx) => {
       const sortedLines = [...lines].sort((a, b) =>
         a.productId.localeCompare(b.productId),
       );
@@ -461,7 +497,7 @@ export async function deductPaidOrderStockAtomic(
           }
         }
       }
-    });
+    }, "stock:deduct-paid");
     return { ok: true };
   } catch (error) {
     if (error instanceof StockReservationError) {
@@ -515,7 +551,7 @@ export async function releaseStockReservation(
   let released = false;
   let skippedReason: string | undefined;
 
-  await getTransactionalDb().transaction(async (tx) => {
+  await runSessionTransaction(async (tx) => {
     const locked = await tx.execute(
       sql`SELECT id, payment_status, payment_meta, created_at FROM orders WHERE id = ${orderId} FOR UPDATE`,
     );
@@ -642,7 +678,7 @@ export async function releaseStockReservation(
       .where(eq(orders.id, orderId));
 
     released = true;
-  });
+  }, "stock:release");
 
   if (released) {
     await invalidateStorefrontCache();
