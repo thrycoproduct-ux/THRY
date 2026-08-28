@@ -15,6 +15,7 @@ import { startCheckout } from "@/features/checkout/startCheckout";
 import {
   preconnectRazorpayCheckout,
   preloadRazorpayCheckoutScript,
+  prepareHostPageForRazorpayModal,
 } from "@/lib/payments/razorpay-checkout-client";
 import { useCheckoutProgress } from "@/features/checkout/useCheckoutProgress";
 import BulkOrderGuardDialog from "@/features/carts/components/BulkOrderGuardDialog";
@@ -82,9 +83,11 @@ function CheckoutButton({
   const handleCheckoutComplete = async (shipping: SavedShippingAddress) => {
     setOpen(false);
     setIsLoading(true);
+    // Let Radix Dialog finish closing before Razorpay opens on the body.
     await new Promise<void>((resolve) => {
-      window.setTimeout(() => resolve(), 500);
+      window.setTimeout(() => resolve(), 700);
     });
+    await prepareHostPageForRazorpayModal().catch(() => undefined);
     try {
       await startCheckout({
         order,

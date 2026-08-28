@@ -14,7 +14,7 @@ export function formatCheckoutErrorMessage(err: unknown): string {
   }
 
   if (/payment window did not open/i.test(message)) {
-    return "Payment window did not open. Please retry checkout.";
+    return "Payment window did not open. Close other apps, disable ad blockers, and retry checkout.";
   }
 
   return message;

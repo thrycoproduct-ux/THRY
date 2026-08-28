@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { createPortal } from "react-dom";
 import { Spinner } from "@/components/ui/spinner";
 import type { CheckoutProgressUpdate } from "@/features/checkout/checkout-progress";
 
@@ -10,6 +11,11 @@ type Props = CheckoutProgressUpdate & {
 
 export function CheckoutProgressOverlay({ open, title, message }: Props) {
   const [barWidth, setBarWidth] = useState(8);
+  const [mounted, setMounted] = useState(false);
+
+  useEffect(() => {
+    setMounted(true);
+  }, []);
 
   useEffect(() => {
     if (!open) {
@@ -28,11 +34,14 @@ export function CheckoutProgressOverlay({ open, title, message }: Props) {
     return () => window.clearInterval(timer);
   }, [open]);
 
-  if (!open) return null;
+  if (!open || !mounted) return null;
 
-  return (
+  // The cart/PDP checkout buttons live inside sticky bars that use backdrop-blur,
+  // which turns them into the containing block for position:fixed children. Without
+  // a portal this overlay collapses into that bar instead of covering the viewport.
+  return createPortal(
     <div
-      className="fixed inset-0 z-[250] flex items-center justify-center bg-black/50 backdrop-blur-[2px] pointer-events-none"
+      className="fixed inset-0 z-[250] flex min-h-[100svh] items-center justify-center bg-black/50 backdrop-blur-[2px] pointer-events-none"
       role="dialog"
       aria-modal="true"
       aria-busy="true"
@@ -71,7 +80,8 @@ export function CheckoutProgressOverlay({ open, title, message }: Props) {
           Please wait — do not press back or close this tab.
         </p>
       </div>
-    </div>
+    </div>,
+    document.body,
   );
 }
 
