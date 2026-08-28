@@ -1,16 +1,9 @@
-import {
-  DISPATCH_GUARD_MISMATCH_MESSAGE,
-} from "@/lib/dispatch/dispatch-errors";
+import { DISPATCH_GUARD_MISMATCH_MESSAGE } from "@/lib/dispatch/dispatch-errors";
 import { withRetry } from "@/lib/resilience";
 import db from "@/lib/supabase/db";
-import {
-  dispatchCouriers,
-  orderDispatchEvents,
-  orders,
-  profiles,
-} from "@/lib/supabase/schema";
+import { dispatchCouriers, profiles } from "@/lib/supabase/schema";
 import { createId } from "@paralleldrive/cuid2";
-import { and, eq, sql } from "drizzle-orm";
+import { eq, sql } from "drizzle-orm";
 
 export async function resolveDispatchCreatedBy(
   userId: string,
@@ -38,54 +31,68 @@ export type PersistOrderDispatchResult = {
   dispatchedAtIso: string;
 };
 
+type DispatchPersistRow = {
+  id: string;
+  dispatched_at: string;
+};
+
+/**
+ * Atomically mark the order DISPATCHED and insert the dispatch event in one
+ * SQL statement. Avoids postgres.js `begin()` races that surface as
+ * "Cannot set properties of undefined (setting 'onclose')" under pool pressure.
+ */
 export async function persistOrderDispatch(
   input: PersistOrderDispatchInput,
 ): Promise<PersistOrderDispatchResult> {
   const dispatchedAtIso = input.dispatchedAtIso ?? new Date().toISOString();
-  let dispatchEventId = "";
 
-  await withRetry(
+  const rows = await withRetry(
     async () => {
-      dispatchEventId = "";
-      await db.transaction(async (tx) => {
-        const [updated] = await tx
-          .update(orders)
-          .set({ order_status: "DISPATCHED" })
-          .where(
-            and(
-              eq(orders.id, input.orderId),
-              sql`lower(trim(${orders.order_status})) = 'preparing'`,
-              sql`lower(trim(${orders.payment_status})) in ('paid','success','captured')`,
-            ),
-          )
-          .returning({ id: orders.id });
-
-        if (!updated) {
-          throw new Error(DISPATCH_GUARD_MISMATCH_MESSAGE);
-        }
-
-        const eventId = createId();
-        dispatchEventId = eventId;
-
-        await tx.insert(orderDispatchEvents).values({
-          id: eventId,
-          orderId: input.orderId,
-          courierId: input.courier.id,
-          courierName: input.courier.name,
-          trackingUrlTemplate: input.courier.trackingUrlTemplate,
-          trackingNumber: input.trackingNumber,
-          dispatchStatus: "DISPATCHED",
-          dispatchedAt: dispatchedAtIso,
-          createdBy: input.createdBy,
-        });
-      });
+      const eventId = createId();
+      return (await db.execute(sql`
+        WITH updated AS (
+          UPDATE orders
+          SET order_status = 'DISPATCHED'
+          WHERE id = ${input.orderId}
+            AND lower(trim(order_status)) = 'preparing'
+            AND lower(trim(payment_status)) IN ('paid', 'success', 'captured')
+          RETURNING id
+        )
+        INSERT INTO order_dispatch_events (
+          id,
+          order_id,
+          courier_id,
+          courier_name,
+          tracking_url_template,
+          tracking_number,
+          dispatch_status,
+          dispatched_at,
+          created_by
+        )
+        SELECT
+          ${eventId},
+          ${input.orderId},
+          ${input.courier.id},
+          ${input.courier.name},
+          ${input.courier.trackingUrlTemplate},
+          ${input.trackingNumber},
+          'DISPATCHED',
+          ${dispatchedAtIso}::timestamptz,
+          ${input.createdBy}
+        FROM updated
+        RETURNING id, dispatched_at
+      `)) as DispatchPersistRow[];
     },
     { label: "dispatch:persist", attempts: 3 },
   );
 
-  if (!dispatchEventId) {
-    throw new Error("Dispatch failed. Please retry.");
+  const inserted = rows?.[0];
+  if (!inserted?.id) {
+    throw new Error(DISPATCH_GUARD_MISMATCH_MESSAGE);
   }
 
-  return { dispatchEventId, dispatchedAtIso };
+  return {
+    dispatchEventId: inserted.id,
+    dispatchedAtIso: inserted.dispatched_at ?? dispatchedAtIso,
+  };
 }

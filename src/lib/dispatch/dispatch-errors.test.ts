@@ -22,4 +22,11 @@ describe("mapDispatchPersistenceError", () => {
     const mapped = mapDispatchPersistenceError({ code: "23503" });
     expect(mapped.message).toMatch(/invalid/i);
   });
+
+  it("maps postgres.js connection race to retry message", () => {
+    const mapped = mapDispatchPersistenceError(
+      new Error("Cannot set properties of undefined (setting 'onclose')"),
+    );
+    expect(mapped.message).toMatch(/interrupted/i);
+  });
 });

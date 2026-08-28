@@ -46,6 +46,15 @@ export function mapDispatchPersistenceError(error: unknown): Error {
     }
   }
 
+  if (
+    error instanceof Error &&
+    /onclose|cannot set properties of undefined/i.test(error.message)
+  ) {
+    return new Error(
+      "Database connection was interrupted. Please wait a moment and retry.",
+    );
+  }
+
   if (error instanceof Error) return error;
   return new Error("Dispatch failed. Please retry.");
 }

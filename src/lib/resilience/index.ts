@@ -70,6 +70,8 @@ const TRANSIENT_PATTERNS = [
   "max client connections",
   "server closed the connection",
   "terminating connection",
+  "setting 'onclose'",
+  "cannot set properties of undefined",
   "503",
   "502",
   "504",
