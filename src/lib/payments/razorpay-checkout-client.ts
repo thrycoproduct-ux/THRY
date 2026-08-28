@@ -88,6 +88,33 @@ export async function prepareHostPageForRazorpayModal(): Promise<void> {
   document.body.style.pointerEvents = "auto";
 }
 
+/**
+ * Radix Dialog can re-apply pointer-events:none after we unlock. Keep the host
+ * clickable for as long as Razorpay’s overlay is on screen (phone + desktop).
+ */
+function startRazorpayModalHostGuard(): () => void {
+  if (typeof document === "undefined") return () => undefined;
+
+  const unlock = () => {
+    document.body.style.removeProperty("pointer-events");
+    document.body.style.pointerEvents = "auto";
+    document.body.removeAttribute("data-scroll-locked");
+  };
+
+  unlock();
+  const observer = new MutationObserver(unlock);
+  observer.observe(document.body, {
+    attributes: true,
+    attributeFilter: ["style", "data-scroll-locked"],
+  });
+  const timer = window.setInterval(unlock, 400);
+
+  return () => {
+    observer.disconnect();
+    window.clearInterval(timer);
+  };
+}
+
 function findCheckoutScript(): HTMLScriptElement | null {
   return document.querySelector<HTMLScriptElement>(
     `script[src="${RAZORPAY_CHECKOUT_SCRIPT_URL}"]`,
@@ -239,12 +266,14 @@ export async function openRazorpayCheckout(params: {
 
   const session = params.payload;
   await prepareHostPageForRazorpayModal();
+  const stopHostGuard = startRazorpayModalHostGuard();
 
   return new Promise((resolve, reject) => {
     let settled = false;
     const settle = (fn: () => void) => {
       if (settled) return;
       settled = true;
+      stopHostGuard();
       fn();
     };
 
@@ -293,7 +322,17 @@ export async function openRazorpayCheckout(params: {
       );
     });
 
-    checkout.open();
-    params.onOpened?.();
+    try {
+      checkout.open();
+      params.onOpened?.();
+    } catch (error) {
+      settle(() =>
+        reject(
+          error instanceof Error
+            ? error
+            : new Error("Razorpay checkout failed to open."),
+        ),
+      );
+    }
   });
 }
