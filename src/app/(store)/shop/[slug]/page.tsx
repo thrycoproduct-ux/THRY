@@ -16,7 +16,6 @@ import {
   ProductImageShowcase,
 } from "@/features/products";
 import { AddToWishListButton } from "@/features/wishlists";
-import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 import {
   getProductOptionDisplayName,
   getProductSizeConfig,
@@ -24,28 +23,23 @@ import {
 } from "@/lib/products/sizeConfig";
 import { buildBreadcrumbJsonLd, buildProductJsonLd } from "@/lib/seo/json-ld";
 import { buildSocialImages } from "@/lib/seo/social-image";
-import { getCartProductPricingByIds } from "@/lib/storefront/cart-pricing";
 import { getPublishedProductDetailCached } from "@/lib/storefront/product-detail";
+import {
+  formatPackLabelFromSnapshot,
+  getProductStorefrontSnapshotsByIds,
+} from "@/lib/storefront/product-storefront-snapshot";
 import {
   ProductDiscountBadge,
   ProductPriceDisplay,
 } from "@/features/products/components/ProductPriceDisplay";
 import { ProductBuyBox } from "@/features/products/components/ProductBuyBox";
 import { getEffectiveProductPrice } from "@/lib/products/discount";
-import {
-  formatProductPackLabel,
-  type ProductPackFields,
-} from "@/lib/products/pack";
-import {
-  getProductPackFieldsByIds,
-  getProductPackLabelsByIds,
-} from "@/lib/products/pack.server";
+import { formatProductPackLabel } from "@/lib/products/pack";
 import { withFallback } from "@/lib/resilience";
 import {
   resolveProductPricingForSelection,
   toProductDiscountFields,
 } from "@/lib/products/pricing";
-import { getProductDigitalStorefront } from "@/lib/products/digital-product.server";
 import { keytoUrl } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Metadata } from "next";
@@ -116,34 +110,29 @@ async function ProductDetailPage({ params }: Props) {
   const productSlug = resolvedParams.slug;
   const recommendationIds =
     data.recommendations?.edges?.map(({ node }) => node.id) ?? [];
-  const [
-    sizeConfig,
-    livePricing,
-    packFieldsById,
-    recommendationPackLabels,
-    recommendationSizePreviews,
-    digitalMeta,
-  ] = await Promise.all([
-    // Variant data gates add-to-cart, so it must not silently degrade.
-    getProductSizeConfig(id),
-    // Presentation-only enrichment: fall back to the values already in `node`.
-    withFallback("pdp:pricing", () => getCartProductPricingByIds([id]), {}),
-    withFallback(
-      "pdp:pack-fields",
-      () => getProductPackFieldsByIds([id]),
-      new Map<string, ProductPackFields>(),
-    ),
-    getProductPackLabelsByIds(recommendationIds),
-    getProductSizePreviewsByIds(recommendationIds),
-    withFallback("pdp:digital", () => getProductDigitalStorefront(id), {
-      isDigital: false,
-      fileName: null,
-    }),
-  ]);
-  const isDigital = digitalMeta.isDigital;
-  const digitalFileName = digitalMeta.fileName;
-  const packLabel = formatProductPackLabel(packFieldsById.get(id));
-  const resolvedPricing = livePricing[id];
+  const snapshotIds = [id, ...recommendationIds];
+
+  // Sequential Postgres reads — one query at a time on the pooler singleton.
+  const sizeConfig = await getProductSizeConfig(id);
+  const snapshots = await withFallback(
+    "pdp:snapshots",
+    () => getProductStorefrontSnapshotsByIds(snapshotIds),
+    new Map(),
+  );
+  const recommendationSizePreviews =
+    await getProductSizePreviewsByIds(recommendationIds);
+
+  const mainSnapshot = snapshots.get(id);
+  const isDigital = mainSnapshot?.isDigital ?? false;
+  const digitalFileName = mainSnapshot?.digitalFileName ?? null;
+  const packLabel = formatProductPackLabel(mainSnapshot?.packFields);
+  const resolvedPricing = mainSnapshot?.pricing;
+  const recommendationPackLabels = Object.fromEntries(
+    recommendationIds.map((recId) => [
+      recId,
+      formatPackLabelFromSnapshot(snapshots.get(recId)),
+    ]),
+  );
   const pricingProduct = resolvedPricing
     ? toProductDiscountFields(resolvedPricing)
     : productEdge.node;

@@ -12,10 +12,8 @@ export default async function sitemap(): Promise<MetadataRoute.Sitemap> {
   const base = getURL();
   const now = new Date();
 
-  const [collectionRows, productRows] = await Promise.all([
-    getCollectionSlugs(),
-    getPublishedProductSlugs(),
-  ]);
+  const collectionRows = await getCollectionSlugs();
+  const productRows = await getPublishedProductSlugs();
 
   const staticEntries: MetadataRoute.Sitemap = SEO_STATIC_PAGES.map((page) => ({
     url: `${base}${page.path.slice(1)}`,

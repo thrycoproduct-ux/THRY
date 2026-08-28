@@ -17,6 +17,8 @@ const REDIS_PREFIXES = [
   "sf:recommendations:",
   "sf:shop-by-price",
   "sf:pincode:",
+  "sf:snapshot:",
+  "sf:sitemap:",
 ] as const;
 
 /** Narrow prefixes for category create/update/delete (avoids full KEYS scans). */

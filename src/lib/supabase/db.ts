@@ -5,6 +5,7 @@ import { AsyncLocalStorage } from "node:async_hooks";
 import { env } from "@/env.mjs";
 import * as schema from "./schema";
 import { resolveDatabaseUrl } from "./resolve-database-url";
+import { buildPostgresClientOptions } from "./postgres-client-options";
 
 const connectionString = resolveDatabaseUrl(env.DATABASE_URL);
 
@@ -31,21 +32,10 @@ function isCloudflareWorkerRuntime(): boolean {
 }
 
 function createPostgresClient(max: number) {
-  return postgres(connectionString, {
-    prepare: false,
-    max,
-    idle_timeout: max === 1 ? 20 : 5,
-    connect_timeout: 8,
-    max_lifetime: max === 1 ? 60 * 30 : 30,
-    // Transaction pooler (6543) does not support pipelining. Never fire
-    // concurrent queries on this client (no Promise.all of db.select).
-    connection: {
-      statement_timeout: 8000,
-    },
-  });
+  return postgres(connectionString, buildPostgresClientOptions(max));
 }
 
-function createDb(max = 5): AppDatabase {
+function createDb(max = 1): AppDatabase {
   return drizzle(createPostgresClient(max), { schema });
 }
 
@@ -60,7 +50,7 @@ function getSingletonDb(): AppDatabase {
 const requestDb = new AsyncLocalStorage<AppDatabase>();
 
 /** RSC fallback: one client per React request when ALS is not set (Workers only). */
-const getDbForReactRequest = cache(() => createDb(5));
+const getDbForReactRequest = cache(() => createDb(1));
 
 /** Prefer this in new code. ALS (route handlers) wins over react.cache (RSC). */
 export function getDb(): AppDatabase {
@@ -80,7 +70,7 @@ export function withDb<T>(fn: () => T): T {
     return fn();
   }
   if (requestDb.getStore()) return fn();
-  return requestDb.run(createDb(5), fn);
+  return requestDb.run(createDb(1), fn);
 }
 
 export async function withDbAsync<T>(fn: () => Promise<T>): Promise<T> {
@@ -88,7 +78,7 @@ export async function withDbAsync<T>(fn: () => Promise<T>): Promise<T> {
     return fn();
   }
   if (requestDb.getStore()) return fn();
-  return requestDb.run(createDb(5), fn);
+  return requestDb.run(createDb(1), fn);
 }
 
 /**
