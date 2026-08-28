@@ -11,6 +11,7 @@ import {
   type ProductSizeConfig,
 } from "@/lib/products/sizeConfig";
 import db from "@/lib/supabase/db";
+import { getTransactionalDb } from "@/lib/supabase/transactional-db";
 import {
   apiSettings,
   orderLines,
@@ -423,7 +424,7 @@ export async function deductPaidOrderStockAtomic(
   lines: DeductLine[],
 ): Promise<{ ok: boolean; failedProductId?: string }> {
   try {
-    await db.transaction(async (tx) => {
+    await getTransactionalDb().transaction(async (tx) => {
       const sortedLines = [...lines].sort((a, b) =>
         a.productId.localeCompare(b.productId),
       );
@@ -514,7 +515,7 @@ export async function releaseStockReservation(
   let released = false;
   let skippedReason: string | undefined;
 
-  await db.transaction(async (tx) => {
+  await getTransactionalDb().transaction(async (tx) => {
     const locked = await tx.execute(
       sql`SELECT id, payment_status, payment_meta, created_at FROM orders WHERE id = ${orderId} FOR UPDATE`,
     );

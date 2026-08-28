@@ -83,3 +83,21 @@ export function resolveDatabaseUrl(raw?: string): string {
 
   return url;
 }
+
+/**
+ * Session-mode pooler (port 5432) supports multi-statement transactions.
+ * Transaction-mode pooler (6543) breaks postgres.js `begin()` under load.
+ */
+export function resolveSessionDatabaseUrl(raw?: string): string {
+  const sessionOverride = process.env.SUPABASE_DB_SESSION_URL?.trim();
+  if (sessionOverride) return sessionOverride;
+
+  const pooled = resolveDatabaseUrl(raw);
+  if (!pooled) return pooled;
+
+  if (/pooler\.supabase\.com:6543/i.test(pooled)) {
+    return pooled.replace(/:6543\//, ":5432/");
+  }
+
+  return pooled;
+}
