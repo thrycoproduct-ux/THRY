@@ -1,20 +1,30 @@
 import type { NextRequest } from "next/server";
 
-/** Build a same-origin redirect target after auth completes. */
+/**
+ * Same host as the auth request (www vs apex). Prefer Host over a possibly
+ * canonicalized x-forwarded-host so host-only session cookies stay valid.
+ */
 export function getPostAuthRedirectUrl(
   request: NextRequest,
   nextPath: string,
 ): string {
-  const forwardedHost = request.headers.get("x-forwarded-host");
-  const forwardedProto = request.headers.get("x-forwarded-proto") ?? "https";
   const { origin } = request.nextUrl;
 
   if (process.env.NODE_ENV === "development") {
     return `${origin}${nextPath}`;
   }
 
-  if (forwardedHost) {
-    return `${forwardedProto}://${forwardedHost}${nextPath}`;
+  const host =
+    request.headers.get("host") ??
+    request.headers.get("x-forwarded-host") ??
+    request.nextUrl.host;
+  const proto =
+    request.headers.get("x-forwarded-proto") ??
+    request.nextUrl.protocol.replace(":", "") ??
+    "https";
+
+  if (host) {
+    return `${proto}://${host}${nextPath}`;
   }
 
   return `${origin}${nextPath}`;

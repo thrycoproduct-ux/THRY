@@ -144,16 +144,19 @@ export async function middleware(request: NextRequest) {
   }
 
   if (authCookieState === "invalid") {
-    const response = NextResponse.next({
-      request: { headers: request.headers },
-    });
-    clearSupabaseAuthCookiesOnResponse(request, response);
-
+    // Only wipe cookies on admin. Clearing on the storefront after Google OAuth
+    // can drop a fresh session before the client AuthProvider reads it.
     if (isAdminPath) {
+      const response = NextResponse.next({
+        request: { headers: request.headers },
+      });
+      clearSupabaseAuthCookiesOnResponse(request, response);
       return redirectToAdminSignIn(request, pathname);
     }
 
-    return response;
+    return NextResponse.next({
+      request: { headers: request.headers },
+    });
   }
 
   if (!needsSessionRefresh) {
@@ -221,10 +224,8 @@ export async function middleware(request: NextRequest) {
     return redirectToAdminSignIn(request, pathname);
   }
 
-  if (!isAdminPath && !user) {
-    clearSupabaseAuthCookiesOnResponse(request, response);
-  }
-
+  // Do not clear storefront cookies when getUser is briefly null — that wiped
+  // valid Google sessions right after /auth/callback.
   return response;
 }
 
