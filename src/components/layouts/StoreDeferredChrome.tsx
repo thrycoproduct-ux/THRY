@@ -27,12 +27,21 @@ const WelcomeOfferDialog = dynamic(
   { ssr: false },
 );
 
+const InAppBrowserBanner = dynamic(
+  () =>
+    import("@/components/layouts/InAppBrowserBanner").then(
+      (mod) => mod.InAppBrowserBanner,
+    ),
+  { ssr: false },
+);
+
 export function StoreDeferredChrome() {
   return (
     <>
       <CartSheet />
       <StoreFloatingActions />
       <WelcomeOfferDialog />
+      <InAppBrowserBanner />
     </>
   );
 }

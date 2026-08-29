@@ -136,7 +136,10 @@ function MainFooter() {
           </div>
 
           <LegalFooterLinks className="mb-4" />
-          <p className="border-t border-primary/10 pt-6 text-center text-xs text-foreground/70">
+          <p
+            className="border-t border-primary/10 pt-6 text-center text-xs text-foreground/70"
+            suppressHydrationWarning
+          >
             © {new Date().getFullYear()} {siteConfig.name}. All rights
             reserved.
           </p>

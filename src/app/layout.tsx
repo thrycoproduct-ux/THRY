@@ -10,6 +10,7 @@ import {
 import { getURL } from "@/lib/utils";
 import CustomProvider from "../providers/CustomProvider";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
+import { WebViewErrorNoiseFilter } from "@/components/analytics/WebViewErrorNoiseFilter";
 
 const siteUrl = getURL();
 const defaultSocialImageUrl = absoluteSocialFallbackUrl();
@@ -102,6 +103,7 @@ export default function RootLayout({
         >
           {children}
           <Toaster />
+          <WebViewErrorNoiseFilter />
           <MicrosoftClarity />
         </body>
       </CustomProvider>
