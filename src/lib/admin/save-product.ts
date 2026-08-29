@@ -1,21 +1,16 @@
-import {
-  buildUniqueProductSlug,
-  createNextProductCode,
-  PRODUCT_CODE_LOCK_ID,
-} from "@/lib/admin/product-slug";
+import { insertProductWithoutTransaction } from "@/lib/admin/product-insert";
 import { normalizeProductFormPayload } from "@/lib/admin/normalize-product-form-payload";
 import {
   normalizeProductImageMediaIds,
   syncProductGalleryImages,
 } from "@/lib/admin/product-gallery";
 import db from "@/lib/supabase/db";
-import { runSessionTransaction } from "@/lib/supabase/transactional-db";
 import { mapProductSaveError } from "@/lib/supabase/pooler-errors";
 import { withRetry } from "@/lib/resilience";
 import { InsertProducts, products } from "@/lib/supabase/schema";
 import { deleteObjects } from "@/lib/s3";
 import { isValidDigitalObjectKey } from "@/lib/products/digital-product";
-import { eq, sql } from "drizzle-orm";
+import { eq } from "drizzle-orm";
 import { createInsertSchema } from "drizzle-zod";
 
 export type ProductImageOptions = {
@@ -109,27 +104,15 @@ export async function createProductRecord(
   const base = toWritableProductFields(product, featuredImageId);
 
   try {
-    const data = await runSessionTransaction(async (tx) => {
-      await tx.execute(
-        sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
-      );
-
-      const productCode = await createNextProductCode(tx);
-      const slug = await buildUniqueProductSlug(tx, base.name, productCode);
-      const values = {
+    const created = await insertProductWithoutTransaction(
+      () => base.name,
+      (identity) => ({
         ...base,
-        productCode,
-        slug,
-      };
-
-      createInsertSchema(products).parse(values);
-      return tx.insert(products).values(values).returning();
-    }, "product-create");
-
-    const created = data[0];
-    if (!created) {
-      throw new Error("Product was not created.");
-    }
+        id: identity.id,
+        productCode: identity.productCode,
+        slug: identity.slug,
+      }),
+    );
 
     try {
       await syncProductGalleryImages(created.id, orderedMediaIds);

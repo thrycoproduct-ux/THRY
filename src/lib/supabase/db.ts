@@ -50,7 +50,9 @@ function getSingletonDb(): AppDatabase {
 const requestDb = new AsyncLocalStorage<AppDatabase>();
 
 /** RSC fallback: one client per React request when ALS is not set (Workers only). */
-const getDbForReactRequest = cache(() => createDb(1));
+const getDbForReactRequest: () => AppDatabase = isCloudflareWorkerRuntime()
+  ? cache(() => createDb(1))
+  : getSingletonDb;
 
 /** Prefer this in new code. ALS (route handlers) wins over react.cache (RSC). */
 export function getDb(): AppDatabase {
