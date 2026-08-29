@@ -10,6 +10,7 @@ import useWishlistStore from "@/features/wishlists/useWishlistStore";
 import { useMobileSearch } from "@/components/layouts/MobileSearchContext";
 import { useRobustNavigate } from "@/hooks/useRobustNavigate";
 import { useAuth } from "@/providers/AuthProvider";
+import { useCheckoutChrome } from "@/providers/CheckoutChromeProvider";
 
 function NavBadge({ count }: { count: number }) {
   return (
@@ -41,7 +42,10 @@ export function MobileBottomNav() {
   const { onNavigateClick } = useRobustNavigate();
   const { isOpen: isSearchOpen, openSearch } = useMobileSearch();
   const { user } = useAuth();
+  const { hideStoreChrome } = useCheckoutChrome();
   const accountHref = user ? "/orders" : "/sign-in";
+
+  if (hideStoreChrome) return null;
 
   const itemClass = (active: boolean) =>
     cn(

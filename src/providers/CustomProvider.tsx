@@ -2,6 +2,7 @@
 
 import { ThemeProvider } from "next-themes";
 import { SupabaseAuthProvider } from "./AuthProvider";
+import { CheckoutChromeProvider } from "./CheckoutChromeProvider";
 import UrqlProvider from "./UrqlProvider";
 
 export default function CustomProvider({ children }: React.PropsWithChildren) {
@@ -14,7 +15,9 @@ export default function CustomProvider({ children }: React.PropsWithChildren) {
       disableTransitionOnChange
     >
       <SupabaseAuthProvider>
-        <UrqlProvider>{children}</UrqlProvider>
+        <CheckoutChromeProvider>
+          <UrqlProvider>{children}</UrqlProvider>
+        </CheckoutChromeProvider>
       </SupabaseAuthProvider>
     </ThemeProvider>
   );

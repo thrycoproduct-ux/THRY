@@ -1,4 +1,7 @@
-import { formatCheckoutErrorMessage } from "./format-checkout-error";
+import {
+  formatCheckoutErrorMessage,
+  isCheckoutPaymentCancelled,
+} from "./format-checkout-error";
 
 describe("formatCheckoutErrorMessage", () => {
   it("maps Razorpay domain allowlist failures", () => {
@@ -27,6 +30,15 @@ describe("formatCheckoutErrorMessage", () => {
         new Error("Payment window did not open. Please retry checkout."),
       ),
     ).toMatch(/did not open/i);
+  });
+
+  it("softens payment cancel copy", () => {
+    expect(isCheckoutPaymentCancelled(new Error("Payment cancelled."))).toBe(
+      true,
+    );
+    expect(formatCheckoutErrorMessage(new Error("Payment cancelled."))).toBe(
+      "You can try again when ready.",
+    );
   });
 
   it("passes through other messages", () => {

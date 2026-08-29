@@ -6,6 +6,8 @@ export function CheckoutTermsNotice() {
       By continuing to payment, you agree to our{" "}
       <Link
         href="/terms-and-conditions"
+        target="_blank"
+        rel="noopener noreferrer"
         className="font-medium text-primary hover:underline"
       >
         Terms &amp; Conditions
@@ -13,6 +15,8 @@ export function CheckoutTermsNotice() {
       ,{" "}
       <Link
         href="/terms-and-conditions#terms-of-use"
+        target="_blank"
+        rel="noopener noreferrer"
         className="font-medium text-primary hover:underline"
       >
         Terms of Use
@@ -20,6 +24,8 @@ export function CheckoutTermsNotice() {
       , and{" "}
       <Link
         href="/privacy-policy"
+        target="_blank"
+        rel="noopener noreferrer"
         className="font-medium text-primary hover:underline"
       >
         Privacy Policy

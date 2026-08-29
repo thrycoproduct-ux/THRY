@@ -277,11 +277,14 @@ export function AddAddressForm({
                   <Input
                     {...field}
                     readOnly
+                    tabIndex={-1}
+                    aria-readonly="true"
                     placeholder="Filled from PIN"
                     autoComplete="address-level1"
-                    className="bg-muted/40"
+                    className="cursor-default bg-muted/50 text-muted-foreground pointer-events-none"
                   />
                 </FormControl>
+                <p className="text-xs text-muted-foreground">Filled from PIN</p>
                 <FormMessage />
               </FormItem>
             )}

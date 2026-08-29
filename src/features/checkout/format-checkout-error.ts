@@ -1,9 +1,20 @@
 /** User-facing checkout error copy (avoid raw Razorpay / network messages). */
 
+export function isCheckoutPaymentCancelled(err: unknown): boolean {
+  const raw = err instanceof Error ? err.message : String(err ?? "");
+  return /payment cancelled|payment canceled|user closed the payment|checkout cancelled|checkout canceled/i.test(
+    raw,
+  );
+}
+
 export function formatCheckoutErrorMessage(err: unknown): string {
   const raw = err instanceof Error ? err.message : String(err ?? "");
   const message = raw.trim();
   if (!message) return "Please try again.";
+
+  if (isCheckoutPaymentCancelled(message)) {
+    return "You can try again when ready.";
+  }
 
   if (/does not match registered website/i.test(message)) {
     return "Payment could not start for this store domain. Please try again shortly, or contact THRY support if it continues.";

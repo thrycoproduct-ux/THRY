@@ -9,6 +9,7 @@ import {
   inAppBrowserLabel,
   type InAppBrowserKind,
 } from "@/lib/browser/in-app-browser";
+import { useCheckoutChrome } from "@/providers/CheckoutChromeProvider";
 import { cn } from "@/lib/utils";
 
 const DISMISS_KEY = "thry:in-app-browser-banner-dismissed";
@@ -22,6 +23,7 @@ function isAndroidUa(ua: string) {
  * payments are unreliable. Does not block browsing.
  */
 export function InAppBrowserBanner() {
+  const { hideStoreChrome } = useCheckoutChrome();
   const [kind, setKind] = useState<InAppBrowserKind>(null);
   const [android, setAndroid] = useState(false);
   const [copied, setCopied] = useState(false);
@@ -43,7 +45,7 @@ export function InAppBrowserBanner() {
     setVisible(true);
   }, []);
 
-  if (!visible || !kind) return null;
+  if (hideStoreChrome || !visible || !kind) return null;
 
   const appName = inAppBrowserLabel(kind);
   const pageUrl =

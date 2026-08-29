@@ -27,7 +27,10 @@ import {
 import type { UserAddressRecord } from "../lib/userAddress";
 import type { CheckoutProgressUpdate } from "@/features/checkout/checkout-progress";
 import { savingAddressProgress } from "@/features/checkout/checkout-progress";
-import { formatCheckoutErrorMessage } from "@/features/checkout/format-checkout-error";
+import {
+  formatCheckoutErrorMessage,
+  isCheckoutPaymentCancelled,
+} from "@/features/checkout/format-checkout-error";
 import CheckoutTermsNotice from "@/components/layouts/CheckoutTermsNotice";
 
 type Props = {
@@ -135,15 +138,21 @@ export function CheckoutAddressDialog({
     setIsSubmitting(true);
     try {
       const shipping = await getSavedShippingAddress(selectedId);
-      onOpenChange(false);
       await onComplete(shipping);
     } catch (err) {
       onCheckoutError?.();
-      toast({
-        title: "Checkout failed",
-        description: formatCheckoutErrorMessage(err),
-        variant: "destructive",
-      });
+      if (isCheckoutPaymentCancelled(err)) {
+        toast({
+          title: "Payment not completed",
+          description: "You can try again when ready.",
+        });
+      } else {
+        toast({
+          title: "Checkout failed",
+          description: formatCheckoutErrorMessage(err),
+          variant: "destructive",
+        });
+      }
       // Handled via toast — do not rethrow (avoids Sentry unhandledrejection noise).
     } finally {
       setIsSubmitting(false);
@@ -159,15 +168,21 @@ export function CheckoutAddressDialog({
         guest ? null : userId ?? null,
         { setAsDefault: !guest && addresses.length === 0 },
       );
-      onOpenChange(false);
       await onComplete(saved);
     } catch (err) {
       onCheckoutError?.();
-      toast({
-        title: "Checkout failed",
-        description: formatCheckoutErrorMessage(err),
-        variant: "destructive",
-      });
+      if (isCheckoutPaymentCancelled(err)) {
+        toast({
+          title: "Payment not completed",
+          description: "You can try again when ready.",
+        });
+      } else {
+        toast({
+          title: "Checkout failed",
+          description: formatCheckoutErrorMessage(err),
+          variant: "destructive",
+        });
+      }
       // Handled via toast — do not rethrow (avoids Sentry unhandledrejection noise).
     } finally {
       setIsSubmitting(false);
@@ -204,7 +219,10 @@ export function CheckoutAddressDialog({
         onOpenChange(next);
       }}
     >
-      <DialogContent className="left-0 top-0 z-[190] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[min(90dvh,860px)] sm:w-[min(92vw,780px)] sm:max-w-[780px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border">
+      <DialogContent
+        hideCloseButton={busy}
+        className="left-0 top-0 z-[190] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[min(90dvh,860px)] sm:w-[min(92vw,780px)] sm:max-w-[780px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border"
+      >
         <DialogHeader className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 text-left backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6 sm:py-4">
           <DialogTitle className="text-lg font-semibold sm:text-xl">
             {title}

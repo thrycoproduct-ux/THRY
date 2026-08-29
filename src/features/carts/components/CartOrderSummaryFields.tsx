@@ -74,6 +74,7 @@ export function CartOrderSummaryFields({
             Delivery PIN code
           </label>
           <Input
+            id="cart-delivery-pincode"
             value={deliveryPincode}
             inputMode="numeric"
             autoComplete="postal-code"

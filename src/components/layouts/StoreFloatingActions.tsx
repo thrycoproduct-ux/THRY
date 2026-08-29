@@ -8,6 +8,7 @@ import { shopMailtoHref } from "@/lib/contact/links";
 import { useStorefrontContact } from "@/providers/ShopContactProvider";
 import { FloatingMailPicker } from "./FloatingMailPicker";
 import { useMobileMenu } from "./MobileMenuContext";
+import { useCheckoutChrome } from "@/providers/CheckoutChromeProvider";
 
 function CartBadge({ count }: { count: number }) {
   if (count <= 0) return null;
@@ -24,6 +25,7 @@ const floatingActionButtonClass =
 
 export function StoreFloatingActions() {
   const { isOpen: menuOpen } = useMobileMenu();
+  const { hideStoreChrome } = useCheckoutChrome();
   const cartCount = useCartCount();
   const contact = useStorefrontContact();
   const mailHref = shopMailtoHref(contact.email);
@@ -33,7 +35,7 @@ export function StoreFloatingActions() {
     setMailOpen(open);
   }, []);
 
-  if (menuOpen) return null;
+  if (menuOpen || hideStoreChrome) return null;
 
   return (
     <>
