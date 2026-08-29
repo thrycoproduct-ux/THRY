@@ -8,12 +8,65 @@ import {
   ADMIN_POST_LOGIN_PATH,
   getRedirectFromSearchParams,
 } from "@/lib/auth/redirect";
-import { createRouteHandlerSupabaseClient } from "@/lib/supabase/route-handler";
+import { env } from "@/env.mjs";
+import { createServerClient, type CookieOptions } from "@supabase/ssr";
 import { type EmailOtpType } from "@supabase/supabase-js";
 import { type NextRequest, NextResponse } from "next/server";
 
+type CookieWrite = {
+  name: string;
+  value: string;
+  options: CookieOptions;
+};
+
+function getSupabaseUrl() {
+  return (
+    env.NEXT_PUBLIC_SUPABASE_URL?.replace(/\/$/, "") ||
+    `https://${env.NEXT_PUBLIC_SUPABASE_PROJECT_REF}.supabase.co`
+  );
+}
+
+/**
+ * Route-handler client that records every cookie write with full options.
+ * NextResponse.cookies.getAll() only returns name/value — copying those onto a
+ * second redirect drops path/maxAge/sameSite and breaks the Google session.
+ */
+function createCallbackSupabaseClient(
+  request: NextRequest,
+  response: NextResponse,
+  cookieWrites: CookieWrite[],
+) {
+  return createServerClient(
+    getSupabaseUrl(),
+    env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+    {
+      cookies: {
+        get(name: string) {
+          return request.cookies.get(name)?.value;
+        },
+        set(name: string, value: string, options: CookieOptions) {
+          cookieWrites.push({ name, value, options });
+          request.cookies.set({ name, value, ...options });
+          response.cookies.set({ name, value, ...options });
+        },
+        remove(name: string, options: CookieOptions) {
+          cookieWrites.push({ name, value: "", options });
+          request.cookies.set({ name, value: "", ...options });
+          response.cookies.set({ name, value: "", ...options });
+        },
+      },
+    },
+  );
+}
+
+function applyCookieWrites(response: NextResponse, cookieWrites: CookieWrite[]) {
+  for (const { name, value, options } of cookieWrites) {
+    response.cookies.set({ name, value, ...options });
+  }
+}
+
 async function resolvePostLoginPath(
-  supabase: ReturnType<typeof createRouteHandlerSupabaseClient>,
+  supabase: ReturnType<typeof createCallbackSupabaseClient>,
   requestedNext: string,
 ) {
   if (requestedNext !== "/") {
@@ -29,22 +82,6 @@ async function resolvePostLoginPath(
   }
 
   return requestedNext;
-}
-
-function redirectWithSessionCookies(
-  request: NextRequest,
-  response: NextResponse,
-  nextPath: string,
-) {
-  const redirect = NextResponse.redirect(
-    getPostAuthRedirectUrl(request, nextPath),
-  );
-
-  for (const cookie of response.cookies.getAll()) {
-    redirect.cookies.set(cookie);
-  }
-
-  return redirect;
 }
 
 function authFailureRedirect(
@@ -102,10 +139,15 @@ export async function GET(request: NextRequest) {
   const type = searchParams.get("type") as EmailOtpType | null;
 
   if (code || (token_hash && type)) {
-    const sessionResponse = NextResponse.redirect(
+    const cookieWrites: CookieWrite[] = [];
+    let response = NextResponse.redirect(
       getPostAuthRedirectUrl(request, requestedNext),
     );
-    const supabase = createRouteHandlerSupabaseClient(request, sessionResponse);
+    const supabase = createCallbackSupabaseClient(
+      request,
+      response,
+      cookieWrites,
+    );
 
     if (code) {
       try {
@@ -160,20 +202,38 @@ export async function GET(request: NextRequest) {
     }
 
     const nextPath = await resolvePostLoginPath(supabase, requestedNext);
-    return redirectWithSessionCookies(request, sessionResponse, nextPath);
+    if (nextPath !== requestedNext) {
+      response = NextResponse.redirect(
+        getPostAuthRedirectUrl(request, nextPath),
+      );
+      applyCookieWrites(response, cookieWrites);
+    }
+
+    return response;
   }
 
-  const sessionResponse = NextResponse.redirect(
+  const cookieWrites: CookieWrite[] = [];
+  let response = NextResponse.redirect(
     getPostAuthRedirectUrl(request, requestedNext),
   );
-  const supabase = createRouteHandlerSupabaseClient(request, sessionResponse);
+  const supabase = createCallbackSupabaseClient(
+    request,
+    response,
+    cookieWrites,
+  );
   const {
     data: { user },
   } = await supabase.auth.getUser();
 
   if (user) {
     const nextPath = await resolvePostLoginPath(supabase, requestedNext);
-    return redirectWithSessionCookies(request, sessionResponse, nextPath);
+    if (nextPath !== requestedNext) {
+      response = NextResponse.redirect(
+        getPostAuthRedirectUrl(request, nextPath),
+      );
+      applyCookieWrites(response, cookieWrites);
+    }
+    return response;
   }
 
   const signIn = new URL("/sign-in", request.url);

@@ -32,7 +32,7 @@ export default async function SignInPage({ searchParams }: SignInPageProps) {
             Sign in
           </h1>
           <p className="text-sm text-muted-foreground">
-            One tap with Google, or use email
+            Continue with Google, or use email
           </p>
         </div>
       </div>

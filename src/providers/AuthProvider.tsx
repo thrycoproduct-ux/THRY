@@ -254,15 +254,28 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
 
   useEffect(() => {
     let subscription: { unsubscribe: () => void } | null = null;
+    let cancelled = false;
 
     try {
       const supabase = createClient();
+
+      // Hydrate from cookies after OAuth redirect (do not rely only on the
+      // auth-state event timing — Google callback lands with Set-Cookie first).
+      void supabase.auth.getSession().then(({ data }) => {
+        if (cancelled) return;
+        setSession(data.session ?? null);
+        if (data.session?.user) {
+          setUser(data.session.user);
+        }
+      });
+
       const authChange = supabase.auth.onAuthStateChange((_event, session) => {
         setSession(session);
 
         switch (_event) {
           case "INITIAL_SESSION":
             supabase.auth.getUser().then(async ({ data }) => {
+              if (cancelled) return;
               setUser(data.user);
               if (!data.user?.id) {
                 sawLoggedOutInThisRuntimeRef.current = true;
@@ -274,8 +287,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                 supabase,
                 userId: data.user.id,
                 authEvent: "INITIAL_SESSION",
-                sawLoggedOutInThisRuntime:
-                  sawLoggedOutInThisRuntimeRef.current,
+                sawLoggedOutInThisRuntime: sawLoggedOutInThisRuntimeRef.current,
               });
             });
             break;
@@ -304,8 +316,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
                 supabase,
                 userId: data.user.id,
                 authEvent: "SIGNED_IN",
-                sawLoggedOutInThisRuntime:
-                  sawLoggedOutInThisRuntimeRef.current,
+                sawLoggedOutInThisRuntime: sawLoggedOutInThisRuntimeRef.current,
               });
             });
 
@@ -354,7 +365,10 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
       setSession(null);
     }
 
-    return () => subscription?.unsubscribe();
+    return () => {
+      cancelled = true;
+      subscription?.unsubscribe();
+    };
   }, [removeAllCartStorage, router, setWishlist, toast]);
 
   return (

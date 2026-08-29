@@ -80,9 +80,6 @@ function OAuthLoginButtons({ nextPath }: OAuthLoginButtonsProps) {
         "shadow-[inset_0_1px_0_0_rgba(255,255,255,0.6)]",
       )}
     >
-      <p className="mb-3 text-center text-sm font-medium text-foreground">
-        One tap — no password
-      </p>
       <Button
         type="button"
         variant="outline"

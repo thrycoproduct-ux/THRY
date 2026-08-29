@@ -92,6 +92,14 @@ export async function middleware(request: NextRequest) {
     return canonicalRedirect;
   }
 
+  // OAuth callback must run untouched: middleware getUser/clearCookies races the
+  // code exchange and can drop the new session before Set-Cookie lands.
+  if (pathname.startsWith("/auth/callback")) {
+    return NextResponse.next({
+      request: { headers: request.headers },
+    });
+  }
+
   if (isAuthRateLimitPath(pathname)) {
     const ip = getRequestIp(request.headers);
     const { limited } = await checkAuthRateLimit(ip);

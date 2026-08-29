@@ -25,7 +25,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
             Create account
           </h1>
           <p className="text-sm text-muted-foreground">
-            One tap with Google, or use email — for orders and wishlist
+            Continue with Google, or use email — for orders and wishlist
           </p>
         </div>
       </div>
