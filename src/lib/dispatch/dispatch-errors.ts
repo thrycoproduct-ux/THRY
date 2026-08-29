@@ -1,3 +1,5 @@
+import { isPoolerSocketError } from "@/lib/supabase/pooler-errors";
+
 export const DISPATCH_GUARD_MISMATCH_MESSAGE =
   "Dispatch guard mismatch (order already dispatched or not preparing).";
 
@@ -46,10 +48,7 @@ export function mapDispatchPersistenceError(error: unknown): Error {
     }
   }
 
-  if (
-    error instanceof Error &&
-    /onclose|cannot set properties of undefined/i.test(error.message)
-  ) {
+  if (error instanceof Error && isPoolerSocketError(error)) {
     return new Error(
       "Database connection was interrupted. Please wait a moment and retry.",
     );

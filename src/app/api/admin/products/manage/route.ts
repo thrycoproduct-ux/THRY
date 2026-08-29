@@ -10,6 +10,7 @@ import {
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
 import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
 import db from "@/lib/supabase/db";
+import { mapProductSaveError } from "@/lib/supabase/pooler-errors";
 import { products, type InsertProducts } from "@/lib/supabase/schema";
 import { eq } from "drizzle-orm";
 import { revalidatePath } from "next/cache";
@@ -60,10 +61,7 @@ async function revalidateProductPages() {
 }
 
 function adminSaveErrorMessage(error: unknown) {
-  if (error instanceof Error && error.message.trim()) {
-    return error.message;
-  }
-  return "Could not save product. Please retry.";
+  return mapProductSaveError(error).message;
 }
 
 export async function DELETE(request: NextRequest) {

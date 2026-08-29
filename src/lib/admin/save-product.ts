@@ -9,6 +9,9 @@ import {
   syncProductGalleryImages,
 } from "@/lib/admin/product-gallery";
 import db from "@/lib/supabase/db";
+import { runSessionTransaction } from "@/lib/supabase/transactional-db";
+import { mapProductSaveError } from "@/lib/supabase/pooler-errors";
+import { withRetry } from "@/lib/resilience";
 import { InsertProducts, products } from "@/lib/supabase/schema";
 import { deleteObjects } from "@/lib/s3";
 import { isValidDigitalObjectKey } from "@/lib/products/digital-product";
@@ -105,35 +108,39 @@ export async function createProductRecord(
 
   const base = toWritableProductFields(product, featuredImageId);
 
-  const data = await db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
-    );
-
-    const productCode = await createNextProductCode(tx);
-    const slug = await buildUniqueProductSlug(tx, base.name, productCode);
-    const values = {
-      ...base,
-      productCode,
-      slug,
-    };
-
-    createInsertSchema(products).parse(values);
-    return tx.insert(products).values(values).returning();
-  });
-
-  const created = data[0];
-  if (!created) {
-    throw new Error("Product was not created.");
-  }
-
   try {
-    await syncProductGalleryImages(created.id, orderedMediaIds);
-  } catch (error) {
-    console.error("[products] gallery sync failed after create:", error);
-  }
+    const data = await runSessionTransaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
+      );
 
-  return serializeProductRow(created as unknown as Record<string, unknown>);
+      const productCode = await createNextProductCode(tx);
+      const slug = await buildUniqueProductSlug(tx, base.name, productCode);
+      const values = {
+        ...base,
+        productCode,
+        slug,
+      };
+
+      createInsertSchema(products).parse(values);
+      return tx.insert(products).values(values).returning();
+    }, "product-create");
+
+    const created = data[0];
+    if (!created) {
+      throw new Error("Product was not created.");
+    }
+
+    try {
+      await syncProductGalleryImages(created.id, orderedMediaIds);
+    } catch (error) {
+      console.error("[products] gallery sync failed after create:", error);
+    }
+
+    return serializeProductRow(created as unknown as Record<string, unknown>);
+  } catch (error) {
+    throw mapProductSaveError(error);
+  }
 }
 
 export async function updateProductRecord(
@@ -141,66 +148,81 @@ export async function updateProductRecord(
   product: InsertProducts,
   options?: ProductImageOptions,
 ) {
-  const [existing] = await db
-    .select({
-      slug: products.slug,
-      productCode: products.productCode,
-      digitalFileKey: products.digitalFileKey,
-    })
-    .from(products)
-    .where(eq(products.id, productId))
-    .limit(1);
-
-  if (!existing) {
-    throw new Error("Product not found.");
-  }
-
-  const { featuredImageId, orderedMediaIds } = resolveFeaturedAndGallery(
-    product,
-    options,
-  );
-  if (!featuredImageId) {
-    throw new Error("Select at least one product image.");
-  }
-
-  const base = toWritableProductFields(product, featuredImageId);
-  const values = {
-    ...base,
-    slug: existing.slug,
-    productCode: existing.productCode,
-  };
-
-  createInsertSchema(products).parse(values);
-
-  const [updated] = await db
-    .update(products)
-    .set(values)
-    .where(eq(products.id, productId))
-    .returning();
-
-  if (!updated) {
-    throw new Error("Product was not updated.");
-  }
-
-  const previousKey = String(existing.digitalFileKey ?? "").trim();
-  const nextKey = String(values.digitalFileKey ?? "").trim();
-  if (
-    previousKey &&
-    previousKey !== nextKey &&
-    isValidDigitalObjectKey(previousKey)
-  ) {
-    try {
-      await deleteObjects({ keys: [previousKey] });
-    } catch (error) {
-      console.error("[products] digital file cleanup failed:", error);
-    }
-  }
-
   try {
-    await syncProductGalleryImages(productId, orderedMediaIds);
-  } catch (error) {
-    console.error("[products] gallery sync failed after update:", error);
-  }
+    const existing = await withRetry(
+      async () => {
+        const [row] = await db
+          .select({
+            slug: products.slug,
+            productCode: products.productCode,
+            digitalFileKey: products.digitalFileKey,
+          })
+          .from(products)
+          .where(eq(products.id, productId))
+          .limit(1);
+        return row ?? null;
+      },
+      { label: "product-update-load" },
+    );
 
-  return serializeProductRow(updated as unknown as Record<string, unknown>);
+    if (!existing) {
+      throw new Error("Product not found.");
+    }
+
+    const { featuredImageId, orderedMediaIds } = resolveFeaturedAndGallery(
+      product,
+      options,
+    );
+    if (!featuredImageId) {
+      throw new Error("Select at least one product image.");
+    }
+
+    const base = toWritableProductFields(product, featuredImageId);
+    const values = {
+      ...base,
+      slug: existing.slug,
+      productCode: existing.productCode,
+    };
+
+    createInsertSchema(products).parse(values);
+
+    const updated = await withRetry(
+      async () => {
+        const [row] = await db
+          .update(products)
+          .set(values)
+          .where(eq(products.id, productId))
+          .returning();
+        if (!row) {
+          throw new Error("Product was not updated.");
+        }
+        return row;
+      },
+      { label: "product-update" },
+    );
+
+    const previousKey = String(existing.digitalFileKey ?? "").trim();
+    const nextKey = String(values.digitalFileKey ?? "").trim();
+    if (
+      previousKey &&
+      previousKey !== nextKey &&
+      isValidDigitalObjectKey(previousKey)
+    ) {
+      try {
+        await deleteObjects({ keys: [previousKey] });
+      } catch (error) {
+        console.error("[products] digital file cleanup failed:", error);
+      }
+    }
+
+    try {
+      await syncProductGalleryImages(productId, orderedMediaIds);
+    } catch (error) {
+      console.error("[products] gallery sync failed after update:", error);
+    }
+
+    return serializeProductRow(updated as unknown as Record<string, unknown>);
+  } catch (error) {
+    throw mapProductSaveError(error);
+  }
 }

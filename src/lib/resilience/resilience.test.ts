@@ -31,7 +31,7 @@ describe("isTransientError", () => {
     ).toBe(true);
     expect(
       isTransientError(
-        new TypeError("Cannot read properties of undefined (reading 'queue')"),
+        new TypeError("Cannot set properties of undefined (setting 'onclose')"),
       ),
     ).toBe(true);
   });

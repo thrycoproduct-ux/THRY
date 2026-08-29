@@ -1,6 +1,8 @@
 "use server";
 
 import db from "@/lib/supabase/db";
+import { runSessionTransaction } from "@/lib/supabase/transactional-db";
+import { mapProductSaveError } from "@/lib/supabase/pooler-errors";
 import { productMedias, products } from "@/lib/supabase/schema";
 import { requireAdminActionUser } from "@/lib/auth/require-admin";
 import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
@@ -117,71 +119,76 @@ export async function createDraftProductsFromMedia(
     throw new Error("Catalog is required.");
   }
 
-  return db.transaction(async (tx) => {
-    await tx.execute(
-      sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
-    );
+  try {
+    const createdProducts = await runSessionTransaction(async (tx) => {
+      await tx.execute(
+        sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
+      );
 
-    const lastCodeRows = await tx.execute<{ product_code: string | null }>(
-      sql`select product_code
+      const lastCodeRows = await tx.execute<{ product_code: string | null }>(
+        sql`select product_code
           from products
           where product_code like 'ST%'
           order by product_code desc
           limit 1`,
-    );
-    const lastCode = lastCodeRows[0]?.product_code ?? null;
-    const lastNumber = Number.parseInt(
-      lastCode?.replace(/^ST/i, "") ?? "0",
-      10,
-    );
-    const start = Number.isFinite(lastNumber) ? lastNumber : 0;
+      );
+      const lastCode = lastCodeRows[0]?.product_code ?? null;
+      const lastNumber = Number.parseInt(
+        lastCode?.replace(/^ST/i, "") ?? "0",
+        10,
+      );
+      const start = Number.isFinite(lastNumber) ? lastNumber : 0;
 
-    const createdProducts: BulkDraftCreateResult[] = [];
+      const created: BulkDraftCreateResult[] = [];
 
-    for (let index = 0; index < mediaItems.length; index += 1) {
-      const currentNumber = start + index + 1;
-      const productCode = `ST${String(currentNumber).padStart(6, "0")}`;
-      const fileNameBase = getFileNameBase(mediaItems[index].originalFileName);
-      const nameBase = (normalizedShared.baseName || fileNameBase).trim();
-      const productName = `${nameBase} ${productCode}`;
-      const slug = await buildUniqueProductSlug(tx, productName, productCode);
+      for (let index = 0; index < mediaItems.length; index += 1) {
+        const currentNumber = start + index + 1;
+        const productCode = `ST${String(currentNumber).padStart(6, "0")}`;
+        const fileNameBase = getFileNameBase(
+          mediaItems[index].originalFileName,
+        );
+        const nameBase = (normalizedShared.baseName || fileNameBase).trim();
+        const productName = `${nameBase} ${productCode}`;
+        const slug = await buildUniqueProductSlug(tx, productName, productCode);
 
-      const insertValues = buildBulkProductInsertValues({
-        shared: normalizedShared,
-        productName,
-        slug,
-        productCode,
-        featuredImageId: mediaItems[index].mediaId,
-      });
+        const insertValues = buildBulkProductInsertValues({
+          shared: normalizedShared,
+          productName,
+          slug,
+          productCode,
+          featuredImageId: mediaItems[index].mediaId,
+        });
 
-      createInsertSchema(products).parse(insertValues);
+        createInsertSchema(products).parse(insertValues);
 
-      const [created] = await tx
-        .insert(products)
-        .values(insertValues)
-        .returning({
+        const [row] = await tx.insert(products).values(insertValues).returning({
           id: products.id,
           name: products.name,
           slug: products.slug,
           productCode: products.productCode,
         });
 
-      await tx.insert(productMedias).values({
-        productId: created.id,
-        mediaId: mediaItems[index].mediaId,
-        priority: 1,
-      });
+        await tx.insert(productMedias).values({
+          productId: row.id,
+          mediaId: mediaItems[index].mediaId,
+          priority: 1,
+        });
 
-      createdProducts.push({
-        id: created.id,
-        name: created.name,
-        slug: created.slug,
-        productCode: created.productCode ?? productCode,
-      });
-    }
+        created.push({
+          id: row.id,
+          name: row.name,
+          slug: row.slug,
+          productCode: row.productCode ?? productCode,
+        });
+      }
+
+      return created;
+    }, "product-bulk-draft");
 
     revalidateProductCatalogPaths();
     await invalidateStorefrontCache();
     return createdProducts;
-  });
+  } catch (error) {
+    throw mapProductSaveError(error);
+  }
 }
