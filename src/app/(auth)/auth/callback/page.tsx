@@ -1,26 +1,28 @@
 "use client";
 
-import { useEffect, useState, Suspense } from "react";
+import { useEffect, useRef, useState, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import type { EmailOtpType } from "@supabase/supabase-js";
 
 import { Spinner } from "@/components/ui/spinner";
+import { completeOAuthCallback } from "@/lib/auth/complete-oauth-callback";
 import {
   ADMIN_POST_LOGIN_PATH,
   getRedirectFromSearchParams,
 } from "@/lib/auth/redirect";
-import {
-  safeAuthErrorMessage,
-  safeAuthRedirectError,
-} from "@/lib/auth/safe-auth-errors";
+import { safeAuthRedirectError } from "@/lib/auth/safe-auth-errors";
 import { createClient } from "@/lib/supabase/client";
 
 function AuthCallbackInner() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [message, setMessage] = useState("Signing you in…");
+  const ran = useRef(false);
 
   useEffect(() => {
+    if (ran.current) return;
+    ran.current = true;
+
     let cancelled = false;
 
     async function finish() {
@@ -43,70 +45,46 @@ function AuthCallbackInner() {
         router.replace(`${destination}?error=${error}${from}`);
       };
 
-      if (oauthError) {
-        fail(
-          safeAuthRedirectError(
-            oauthError,
-            "Sign-in could not be completed. Please try again.",
-          ),
-        );
-        return;
-      }
-
       try {
         const supabase = createClient();
 
-        if (code) {
-          // Exchange in the browser so the same cookie store AuthProvider reads
-          // gets the session (server Set-Cookie was not reaching the header UI).
-          const { error } = await supabase.auth.exchangeCodeForSession(code);
-          if (error) {
-            console.error("[auth/callback] exchangeCodeForSession:", error);
-            fail(
-              safeAuthErrorMessage(
-                error,
-                isRecovery
-                  ? "This password reset link is invalid or has expired. Request a new one."
-                  : "Google sign-in could not be completed.",
-              ),
-              isRecovery ? "/forgot-password" : "/sign-in",
-            );
-            return;
-          }
-        } else if (tokenHash && type) {
-          const { error } = await supabase.auth.verifyOtp({
-            type,
-            token_hash: tokenHash,
-          });
-          if (error) {
-            fail(
-              isRecovery
-                ? "This password reset link is invalid or has expired. Request a new one."
-                : "Sign-in could not be completed. Please try again.",
-              isRecovery ? "/forgot-password" : "/error",
-            );
-            return;
-          }
-        } else {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (!user) {
-            fail("Sign-in could not be completed. Please try again.");
-            return;
-          }
-        }
+        const result = await completeOAuthCallback({
+          oauthError,
+          code,
+          tokenHash,
+          type,
+          getSession: async () => {
+            const { data } = await supabase.auth.getSession();
+            return { session: data.session };
+          },
+          exchangeCodeForSession: async (authCode) => {
+            const { data, error } =
+              await supabase.auth.exchangeCodeForSession(authCode);
+            return { session: data.session, error };
+          },
+          verifyOtp: async ({ type: otpType, token_hash }) => {
+            const { data, error } = await supabase.auth.verifyOtp({
+              type: otpType as EmailOtpType,
+              token_hash,
+            });
+            return { session: data.session, error };
+          },
+        });
 
         if (cancelled) return;
 
+        if (result.ok === false) {
+          const failMessage =
+            oauthError != null
+              ? safeAuthRedirectError(oauthError, result.message)
+              : result.message;
+          fail(failMessage, result.destination ?? "/sign-in");
+          return;
+        }
+
         let nextPath = requestedNext;
-        if (requestedNext === "/") {
-          const {
-            data: { user },
-          } = await supabase.auth.getUser();
-          if (user?.app_metadata?.isAdmin) {
-            nextPath = ADMIN_POST_LOGIN_PATH;
-          }
+        if (requestedNext === "/" && result.session.user.app_metadata?.isAdmin) {
+          nextPath = ADMIN_POST_LOGIN_PATH;
         }
 
         setMessage("Signed in. Redirecting…");
@@ -114,9 +92,7 @@ function AuthCallbackInner() {
         router.refresh();
       } catch (error) {
         console.error("[auth/callback] unexpected:", error);
-        fail(
-          safeAuthErrorMessage(error, "Google sign-in could not be completed."),
-        );
+        fail("Google sign-in could not be completed. Please try again.");
       }
     }
 

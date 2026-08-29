@@ -53,6 +53,13 @@ export function safeAuthRedirectError(
   const mapped = normalizeAuthCode({ message: decoded });
   if (mapped) return mapped;
 
+  // Allow our own callback messages through (production used to wipe them all).
+  const allowed =
+    /google sign-in could not be completed|same website address|password reset link|too many|confirm your email|invalid email or password/i.test(
+      decoded,
+    );
+  if (allowed) return decoded;
+
   if (process.env.NODE_ENV !== "production") {
     return decoded;
   }
