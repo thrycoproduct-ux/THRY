@@ -25,7 +25,7 @@ export default async function SignUpPage({ searchParams }: SignUpPageProps) {
             Create account
           </h1>
           <p className="text-sm text-muted-foreground">
-            Join THRY for orders and wishlist
+            One tap with Google, or use email — for orders and wishlist
           </p>
         </div>
       </div>
