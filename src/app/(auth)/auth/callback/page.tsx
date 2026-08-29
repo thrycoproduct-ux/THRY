@@ -9,7 +9,10 @@ import {
   ADMIN_POST_LOGIN_PATH,
   getRedirectFromSearchParams,
 } from "@/lib/auth/redirect";
-import { safeAuthErrorMessage } from "@/lib/auth/safe-auth-errors";
+import {
+  safeAuthErrorMessage,
+  safeAuthRedirectError,
+} from "@/lib/auth/safe-auth-errors";
 import { createClient } from "@/lib/supabase/client";
 
 function AuthCallbackInner() {
@@ -42,7 +45,7 @@ function AuthCallbackInner() {
 
       if (oauthError) {
         fail(
-          safeAuthErrorMessage(
+          safeAuthRedirectError(
             oauthError,
             "Sign-in could not be completed. Please try again.",
           ),
@@ -112,10 +115,7 @@ function AuthCallbackInner() {
       } catch (error) {
         console.error("[auth/callback] unexpected:", error);
         fail(
-          safeAuthErrorMessage(
-            error,
-            "Google sign-in could not be completed.",
-          ),
+          safeAuthErrorMessage(error, "Google sign-in could not be completed."),
         );
       }
     }
