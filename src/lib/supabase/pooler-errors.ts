@@ -43,6 +43,10 @@ function postgresCode(error: unknown): string | undefined {
   return postgresCode(candidate.cause);
 }
 
+export function isUniqueViolation(error: unknown): boolean {
+  return postgresCode(error) === "23505";
+}
+
 /** Map pooler/socket crashes to a retryable admin message. Do not hide validation errors. */
 export function mapProductSaveError(error: unknown): Error {
   if (postgresCode(error) === "23505") {
