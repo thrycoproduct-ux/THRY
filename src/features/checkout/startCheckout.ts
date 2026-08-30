@@ -20,7 +20,10 @@ import {
   ensureRazorpayCheckoutScript,
   openRazorpayCheckout,
   parseRazorpayCheckoutSessionPayload,
+  type RazorpayCheckoutStage,
 } from "@/lib/payments/razorpay-checkout-client";
+import type { CheckoutFunnelEventType } from "@/lib/checkout/checkout-funnel";
+import type { CheckoutTelemetryEventType } from "@/lib/checkout/checkout-outcome";
 
 const DISMISS_POLL_DELAY_MS = 2500;
 const DISMISS_POLL_TIMEOUT_MS = 8000;
@@ -58,19 +61,30 @@ export async function startCheckout({
         reason: classified.reason,
       });
     }
-    if (classified.type === "payment_cancelled") {
+    // Stages already beaconed via onStage; only emit funnel for cancel / session fails.
+    if (
+      classified.type === "payment_cancelled" ||
+      classified.type === "checkout_session_failed" ||
+      classified.type === "verify_failed" ||
+      classified.type === "verify_held"
+    ) {
       reportCheckoutFunnelEvent({
-        type: "payment_cancel",
-        orderId: checkoutContext?.orderId,
-        reason: classified.reason,
-      });
-    } else {
-      reportCheckoutFunnelEvent({
-        type: "checkout_session_fail",
+        type: funnelTypeForCheckoutFailure(classified.type),
         orderId: checkoutContext?.orderId,
         reason: classified.reason,
       });
     }
+  };
+
+  const reportRazorpayStage = (
+    orderId: string,
+    stage: RazorpayCheckoutStage,
+  ) => {
+    reportCheckoutFunnelEvent({
+      type: stage.type as CheckoutFunnelEventType,
+      orderId,
+      reason: stage.reason ?? null,
+    });
   };
 
   onProgress?.(creatingOrderProgress());
@@ -148,6 +162,9 @@ export async function startCheckout({
               type: "payment_open",
               orderId: session.orderId,
             });
+          },
+          onStage: (stage) => {
+            reportRazorpayStage(session.orderId, stage);
           },
         });
       } catch (dismissError) {
@@ -293,4 +310,21 @@ async function pollOrderPaidStatus(
     }
   }
   return false;
+}
+
+function funnelTypeForCheckoutFailure(
+  type: CheckoutTelemetryEventType,
+): CheckoutFunnelEventType {
+  switch (type) {
+    case "payment_cancelled":
+      return "payment_cancel";
+    case "payment_failed":
+      return "payment_failed";
+    case "razorpay_script_failed":
+      return "rzp_script_fail";
+    case "razorpay_open_timeout":
+      return "rzp_open_timeout";
+    default:
+      return "checkout_session_fail";
+  }
 }

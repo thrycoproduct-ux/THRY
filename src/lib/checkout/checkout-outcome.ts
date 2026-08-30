@@ -6,6 +6,7 @@ export const CHECKOUT_TELEMETRY_EVENT_TYPES = [
   "payment_cancelled",
   "payment_failed",
   "razorpay_script_failed",
+  "razorpay_open_timeout",
   "verify_failed",
   "verify_held",
   "payment_confirmed",
@@ -117,6 +118,7 @@ function outcomeFromTelemetryEvent(
         detail: reason ?? "Customer closed the Razorpay window.",
       };
     case "razorpay_script_failed":
+    case "razorpay_open_timeout":
     case "checkout_session_failed":
     case "verify_failed":
     case "verify_held":
@@ -165,9 +167,10 @@ export function resolveCheckoutOutcome(input: {
   const razorpayPaymentStatus = String(
     meta.razorpayPaymentStatus ?? "",
   ).toLowerCase();
-  const razorpayOrderStatus = String(meta.razorpayOrderStatus ?? "").toLowerCase();
-  const failureReason =
-    String(meta.razorpayFailureReason ?? "").trim() || null;
+  const razorpayOrderStatus = String(
+    meta.razorpayOrderStatus ?? "",
+  ).toLowerCase();
+  const failureReason = String(meta.razorpayFailureReason ?? "").trim() || null;
 
   if (razorpayPaymentStatus === "failed") {
     return {
@@ -212,8 +215,12 @@ export function classifyCheckoutError(err: unknown): {
     return { type: "payment_cancelled", reason: message };
   }
 
+  if (/payment window did not open/i.test(message)) {
+    return { type: "razorpay_open_timeout", reason: message };
+  }
+
   if (
-    /razorpay checkout script failed|razorpay sdk did not initialize/i.test(
+    /razorpay checkout script failed|razorpay sdk did not initialize|razorpay checkout is taking too long/i.test(
       message,
     )
   ) {

@@ -8,7 +8,12 @@ export type ClarityFunnelEvent =
   | "checkout_address_open"
   | "checkout_session_ok"
   | "checkout_session_fail"
+  | "rzp_script_ok"
+  | "rzp_script_fail"
   | "payment_open"
+  | "rzp_open_timeout"
+  | "rzp_modal_dwell_ms"
+  | "payment_failed"
   | "payment_cancel"
   | "payment_paid";
 

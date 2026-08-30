@@ -305,15 +305,58 @@ function isRazorpayModalVisible(): boolean {
   );
 }
 
+/** Sub-stages for WHERE (Clarity + funnel beacons). Not a fake gpay_opened. */
+export type RazorpayCheckoutStageType =
+  | "rzp_script_ok"
+  | "rzp_script_fail"
+  | "rzp_open_timeout"
+  | "rzp_modal_dwell_ms"
+  | "payment_failed";
+
+export type RazorpayCheckoutStage = {
+  type: RazorpayCheckoutStageType;
+  reason?: string | null;
+};
+
+/** Dwell from modal open → settle; null if modal never opened. */
+export function computeRazorpayModalDwellMs(
+  openedAtMs: number | null,
+  endedAtMs: number,
+): number | null {
+  if (openedAtMs == null || !Number.isFinite(openedAtMs)) return null;
+  if (!Number.isFinite(endedAtMs) || endedAtMs < openedAtMs) return null;
+  return Math.round(endedAtMs - openedAtMs);
+}
+
+/** Long dwell + cancel/unpaid ≈ stuck overlay or UPI Intent leave without pay. */
+export function isLongRazorpayModalDwell(dwellMs: number | null): boolean {
+  return dwellMs != null && dwellMs >= 20_000;
+}
+
 export async function openRazorpayCheckout(params: {
   payload: RazorpayCheckoutSessionPayload;
   onDismiss?: () => void;
   onOpened?: () => void;
+  onStage?: (stage: RazorpayCheckoutStage) => void;
 }): Promise<RazorpayHandlerResponse> {
-  await ensureRazorpayCheckoutScript();
+  try {
+    await ensureRazorpayCheckoutScript();
+    params.onStage?.({ type: "rzp_script_ok" });
+  } catch (error) {
+    const reason =
+      error instanceof Error
+        ? error.message.slice(0, 500)
+        : "Razorpay checkout script failed.";
+    params.onStage?.({ type: "rzp_script_fail", reason });
+    throw error;
+  }
 
   const RazorpayCtor = getRazorpayCtor();
   if (!RazorpayCtor) {
+    params.onStage?.({
+      type: "rzp_script_fail",
+      reason: "Razorpay SDK did not initialize.",
+    });
     throw new Error("Razorpay SDK did not initialize.");
   }
 
@@ -323,11 +366,21 @@ export async function openRazorpayCheckout(params: {
 
   return new Promise((resolve, reject) => {
     let settled = false;
+    let openedAtMs: number | null = null;
     const timers: {
       poll?: ReturnType<typeof window.setInterval> | number;
       open?: ReturnType<typeof window.setTimeout> | number;
       hide?: ReturnType<typeof window.setTimeout> | number;
     } = {};
+
+    const emitDwell = () => {
+      const dwellMs = computeRazorpayModalDwellMs(openedAtMs, Date.now());
+      if (dwellMs == null) return;
+      params.onStage?.({
+        type: "rzp_modal_dwell_ms",
+        reason: String(dwellMs),
+      });
+    };
 
     const settle = (fn: () => void) => {
       if (settled) return;
@@ -336,6 +389,7 @@ export async function openRazorpayCheckout(params: {
       if (timers.open !== undefined) window.clearTimeout(timers.open);
       if (timers.hide !== undefined) window.clearTimeout(timers.hide);
       stopHostGuard();
+      emitDwell();
       fn();
     };
 
@@ -379,15 +433,16 @@ export async function openRazorpayCheckout(params: {
               (response.error as { description?: string }).description ?? "",
             )
           : "";
-      settle(() =>
-        reject(new Error(description || "Razorpay payment failed.")),
-      );
+      const reason = (description || "Razorpay payment failed.").slice(0, 500);
+      params.onStage?.({ type: "payment_failed", reason });
+      settle(() => reject(new Error(reason)));
     });
 
     let openedAnnounced = false;
     const announceOpened = () => {
       if (settled || openedAnnounced) return;
       openedAnnounced = true;
+      openedAtMs = Date.now();
       if (timers.poll !== undefined) window.clearInterval(timers.poll);
       if (timers.hide !== undefined) window.clearTimeout(timers.hide);
       timers.poll = undefined;
@@ -437,6 +492,10 @@ export async function openRazorpayCheckout(params: {
         announceOpened();
         return;
       }
+      params.onStage?.({
+        type: "rzp_open_timeout",
+        reason: `timeout_${MODAL_OPEN_TIMEOUT_MS}`,
+      });
       settle(() =>
         reject(
           new Error("Payment window did not open. Please retry checkout."),
