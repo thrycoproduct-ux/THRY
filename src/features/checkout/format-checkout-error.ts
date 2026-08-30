@@ -13,7 +13,7 @@ export function formatCheckoutErrorMessage(err: unknown): string {
   if (!message) return "Please try again.";
 
   if (isCheckoutPaymentCancelled(message)) {
-    return "You can try again when ready.";
+    return "No charge was completed. Tap Check out again when ready — your cart is still here.";
   }
 
   if (/does not match registered website/i.test(message)) {

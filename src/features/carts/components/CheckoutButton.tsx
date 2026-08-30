@@ -31,6 +31,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useCheckoutChrome } from "@/providers/CheckoutChromeProvider";
 import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
+import { reportCheckoutFunnelEvent } from "@/lib/checkout/report-checkout-funnel-event.client";
 
 export const CART_DELIVERY_PINCODE_INPUT_ID = "cart-delivery-pincode";
 
@@ -105,8 +106,7 @@ function CheckoutButton({
     [order],
   );
 
-  const pinBlocked =
-    requireDeliveryStateSelection && !hasDeliveryStateSelected;
+  const pinBlocked = requireDeliveryStateSelection && !hasDeliveryStateSelected;
   const sizeBlocked = missingSizeProductNames.length > 0;
 
   const accountDefaults = useMemo(
@@ -144,11 +144,17 @@ function CheckoutButton({
     } catch (err) {
       clearProgress();
       if (isCheckoutPaymentCancelled(err)) {
+        reportCheckoutFunnelEvent({ type: "payment_cancel" });
         toast({
           title: "Payment not completed",
-          description: "You can try again when ready.",
+          description:
+            "No charge was completed. Tap Check out again when you are ready — your cart is still here.",
         });
       } else {
+        reportCheckoutFunnelEvent({
+          type: "checkout_session_fail",
+          reason: formatCheckoutErrorMessage(err),
+        });
         toast({
           title: "Checkout failed",
           description: formatCheckoutErrorMessage(err),
@@ -170,7 +176,9 @@ function CheckoutButton({
         className={cn("w-full", props.className)}
         onClick={async () => {
           if (isLocked) return;
+          reportCheckoutFunnelEvent({ type: "checkout_click" });
           if (pinBlocked) {
+            reportCheckoutFunnelEvent({ type: "checkout_pin_blocked" });
             focusCartDeliveryPincode();
             toast({
               title: "Enter delivery PIN",
@@ -180,6 +188,7 @@ function CheckoutButton({
             return;
           }
           if (sizeBlocked) {
+            reportCheckoutFunnelEvent({ type: "checkout_size_blocked" });
             focusFirstIncompleteCartLine();
             toast({
               title: "Select option in cart",
@@ -232,6 +241,7 @@ function CheckoutButton({
           ) {
             saveCheckoutAddressDraft(cartAddressDefaults);
           }
+          reportCheckoutFunnelEvent({ type: "checkout_address_open" });
           setOpen(true);
         }}
         disabled={

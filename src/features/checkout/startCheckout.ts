@@ -10,6 +10,7 @@ import {
 } from "@/features/checkout/checkout-progress";
 import { classifyCheckoutError } from "@/lib/checkout/checkout-outcome";
 import { reportCheckoutEvent } from "@/lib/checkout/report-checkout-event.client";
+import { reportCheckoutFunnelEvent } from "@/lib/checkout/report-checkout-funnel-event.client";
 import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
 import {
   openCashfreeCheckout,
@@ -21,8 +22,9 @@ import {
   parseRazorpayCheckoutSessionPayload,
 } from "@/lib/payments/razorpay-checkout-client";
 
-const DISMISS_POLL_DELAY_MS = 3000;
+const DISMISS_POLL_DELAY_MS = 2500;
 const DISMISS_POLL_TIMEOUT_MS = 8000;
+const DISMISS_POLL_ATTEMPTS = 3;
 
 type StartCheckoutParams = {
   order: CartItems;
@@ -47,14 +49,28 @@ export async function startCheckout({
   } | null = null;
 
   const reportFailure = (err: unknown) => {
-    if (!checkoutContext) return;
     const classified = classifyCheckoutError(err);
-    reportCheckoutEvent({
-      orderId: checkoutContext.orderId,
-      accessToken: checkoutContext.accessToken,
-      type: classified.type,
-      reason: classified.reason,
-    });
+    if (checkoutContext) {
+      reportCheckoutEvent({
+        orderId: checkoutContext.orderId,
+        accessToken: checkoutContext.accessToken,
+        type: classified.type,
+        reason: classified.reason,
+      });
+    }
+    if (classified.type === "payment_cancelled") {
+      reportCheckoutFunnelEvent({
+        type: "payment_cancel",
+        orderId: checkoutContext?.orderId,
+        reason: classified.reason,
+      });
+    } else {
+      reportCheckoutFunnelEvent({
+        type: "checkout_session_fail",
+        orderId: checkoutContext?.orderId,
+        reason: classified.reason,
+      });
+    }
   };
 
   onProgress?.(creatingOrderProgress());
@@ -83,7 +99,16 @@ export async function startCheckout({
     if (!res.ok) {
       const payload = (await res.json().catch(() => null)) as {
         message?: string;
+        orderId?: string;
+        accessToken?: string | null;
       } | null;
+      const failedOrderId = String(payload?.orderId ?? "").trim();
+      if (failedOrderId) {
+        checkoutContext = {
+          orderId: failedOrderId,
+          accessToken: payload?.accessToken ?? null,
+        };
+      }
       const message = payload?.message || "Checkout failed";
       throw new Error(message);
     }
@@ -97,6 +122,10 @@ export async function startCheckout({
         orderId: session.orderId,
         accessToken: session.accessToken ?? null,
       };
+      reportCheckoutFunnelEvent({
+        type: "checkout_session_ok",
+        orderId: session.orderId,
+      });
       onProgress?.(openingPaymentProgress("razorpay"));
 
       let razorpayResult: {
@@ -115,6 +144,10 @@ export async function startCheckout({
               accessToken: session.accessToken ?? null,
               type: "razorpay_modal_opened",
             });
+            reportCheckoutFunnelEvent({
+              type: "payment_open",
+              orderId: session.orderId,
+            });
           },
         });
       } catch (dismissError) {
@@ -122,12 +155,23 @@ export async function startCheckout({
           dismissError instanceof Error &&
           /cancelled/i.test(dismissError.message)
         ) {
-          // UPI may still be processing — wait briefly then check server status
+          // UPI may still be processing — poll a few times before treating as cancel.
           const isPaid = await pollOrderPaidStatus(
             session.orderId,
             session.accessToken ?? null,
           );
           if (isPaid) {
+            reportCheckoutFunnelEvent({
+              type: "payment_paid",
+              orderId: session.orderId,
+              reason: "paid_after_dismiss_poll",
+            });
+            reportCheckoutEvent({
+              orderId: session.orderId,
+              accessToken: session.accessToken ?? null,
+              type: "payment_confirmed",
+              reason: "paid_after_dismiss_poll",
+            });
             const redirect = session.accessToken
               ? `/orders/${session.orderId}?token=${encodeURIComponent(session.accessToken)}`
               : `/orders/${session.orderId}`;
@@ -173,6 +217,10 @@ export async function startCheckout({
         accessToken: session.accessToken ?? null,
         type: "payment_confirmed",
       });
+      reportCheckoutFunnelEvent({
+        type: "payment_paid",
+        orderId: session.orderId,
+      });
       const redirect =
         String(verifyPayload?.redirect ?? "").trim() ||
         (session.accessToken
@@ -185,6 +233,10 @@ export async function startCheckout({
     if (payload.provider === "cashfree") {
       onProgress?.(preparingPaymentProgress());
       const session = parseCashfreeCheckoutSessionPayload(payload);
+      reportCheckoutFunnelEvent({
+        type: "checkout_session_ok",
+        orderId: session.orderId,
+      });
       onProgress?.(openingPaymentProgress("cashfree"));
       openCashfreeCheckout({ payload: session });
       return;
@@ -192,8 +244,15 @@ export async function startCheckout({
 
     if (payload.provider === "phonepe") {
       const redirectUrl = String(payload.redirectUrl ?? "").trim();
+      const orderId = String(payload.orderId ?? "").trim();
       if (!redirectUrl) {
         throw new Error("PhonePe checkout could not be started.");
+      }
+      if (orderId) {
+        reportCheckoutFunnelEvent({
+          type: "checkout_session_ok",
+          orderId,
+        });
       }
       onProgress?.(openingPaymentProgress("phonepe"));
       window.location.assign(redirectUrl);
@@ -208,27 +267,30 @@ export async function startCheckout({
 }
 
 /**
- * After Razorpay modal dismiss, wait briefly and check if a background
- * webhook/recovery already marked the order paid (common UPI scenario).
+ * After Razorpay modal dismiss, poll a few times — UPI often confirms via
+ * webhook after the shopper closes the modal.
  */
 async function pollOrderPaidStatus(
   orderId: string,
   accessToken: string | null,
 ): Promise<boolean> {
-  await new Promise((r) => setTimeout(r, DISMISS_POLL_DELAY_MS));
-  try {
-    const params = new URLSearchParams({ orderId });
-    if (accessToken) params.set("token", accessToken);
-    const res = await fetchWithTimeout(
-      `/api/orders/payment-status?${params.toString()}`,
-      { method: "GET", timeoutMs: DISMISS_POLL_TIMEOUT_MS },
-    );
-    if (!res.ok) return false;
-    const data = (await res.json().catch(() => null)) as {
-      isPaid?: boolean;
-    } | null;
-    return data?.isPaid === true;
-  } catch {
-    return false;
+  for (let attempt = 0; attempt < DISMISS_POLL_ATTEMPTS; attempt += 1) {
+    await new Promise((r) => setTimeout(r, DISMISS_POLL_DELAY_MS));
+    try {
+      const params = new URLSearchParams({ orderId });
+      if (accessToken) params.set("token", accessToken);
+      const res = await fetchWithTimeout(
+        `/api/orders/payment-status?${params.toString()}`,
+        { method: "GET", timeoutMs: DISMISS_POLL_TIMEOUT_MS },
+      );
+      if (!res.ok) continue;
+      const data = (await res.json().catch(() => null)) as {
+        isPaid?: boolean;
+      } | null;
+      if (data?.isPaid === true) return true;
+    } catch {
+      // try again
+    }
   }
+  return false;
 }

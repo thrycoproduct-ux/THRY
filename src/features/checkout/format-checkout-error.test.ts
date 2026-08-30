@@ -36,8 +36,8 @@ describe("formatCheckoutErrorMessage", () => {
     expect(isCheckoutPaymentCancelled(new Error("Payment cancelled."))).toBe(
       true,
     );
-    expect(formatCheckoutErrorMessage(new Error("Payment cancelled."))).toBe(
-      "You can try again when ready.",
+    expect(formatCheckoutErrorMessage(new Error("Payment cancelled."))).toMatch(
+      /cart is still here/i,
     );
   });
 

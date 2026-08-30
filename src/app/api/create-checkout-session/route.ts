@@ -1,4 +1,5 @@
 import { publicErrorMessage } from "@/lib/api/public-error";
+import { appendCheckoutTelemetryEvent } from "@/lib/checkout/checkout-telemetry";
 import { createOrderAccessToken } from "@/lib/auth/order-access-token";
 import { checkCheckoutRateLimit, getRequestIp } from "@/lib/auth/rate-limit";
 import {
@@ -676,10 +677,27 @@ export async function POST(request: Request) {
       }).catch((releaseErr) => {
         console.error("[checkout] stock release failed:", releaseErr);
       });
+      await appendCheckoutTelemetryEvent({
+        orderId: createdOrderId,
+        type: "checkout_session_failed",
+        reason:
+          err instanceof Error
+            ? err.message.slice(0, 500)
+            : "Checkout initiation failed.",
+        source: "server",
+      }).catch((telemetryErr) => {
+        console.warn("[checkout] telemetry on fail:", telemetryErr);
+      });
     }
 
     if (err instanceof StockReservationError) {
-      return NextResponse.json({ message: err.message }, { status: 409 });
+      return NextResponse.json(
+        {
+          message: err.message,
+          ...(createdOrderId ? { orderId: createdOrderId } : {}),
+        },
+        { status: 409 },
+      );
     }
 
     console.error("[checkout] create-checkout-session failed:", err);
@@ -689,6 +707,7 @@ export async function POST(request: Request) {
           err,
           "Checkout initiation failed. Please retry.",
         ),
+        ...(createdOrderId ? { orderId: createdOrderId } : {}),
       },
       { status: 500 },
     );

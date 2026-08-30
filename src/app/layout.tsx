@@ -10,6 +10,7 @@ import {
 import { getURL } from "@/lib/utils";
 import CustomProvider from "../providers/CustomProvider";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";
+import { ClaritySpaTracker } from "@/components/analytics/ClaritySpaTracker";
 import { WebViewErrorNoiseFilter } from "@/components/analytics/WebViewErrorNoiseFilter";
 
 const siteUrl = getURL();
@@ -105,6 +106,7 @@ export default function RootLayout({
           <Toaster />
           <WebViewErrorNoiseFilter />
           <MicrosoftClarity />
+          <ClaritySpaTracker />
         </body>
       </CustomProvider>
     </html>
