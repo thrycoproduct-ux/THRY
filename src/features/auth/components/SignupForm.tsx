@@ -157,7 +157,6 @@ export function SignUpForm({ initialEmail = "", from }: SignupFormProps) {
             />
           )}
           Create account
-          <span className="sr-only">Create your THRY account</span>
         </Button>
       </form>
     </Form>

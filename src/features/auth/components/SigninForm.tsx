@@ -173,7 +173,6 @@ export function SignInForm({
             <Spinner className="mr-2 h-4 w-4 animate-spin" aria-hidden="true" />
           )}
           Sign in
-          <span className="sr-only">Sign in</span>
         </Button>
       </form>
     </Form>
