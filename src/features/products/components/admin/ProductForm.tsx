@@ -44,7 +44,12 @@ import {
   SelectProducts,
   products,
 } from "@/lib/supabase/schema";
-import { DIGITAL_UPLOAD_LIMIT_MB } from "@/lib/products/digital-product";
+import {
+  DIGITAL_UPLOAD_LIMIT_MB,
+  DIGITAL_ZIP_CONTENT_TYPE,
+  assertDigitalUploadLimits,
+  formatDigitalUploadNetworkError,
+} from "@/lib/products/digital-product";
 import { MAX_PRODUCT_IMAGES } from "@/lib/admin/product-gallery-shared";
 import { X } from "lucide-react";
 import {
@@ -691,6 +696,11 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
   const uploadDigitalSoftwareFile = async (file: File) => {
     setDigitalUploading(true);
     try {
+      assertDigitalUploadLimits({
+        fileName: file.name,
+        fileSize: file.size,
+      });
+
       const initRes = await fetchWithTimeout(
         "/api/admin/products/digital-file/init",
         {
@@ -698,7 +708,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
             fileName: file.name,
-            contentType: file.type || "application/octet-stream",
+            contentType: DIGITAL_ZIP_CONTENT_TYPE,
             fileSize: file.size,
           }),
         },
@@ -715,12 +725,22 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
         );
       }
 
-      const putRes = await fetch(initBody.uploadUrl, {
-        method: "PUT",
-        body: file,
-      });
+      let putRes: Response;
+      try {
+        putRes = await fetch(initBody.uploadUrl, {
+          method: "PUT",
+          headers: {
+            "Content-Type": DIGITAL_ZIP_CONTENT_TYPE,
+          },
+          body: file,
+        });
+      } catch (networkError) {
+        throw new Error(formatDigitalUploadNetworkError(networkError));
+      }
       if (!putRes.ok) {
-        throw new Error("Software upload failed. Please retry.");
+        throw new Error(
+          `Software upload failed (${putRes.status}). Please retry.`,
+        );
       }
 
       const completeRes = await fetchWithTimeout(
@@ -731,7 +751,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
           body: JSON.stringify({
             key: initBody.key,
             fileName: file.name,
-            contentType: file.type || "application/octet-stream",
+            contentType: DIGITAL_ZIP_CONTENT_TYPE,
             fileSize: file.size,
           }),
         },
@@ -753,7 +773,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
         key: completeBody.key,
         fileName: completeBody.fileName || file.name,
         fileSize: completeBody.fileSize || file.size,
-        contentType: completeBody.contentType || "application/octet-stream",
+        contentType: completeBody.contentType || DIGITAL_ZIP_CONTENT_TYPE,
       });
       toast({
         title: "Software file uploaded",
@@ -762,7 +782,10 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
     } catch (error) {
       toast({
         title: "Software upload failed",
-        description: error instanceof Error ? error.message : "Please retry.",
+        description:
+          error instanceof Error
+            ? formatDigitalUploadNetworkError(error)
+            : "Please retry.",
         variant: "destructive",
       });
     } finally {
@@ -1610,7 +1633,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
                 ref={digitalFileInputRef}
                 type="file"
                 className="hidden"
-                accept=".zip,.rar,.7z,.gz,.tar,.exe,.msi,.dmg,.pkg,.apk,.ipa,.pdf,.epub,.mp4,.mov"
+                accept=".zip,application/zip,application/x-zip-compressed"
                 onChange={(event) => {
                   const file = event.target.files?.[0];
                   if (file) void uploadDigitalSoftwareFile(file);
@@ -1638,7 +1661,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
                   </p>
                 ) : (
                   <p className="text-sm text-muted-foreground">
-                    Zip, installer, or PDF up to {DIGITAL_UPLOAD_LIMIT_MB} MB.
+                    Zip only, up to {DIGITAL_UPLOAD_LIMIT_MB} MB.
                   </p>
                 )}
               </div>

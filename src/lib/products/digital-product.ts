@@ -1,26 +1,12 @@
 export const DIGITAL_FILE_PREFIX = "digital/files/";
-export const DIGITAL_UPLOAD_LIMIT_MB = 80;
+/** Matches Shopify 3D media ceiling; single R2 PUT stays reliable under this. */
+export const DIGITAL_UPLOAD_LIMIT_MB = 500;
 export const DIGITAL_UPLOAD_LIMIT_BYTES = DIGITAL_UPLOAD_LIMIT_MB * 1024 * 1024;
 export const DIGITAL_DOWNLOAD_URL_TTL_SEC = 90;
+export const DIGITAL_UPLOAD_URL_TTL_SEC = 60 * 60;
+export const DIGITAL_ZIP_CONTENT_TYPE = "application/zip";
 
-const ALLOWED_EXTENSIONS = new Set([
-  "zip",
-  "rar",
-  "7z",
-  "gz",
-  "tar",
-  "tgz",
-  "exe",
-  "msi",
-  "dmg",
-  "pkg",
-  "apk",
-  "ipa",
-  "pdf",
-  "epub",
-  "mp4",
-  "mov",
-]);
+const ALLOWED_EXTENSIONS = new Set(["zip"]);
 
 const BLOCKED_EXTENSIONS = new Set([
   "html",
@@ -31,6 +17,8 @@ const BLOCKED_EXTENSIONS = new Set([
   "svg",
   "php",
 ]);
+
+const ZIP_ONLY_ERROR = "Upload a .zip file only (up to 500 MB).";
 
 export type DigitalFileMeta = {
   key: string;
@@ -73,9 +61,7 @@ export function sanitizeDownloadFileName(fileName: string): string {
 export function buildDigitalObjectKey(fileName: string): string {
   const ext = sanitizeDigitalExtension(fileName);
   if (!ext) {
-    throw new Error(
-      "Upload a software file (zip, rar, 7z, exe, msi, dmg, apk, pdf).",
-    );
+    throw new Error(ZIP_ONLY_ERROR);
   }
   const id = crypto.randomUUID().replace(/-/g, "");
   return `${DIGITAL_FILE_PREFIX}${id}.${ext}`;
@@ -91,7 +77,7 @@ export function isValidDigitalObjectKey(key: string): boolean {
   ) {
     return false;
   }
-  return /^digital\/files\/[A-Za-z0-9_-]+\.[a-z0-9]+$/i.test(trimmed);
+  return /^digital\/files\/[A-Za-z0-9_-]+\.zip$/i.test(trimmed);
 }
 
 export function assertDigitalUploadLimits(params: {
@@ -103,14 +89,12 @@ export function assertDigitalUploadLimits(params: {
   }
   if (params.fileSize > DIGITAL_UPLOAD_LIMIT_BYTES) {
     throw new Error(
-      `Digital file must be ${DIGITAL_UPLOAD_LIMIT_MB} MB or smaller.`,
+      `Zip file must be ${DIGITAL_UPLOAD_LIMIT_MB} MB or smaller.`,
     );
   }
   const ext = sanitizeDigitalExtension(params.fileName);
   if (!ext) {
-    throw new Error(
-      "Upload a software file (zip, rar, 7z, exe, msi, dmg, apk, pdf).",
-    );
+    throw new Error(ZIP_ONLY_ERROR);
   }
   return { ext };
 }
@@ -157,7 +141,7 @@ export function resolveDigitalProductFields(input: {
   }
 
   const contentType =
-    String(input.digitalContentType ?? "").trim() || "application/octet-stream";
+    String(input.digitalContentType ?? "").trim() || DIGITAL_ZIP_CONTENT_TYPE;
 
   return {
     isDigital: true,
@@ -166,6 +150,19 @@ export function resolveDigitalProductFields(input: {
     digitalFileSize: fileSize,
     digitalContentType: contentType.slice(0, 120),
   };
+}
+
+/** Map browser/network PUT failures (Safari CORS) to an actionable message. */
+export function formatDigitalUploadNetworkError(error: unknown): string {
+  const message = error instanceof Error ? error.message : String(error ?? "");
+  if (
+    /load failed|failed to fetch|networkerror|network request failed|cors/i.test(
+      message,
+    )
+  ) {
+    return "Could not reach file storage from this browser (often R2 CORS or network). Retry, or use Chrome. If it keeps failing, check Cloudflare R2 bucket CORS for thryco.com.";
+  }
+  return message.trim() || "Please retry.";
 }
 
 export function physicalQuantityForShipping(

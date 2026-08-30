@@ -1,11 +1,17 @@
 [
   {
+    "id": "thry-admin-digital-upload",
     "AllowedOrigins": [
       "http://localhost:3000",
-      "http://127.0.0.1:3000"
+      "http://127.0.0.1:3000",
+      "https://thryco.com",
+      "https://www.thryco.com",
+      "https://thry-thryco.vercel.app",
+      "https://thry-self.vercel.app",
+      "https://thry.thrycoproduct.workers.dev"
     ],
     "AllowedMethods": ["GET", "PUT", "HEAD"],
-    "AllowedHeaders": ["Content-Type", "Authorization"],
+    "AllowedHeaders": ["Content-Type", "Content-Length", "Authorization"],
     "ExposeHeaders": ["ETag"],
     "MaxAgeSeconds": 86400
   }

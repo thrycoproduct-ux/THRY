@@ -1,6 +1,9 @@
 import {
+  DIGITAL_UPLOAD_LIMIT_BYTES,
+  DIGITAL_UPLOAD_LIMIT_MB,
   assertDigitalUploadLimits,
   canDownloadPaidDigital,
+  formatDigitalUploadNetworkError,
   isValidDigitalObjectKey,
   physicalQuantityForShipping,
   resolveDigitalProductFields,
@@ -8,13 +11,49 @@ import {
 } from "./digital-product";
 
 describe("digital product files", () => {
-  it("accepts zip uploads and rejects html", () => {
+  it("accepts zip uploads and rejects other formats", () => {
     expect(
       assertDigitalUploadLimits({ fileName: "app.zip", fileSize: 10 }).ext,
     ).toBe("zip");
     expect(() =>
       assertDigitalUploadLimits({ fileName: "page.html", fileSize: 10 }),
-    ).toThrow(/software file/i);
+    ).toThrow(/zip/i);
+    expect(() =>
+      assertDigitalUploadLimits({ fileName: "pack.rar", fileSize: 10 }),
+    ).toThrow(/zip/i);
+    expect(() =>
+      assertDigitalUploadLimits({ fileName: "setup.exe", fileSize: 10 }),
+    ).toThrow(/zip/i);
+    expect(() =>
+      assertDigitalUploadLimits({ fileName: "guide.pdf", fileSize: 10 }),
+    ).toThrow(/zip/i);
+  });
+
+  it(`allows up to ${DIGITAL_UPLOAD_LIMIT_MB} MB and rejects larger`, () => {
+    expect(() =>
+      assertDigitalUploadLimits({
+        fileName: "model.zip",
+        fileSize: DIGITAL_UPLOAD_LIMIT_BYTES,
+      }),
+    ).not.toThrow();
+    expect(() =>
+      assertDigitalUploadLimits({
+        fileName: "model.zip",
+        fileSize: DIGITAL_UPLOAD_LIMIT_BYTES + 1,
+      }),
+    ).toThrow(/500 MB/i);
+  });
+
+  it("maps Safari Load failed to a CORS-friendly message", () => {
+    expect(
+      formatDigitalUploadNetworkError(new Error("Load failed")),
+    ).toMatch(/R2 CORS/i);
+    expect(
+      formatDigitalUploadNetworkError(new Error("Failed to fetch")),
+    ).toMatch(/R2 CORS/i);
+    expect(
+      formatDigitalUploadNetworkError(new Error("Zip file must be 500 MB")),
+    ).toBe("Zip file must be 500 MB");
   });
 
   it("only allows digital/files keys", () => {

@@ -119,20 +119,47 @@ export type PutObjectParams = {
   CacheControl?: string;
 };
 
-/** Browser staging upload — S3 presigned PUT (no Content-Type in signature). */
+/** Browser staging upload — S3/R2 presigned PUT. */
 export async function createPresignedPutUrl(params: {
   key: string;
   contentType: string;
   expiresInSeconds?: number;
+  /**
+   * When set, Content-Type + Content-Length are signed so the browser PUT
+   * must match (digital zip uploads). Omit for image staging (unsigned headers).
+   */
+  contentLength?: number;
   auth?: MediaWriteAuth;
 }) {
   await assertMediaWriteAuth(params.auth ?? "admin-session");
   const expires = params.expiresInSeconds ?? 60 * 10;
   const url = `${objectUrl(params.key)}?X-Amz-Expires=${expires}`;
 
+  const signContentHeaders =
+    typeof params.contentLength === "number" &&
+    Number.isFinite(params.contentLength) &&
+    params.contentLength > 0;
+
+  if (!signContentHeaders) {
+    const signed = await getAwsClient().sign(url, {
+      method: "PUT",
+      aws: { signQuery: true },
+    });
+    return String(signed.url);
+  }
+
+  const headers: Record<string, string> = {
+    "Content-Type": params.contentType || "application/octet-stream",
+    "Content-Length": String(Math.round(params.contentLength!)),
+  };
+
   const signed = await getAwsClient().sign(url, {
     method: "PUT",
-    aws: { signQuery: true },
+    headers,
+    aws: {
+      signQuery: true,
+      allHeaders: true,
+    },
   });
 
   return String(signed.url);

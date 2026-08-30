@@ -1,6 +1,8 @@
 import { publicErrorMessage } from "@/lib/api/public-error";
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
 import {
+  DIGITAL_UPLOAD_URL_TTL_SEC,
+  DIGITAL_ZIP_CONTENT_TYPE,
   assertDigitalUploadLimits,
   buildDigitalObjectKey,
   sanitizeDownloadFileName,
@@ -37,12 +39,12 @@ export async function POST(request: NextRequest) {
     });
 
     const key = buildDigitalObjectKey(parsed.data.fileName);
-    const contentType =
-      parsed.data.contentType?.trim() || "application/octet-stream";
+    const contentType = DIGITAL_ZIP_CONTENT_TYPE;
     const uploadUrl = await createPresignedPutUrl({
       key,
       contentType,
-      expiresInSeconds: 60 * 15,
+      contentLength: parsed.data.fileSize,
+      expiresInSeconds: DIGITAL_UPLOAD_URL_TTL_SEC,
     });
 
     return NextResponse.json(
@@ -50,6 +52,8 @@ export async function POST(request: NextRequest) {
         key,
         uploadUrl,
         fileName: sanitizeDownloadFileName(parsed.data.fileName),
+        contentType,
+        fileSize: parsed.data.fileSize,
       },
       { status: 201 },
     );

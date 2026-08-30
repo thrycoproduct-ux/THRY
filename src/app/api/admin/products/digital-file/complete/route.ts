@@ -2,6 +2,7 @@ import { publicErrorMessage } from "@/lib/api/public-error";
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
 import {
   DIGITAL_UPLOAD_LIMIT_BYTES,
+  DIGITAL_ZIP_CONTENT_TYPE,
   assertDigitalUploadLimits,
   isValidDigitalObjectKey,
   sanitizeDownloadFileName,
@@ -60,7 +61,7 @@ export async function POST(request: NextRequest) {
       contentType:
         parsed.data.contentType?.trim() ||
         stat.contentType ||
-        "application/octet-stream",
+        DIGITAL_ZIP_CONTENT_TYPE,
     });
   } catch (error) {
     console.error("[digital-file/complete] failed:", error);
