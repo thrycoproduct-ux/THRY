@@ -36,6 +36,15 @@ type SignInFormProps = {
   error?: string;
 };
 
+function buildSignUpHref(email: string, nextPath?: string) {
+  const params = new URLSearchParams();
+  const trimmed = email.trim();
+  if (trimmed) params.set("email", trimmed);
+  if (nextPath) params.set("from", nextPath);
+  const qs = params.toString();
+  return qs ? `/sign-up?${qs}` : "/sign-up";
+}
+
 export function SignInForm({
   initialEmail = "",
   nextPath,
@@ -45,6 +54,7 @@ export function SignInForm({
   const { toast } = useToast();
   const supabase = createClient();
   const [isPending, startTransition] = React.useTransition();
+  const [loginHint, setLoginHint] = React.useState<string | null>(null);
 
   const form = useForm<FormData>({
     resolver: zodResolver(authSchema),
@@ -68,21 +78,24 @@ export function SignInForm({
 
   function onSubmit({ email, password }: FormData) {
     startTransition(async () => {
+      setLoginHint(null);
       const { error: signInError } = await supabase.auth.signInWithPassword({
         email,
         password,
       });
 
       if (signInError) {
+        const description = safeAuthErrorMessage(
+          signInError,
+          "Sign-in failed. Check your email and password.",
+        );
+        setLoginHint(description);
         toast({
-          title: "Error",
-          description: safeAuthErrorMessage(
-            signInError,
-            "Sign-in failed. Check your email and password.",
-          ),
+          title: "Could not sign in",
+          description,
         });
       } else {
-        toast({ title: "Login Sucess" });
+        toast({ title: "Signed in" });
         router.refresh();
         const params = new URLSearchParams();
         if (nextPath) params.set("from", nextPath);
@@ -90,6 +103,9 @@ export function SignInForm({
       }
     });
   }
+
+  const emailValue = form.watch("email") || "";
+  const signUpHref = buildSignUpHref(emailValue, nextPath);
 
   return (
     <Form {...form}>
@@ -135,6 +151,20 @@ export function SignInForm({
             Forgot password?
           </Link>
         </div>
+        {loginHint ? (
+          <p
+            className="rounded-md border border-primary/20 bg-primary/[0.04] px-3 py-2 text-sm text-muted-foreground"
+            role="status"
+          >
+            {loginHint}{" "}
+            <Link
+              href={signUpHref}
+              className="font-semibold text-primary underline-offset-4 hover:underline"
+            >
+              Create account
+            </Link>
+          </p>
+        ) : null}
         <Button
           disabled={isPending}
           className="w-full bg-primary hover:bg-brand-rose"

@@ -19,24 +19,8 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { createClient } from "@/lib/supabase/client";
 import { safeAuthErrorMessage } from "@/lib/auth/safe-auth-errors";
+import { resetPasswordSchema } from "@/features/auth/validations";
 import { PasswordInput } from "./PasswordInput";
-
-const resetPasswordSchema = z
-  .object({
-    password: z
-      .string()
-      .min(8, { message: "Password must be at least 8 characters long" })
-      .max(100)
-      .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/, {
-        message:
-          "Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character",
-      }),
-    confirmPassword: z.string(),
-  })
-  .refine((data) => data.password === data.confirmPassword, {
-    message: "Passwords do not match",
-    path: ["confirmPassword"],
-  });
 
 type FormData = z.infer<typeof resetPasswordSchema>;
 

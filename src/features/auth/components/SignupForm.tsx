@@ -137,8 +137,11 @@ export function SignUpForm({ initialEmail = "", from }: SignupFormProps) {
             <FormItem>
               <FormLabel>Password</FormLabel>
               <FormControl>
-                <PasswordInput placeholder="**********" {...field} />
+                <PasswordInput placeholder="At least 6 characters" {...field} />
               </FormControl>
+              <p className="text-xs text-muted-foreground">
+                At least 6 characters — no special symbols required
+              </p>
               <FormMessage />
             </FormItem>
           )}
@@ -153,8 +156,8 @@ export function SignUpForm({ initialEmail = "", from }: SignupFormProps) {
               aria-hidden="true"
             />
           )}
-          Continue
-          <span className="sr-only">Continue to email verification page</span>
+          Create account
+          <span className="sr-only">Create your THRY account</span>
         </Button>
       </form>
     </Form>

@@ -1,10 +1,12 @@
 import { publicErrorMessage } from "@/lib/api/public-error";
 
 const AUTH_ERROR_MAP: Record<string, string> = {
-  invalid_credentials: "Invalid email or password.",
+  invalid_credentials:
+    "Email or password didn't match. New here? Create an account — or try Google.",
   invalid_grant: "Sign-in could not be completed. Please try again.",
   email_not_confirmed: "Please confirm your email before signing in.",
-  user_not_found: "If an account exists, check your email for next steps.",
+  user_not_found:
+    "No account found for this email. Create an account to continue.",
   over_request_rate_limit:
     "Too many attempts. Please wait a minute and try again.",
   otp_expired: "This link has expired. Request a new one.",
@@ -55,7 +57,7 @@ export function safeAuthRedirectError(
 
   // Allow our own callback messages through (production used to wipe them all).
   const allowed =
-    /google sign-in could not be completed|same website address|password reset link|too many|confirm your email|invalid email or password/i.test(
+    /google sign-in could not be completed|same website address|password reset link|too many|confirm your email|invalid email or password|create an account|didn.?t match/i.test(
       decoded,
     );
   if (allowed) return decoded;

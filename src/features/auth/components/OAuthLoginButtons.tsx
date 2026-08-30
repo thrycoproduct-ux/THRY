@@ -99,6 +99,9 @@ function OAuthLoginButtons({ nextPath }: OAuthLoginButtonsProps) {
         )}
         Continue with Google
       </Button>
+      <p className="mt-2 text-center text-xs text-muted-foreground">
+        Fastest — no password needed
+      </p>
     </div>
   );
 }

@@ -11,35 +11,46 @@ const emailField = z
     message: blockedSignupEmailMessage,
   });
 
+/**
+ * Soft create/reset rule (India D2C / Supabase-friendly):
+ * min 6 chars, no forced upper/special — complexity kills signup conversion.
+ */
+export const passwordCreateSchema = z
+  .string()
+  .min(6, { message: "Password must be at least 6 characters" })
+  .max(100, { message: "Password is too long" });
+
+/** Sign-in: do not re-apply create complexity (blocks existing users). */
+export const passwordSignInSchema = z
+  .string()
+  .min(1, { message: "Enter your password" })
+  .max(100);
+
 export const authSchema = z.object({
   email: emailField,
-  password: z
-    .string()
-    .min(8, {
-      message: "Password must be at least 8 characters long",
-    })
-    .max(100)
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/, {
-      message:
-        "Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character",
-    }),
+  password: passwordSignInSchema,
 });
 
 export const signupSchema = z.object({
   email: emailField,
-  name: z.string(),
-  password: z
+  name: z
     .string()
-    .min(8, {
-      message: "Password must be at least 8 characters long",
-    })
-    .max(100)
-    .regex(/^(?=.*[a-z])(?=.*[A-Z])(?=.*[0-9])(?=.*[!@#$%^&*])(?=.{8,})/, {
-      message:
-        "Password must contain at least 8 characters, one uppercase, one lowercase, one number and one special character",
-    }),
+    .trim()
+    .min(1, { message: "Enter your name" })
+    .max(80, { message: "Name is too long" }),
+  password: passwordCreateSchema,
 });
 
 export const forgotPasswordEmailSchema = z.object({
   email: emailField,
 });
+
+export const resetPasswordSchema = z
+  .object({
+    password: passwordCreateSchema,
+    confirmPassword: z.string(),
+  })
+  .refine((data) => data.password === data.confirmPassword, {
+    message: "Passwords do not match",
+    path: ["confirmPassword"],
+  });
