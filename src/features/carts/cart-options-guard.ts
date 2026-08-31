@@ -228,6 +228,28 @@ export function sizePreviewToCartConfig(
   };
 }
 
+export function productSizeConfigToCartConfig(
+  config: ProductSizeConfig,
+): CartSizeConfigPayload {
+  if (!config.enabled) {
+    return { enabled: false };
+  }
+
+  return {
+    enabled: true,
+    name: config.name,
+    groups: config.groups.map((group) => ({
+      id: group.id,
+      name: group.name,
+      options: group.options.map((option) => ({
+        value: option.value ?? option.size,
+        size: option.size ?? option.value,
+        qty: option.qty,
+      })),
+    })),
+  };
+}
+
 export async function fetchCartSizeConfigsByProductIds(
   productIds: string[],
 ): Promise<Record<string, CartSizeConfigPayload>> {

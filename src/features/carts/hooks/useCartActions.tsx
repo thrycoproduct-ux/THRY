@@ -8,17 +8,19 @@ import useCartStore, { type OptionSelections } from "../useCartStore";
 import { createClient as createSupabaseClient } from "@/lib/supabase/client";
 import type { SupabaseClient } from "@supabase/supabase-js";
 import {
-  buildCartLineKey,
-  buildCartVariantKey,
-  normalizeCartSize,
-} from "../cart-line";
-import {
   fetchCartSizeConfigsByProductIds,
   shouldBlockBareCartAdd,
   type CartSizeConfigPayload,
 } from "../cart-options-guard";
 import { purgeStaleCartLinesAfterCompleteAdd } from "../cart-purge";
 import { clearAuthCartClearedMarker } from "../cart-cleared-marker";
+import {
+  buildOptimisticCartLineKeys,
+  getCartLineQuantity,
+  purgeStaleLocalCartLinesAfterCompleteAdd,
+  snapshotCart,
+  syncAuthCartAfterOptimisticAdd,
+} from "../optimistic-cart-add";
 
 type AddOpts = {
   silent?: boolean;
@@ -27,6 +29,16 @@ type AddOpts = {
   /** Listing-card preview — skip `/api/products/size-config` when provided. */
   sizeConfigHint?: CartSizeConfigPayload | null;
 };
+
+function scheduleAddToCartToast(
+  toast: ReturnType<typeof useToast>["toast"],
+  silent?: boolean,
+) {
+  if (silent) return;
+  queueMicrotask(() => {
+    toast({ title: "Success, Added a Product to the Cart." });
+  });
+}
 
 function useCartActions(
   user: User | null,
@@ -37,6 +49,7 @@ function useCartActions(
   const bulkOrder = useBulkOrderGuardConfig();
   const stockControl = useStockControlConfig();
   const addProductStorage = useCartStore((s) => s.addProductToCart);
+  const replaceCart = useCartStore((s) => s.replaceCart);
   const removeProductStorage = useCartStore((s) => s.removeProduct);
   const guestCart = useCartStore((s) => s.cart);
 
@@ -83,49 +96,33 @@ function useCartActions(
       return { blockedBulk: false, added: false, blockedOptions: true };
     }
 
-    const normalizedSize = opts.size ? normalizeCartSize(opts.size) : undefined;
-    const selections = opts.selections;
-    const variantKey = buildCartVariantKey({
+    const { normalizedSize, selections, variantKey, lineKey, sizeOrSelections } =
+      buildOptimisticCartLineKeys({
+        productId,
+        quantity,
+        size: opts.size,
+        selections: opts.selections,
+        sizeConfig: opts.sizeConfigHint,
+      });
+
+    const currentQuantity = getCartLineQuantity(
+      guestCart,
       productId,
-      size: normalizedSize,
+      normalizedSize,
       selections,
-    });
-    const lineKey = buildCartLineKey({
-      productId,
-      size: normalizedSize,
-      selections,
-    });
+    );
+    const nextQuantity = currentQuantity + quantity;
 
-    const { data: existingRow, error: existingErr } = await supabase
-      .from("carts")
-      .select("id, quantity")
-      .eq("user_id", user.id)
-      .eq("product_id", productId)
-      .eq("variant_key", variantKey)
-      .maybeSingle();
-
-    if (existingErr) {
-      if (!opts.silent) {
-        toast({
-          title: "Error",
-          description: "Could not update cart. Please try again.",
-          variant: "destructive",
-        });
-      }
-      return { blockedBulk: false, added: false };
-    }
-
-    const currentQuantity = existingRow?.quantity ?? 0;
     if (
       bulkOrder.enabled &&
-      isBulkOrderQuantity(currentQuantity + quantity, bulkOrder.threshold)
+      isBulkOrderQuantity(nextQuantity, bulkOrder.threshold)
     ) {
       return { blockedBulk: true, added: false };
     }
     if (
       stockControl.enabled &&
       typeof availableStock === "number" &&
-      currentQuantity + quantity > availableStock
+      nextQuantity > availableStock
     ) {
       if (!opts.silent) {
         toast({
@@ -136,11 +133,110 @@ function useCartActions(
       }
       return { blockedBulk: false, added: false };
     }
-    try {
-      if (quantity > 0) {
+
+    const cartSnapshot = snapshotCart(useCartStore.getState().cart);
+
+    if (quantity > 0 && opts.sizeConfigHint !== undefined) {
+      purgeStaleLocalCartLinesAfterCompleteAdd({
+        cart: useCartStore.getState().cart,
+        productId,
+        sizeConfig: opts.sizeConfigHint ?? undefined,
+        keepVariantKey: variantKey,
+        keepLineKey: lineKey,
+        newSelections: selections,
+        newSize: normalizedSize,
+        removeProduct: removeProductStorage,
+      });
+    }
+
+    addProductStorage(productId, quantity, sizeOrSelections);
+    clearAuthCartClearedMarker();
+    scheduleAddToCartToast(toast, opts.silent);
+
+    void syncAuthCartAfterOptimisticAdd({
+      supabase,
+      userId: user.id,
+      productId,
+      variantKey,
+      lineKey,
+      normalizedSize,
+      selections,
+      sizeConfigHint: opts.sizeConfigHint,
+      removeProduct: removeProductStorage,
+    }).then((ok) => {
+      if (ok) return;
+      replaceCart(cartSnapshot);
+      if (!opts.silent) {
+        toast({
+          title: "Could not save cart",
+          description: "Your cart was rolled back. Please try again.",
+          variant: "destructive",
+        });
+      }
+    });
+
+    return { blockedBulk: false, added: true, optimistic: true };
+  };
+
+  const guestAddProduct = async (quantity: number, opts: AddOpts = {}) => {
+    if (quantity > 0 && !(await assertOptionsComplete(opts))) {
+      return { blockedBulk: false, added: false, blockedOptions: true };
+    }
+
+    const { normalizedSize, selections, variantKey, lineKey, sizeOrSelections } =
+      buildOptimisticCartLineKeys({
+        productId,
+        quantity,
+        size: opts.size,
+        selections: opts.selections,
+        sizeConfig: opts.sizeConfigHint,
+      });
+
+    const currentQuantity = getCartLineQuantity(
+      guestCart,
+      productId,
+      normalizedSize,
+      selections,
+    );
+    const nextQuantity = currentQuantity + quantity;
+
+    if (
+      bulkOrder.enabled &&
+      isBulkOrderQuantity(nextQuantity, bulkOrder.threshold)
+    ) {
+      return { blockedBulk: true, added: false };
+    }
+    if (
+      stockControl.enabled &&
+      typeof availableStock === "number" &&
+      nextQuantity > availableStock
+    ) {
+      if (!opts.silent) {
+        toast({
+          title: "Stock limit reached",
+          description: `Only ${availableStock} left in stock for this product.`,
+          variant: "destructive",
+        });
+      }
+      return { blockedBulk: false, added: false };
+    }
+
+    if (quantity > 0) {
+      if (opts.sizeConfigHint !== undefined) {
+        purgeStaleLocalCartLinesAfterCompleteAdd({
+          cart: useCartStore.getState().cart,
+          productId,
+          sizeConfig: opts.sizeConfigHint ?? undefined,
+          keepVariantKey: variantKey,
+          keepLineKey: lineKey,
+          newSelections: selections,
+          newSize: normalizedSize,
+          removeProduct: removeProductStorage,
+        });
+      } else {
         await purgeStaleCartLinesAfterCompleteAdd({
-          supabase,
-          userId: user.id,
+          supabase: null,
+          userId: null,
           productId,
           keepVariantKey: variantKey,
           keepLineKey: lineKey,
@@ -150,124 +246,11 @@ function useCartActions(
           removeProduct: removeProductStorage,
         });
       }
-
-      const nextQuantity = currentQuantity + quantity;
-      if (nextQuantity <= 0) {
-        if (existingRow?.id) {
-          const { error: delErr } = await supabase
-            .from("carts")
-            .delete()
-            .eq("id", existingRow.id);
-          if (delErr) throw delErr;
-        }
-        addProductStorage(
-          productId,
-          -currentQuantity,
-          selections ?? normalizedSize,
-        );
-        return { blockedBulk: false, added: true };
-      }
-
-      const payload: Record<string, unknown> = {
-        user_id: user.id,
-        product_id: productId,
-        variant_key: variantKey,
-        quantity: nextQuantity,
-      };
-      if (normalizedSize) payload.size = normalizedSize;
-      if (selections && Object.keys(selections).length > 0) {
-        payload.selections = selections;
-      }
-
-      if (existingRow?.id) {
-        const { error: updErr } = await supabase
-          .from("carts")
-          .update(payload)
-          .eq("id", existingRow.id);
-        if (updErr) throw updErr;
-      } else {
-        const { error: insErr } = await supabase.from("carts").insert({
-          ...payload,
-        });
-        if (insErr) throw insErr;
-      }
-
-      const sizeOrSelections =
-        selections && Object.keys(selections).length > 0
-          ? selections
-          : normalizedSize;
-      addProductStorage(productId, quantity, sizeOrSelections);
-      clearAuthCartClearedMarker();
-
-      if (!opts.silent)
-        toast({ title: "Success, Added a Product to the Cart." });
-
-      return { blockedBulk: false, added: true };
-    } catch {
-      if (!opts.silent) toast({ title: "Error, Unexpected Error occurred." });
-      return { blockedBulk: false, added: false };
-    }
-  };
-
-  const guestAddProduct = async (quantity: number, opts: AddOpts = {}) => {
-    if (quantity > 0 && !(await assertOptionsComplete(opts))) {
-      return { blockedBulk: false, added: false, blockedOptions: true };
-    }
-
-    const normalizedSize = opts.size ? normalizeCartSize(opts.size) : undefined;
-    const selections = opts.selections;
-    const lineKey = buildCartLineKey({
-      productId,
-      size: normalizedSize,
-      selections,
-    });
-    const currentQuantity = guestCart[lineKey]?.quantity ?? 0;
-
-    if (
-      bulkOrder.enabled &&
-      isBulkOrderQuantity(currentQuantity + quantity, bulkOrder.threshold)
-    ) {
-      return { blockedBulk: true, added: false };
-    }
-    if (
-      stockControl.enabled &&
-      typeof availableStock === "number" &&
-      currentQuantity + quantity > availableStock
-    ) {
-      if (!opts.silent) {
-        toast({
-          title: "Stock limit reached",
-          description: `Only ${availableStock} left in stock for this product.`,
-          variant: "destructive",
-        });
-      }
-      return { blockedBulk: false, added: false };
-    }
-    const sizeOrSelections =
-      selections && Object.keys(selections).length > 0
-        ? selections
-        : normalizedSize;
-
-    if (quantity > 0) {
-      await purgeStaleCartLinesAfterCompleteAdd({
-        supabase: null,
-        userId: null,
-        productId,
-        keepVariantKey: buildCartVariantKey({
-          size: normalizedSize,
-          selections,
-        }),
-        keepLineKey: lineKey,
-        newSelections: selections,
-        newSize: normalizedSize,
-        cart: guestCart,
-        removeProduct: removeProductStorage,
-      });
     }
 
     addProductStorage(productId, quantity, sizeOrSelections);
-    if (!opts.silent) toast({ title: "Sucess, Added a Product to the Cart." });
-    return { blockedBulk: false, added: true };
+    scheduleAddToCartToast(toast, opts.silent);
+    return { blockedBulk: false, added: true, optimistic: true };
   };
 
   const addProductToCart = async (

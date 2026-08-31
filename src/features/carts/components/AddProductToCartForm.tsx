@@ -20,6 +20,7 @@ import { useStockControlConfig } from "@/providers/StockControlProvider";
 import BulkOrderGuardDialog from "./BulkOrderGuardDialog";
 import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartActions from "../hooks/useCartActions";
+import { productSizeConfigToCartConfig } from "../cart-options-guard";
 import { AddProductCartData, AddProductToCartSchema } from "../validations";
 import { useToast } from "@/components/ui/use-toast";
 import { ProductOptionTiles } from "@/features/products/components/ProductOptionTiles";
@@ -160,6 +161,9 @@ function AddProductToCartForm({
     const res = await addProductToCart(values.quantity, {
       size: legacySize,
       selections: hasSizeOptions ? selections : undefined,
+      sizeConfigHint: sizeConfig
+        ? productSizeConfigToCartConfig(sizeConfig)
+        : undefined,
     });
     if (res?.blockedBulk) {
       setBulkGuardOpen(true);

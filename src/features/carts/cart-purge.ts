@@ -1,5 +1,8 @@
 import type { SupabaseClient } from "@supabase/supabase-js";
-import { buildCartVariantKey, extractProductIdFromCartLineKey } from "./cart-line";
+import {
+  buildCartVariantKey,
+  extractProductIdFromCartLineKey,
+} from "./cart-line";
 import {
   areCartSelectionsComplete,
   fetchCartSizeConfigsByProductIds,
@@ -104,9 +107,14 @@ export async function purgeStaleCartLinesAfterCompleteAdd(args: {
   newSize?: string | null;
   cart: CartItems;
   removeProduct: (lineKey: string) => void;
+  sizeConfigHint?: CartSizeConfigPayload | null;
 }): Promise<void> {
-  const configs = await fetchCartSizeConfigsByProductIds([args.productId]);
-  const sizeConfig = configs[args.productId];
+  const sizeConfig =
+    args.sizeConfigHint !== undefined
+      ? (args.sizeConfigHint ?? undefined)
+      : (await fetchCartSizeConfigsByProductIds([args.productId]))[
+          args.productId
+        ];
   if (
     !areCartSelectionsComplete({
       sizeConfig,

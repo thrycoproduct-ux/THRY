@@ -1,4 +1,5 @@
 import {
+  productSizeConfigToCartConfig,
   shouldBlockBareCartAdd,
   sizePreviewToCartConfig,
 } from "./cart-options-guard";
@@ -43,6 +44,29 @@ describe("sizePreviewToCartConfig", () => {
         sizeConfig: config,
         selections: undefined,
         size: undefined,
+      }),
+    ).toBe(false);
+  });
+});
+
+describe("productSizeConfigToCartConfig", () => {
+  it("maps PDP size config to guard payload", () => {
+    const config = productSizeConfigToCartConfig({
+      enabled: true,
+      name: "Size",
+      groups: [
+        {
+          id: "g1",
+          name: "Size",
+          options: [{ value: "S", size: "S", qty: 1 }],
+        },
+      ],
+    });
+    expect(
+      shouldBlockBareCartAdd({
+        sizeConfig: config,
+        selections: { g1: "S" },
+        size: "S",
       }),
     ).toBe(false);
   });

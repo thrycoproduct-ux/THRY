@@ -4,7 +4,7 @@ import { useAuth } from "@/providers/AuthProvider";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useStockControlConfig } from "@/providers/StockControlProvider";
 import { useToast } from "@/components/ui/use-toast";
-import { Suspense, useState } from "react";
+import { Suspense, useState, useTransition } from "react";
 
 import { Icons } from "@/components/layouts/icons";
 import { Button, ButtonProps } from "@/components/ui/button";
@@ -41,6 +41,7 @@ function AddToCartButton({
   const stockControl = useStockControlConfig();
   const { addProductToCart } = useCartActions(user, productId, stock ?? null);
   const [bulkGuardOpen, setBulkGuardOpen] = useState(false);
+  const [, startAddTransition] = useTransition();
   const isOutOfStock =
     stockControl.enabled && typeof stock === "number" && stock <= 0;
 
@@ -115,15 +116,18 @@ function AddToCartButton({
             setBulkGuardOpen(true);
             return;
           }
-          const res = await addProductToCart(quantity, {
-            ...(addOpts ?? {}),
-            ...(sizePreview != null
-              ? { sizeConfigHint: sizePreviewToCartConfig(sizePreview) }
-              : {}),
+          startAddTransition(() => {
+            void addProductToCart(quantity, {
+              ...(addOpts ?? {}),
+              ...(sizePreview != null
+                ? { sizeConfigHint: sizePreviewToCartConfig(sizePreview) }
+                : {}),
+            }).then((res) => {
+              if (res?.blockedBulk) {
+                setBulkGuardOpen(true);
+              }
+            });
           });
-          if (res?.blockedBulk) {
-            setBulkGuardOpen(true);
-          }
         }}
       >
         <Icons.basket className="h-5 w-5 md:h-4 md:w-4" />
