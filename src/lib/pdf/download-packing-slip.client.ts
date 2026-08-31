@@ -12,23 +12,26 @@ type PdfOrderInput = Pick<
 
 /** Yield to the browser so INP can paint between heavy PDF work. */
 export async function yieldToMainThread(): Promise<void> {
-  if (typeof scheduler !== "undefined" && "yield" in scheduler) {
-    await (
-      scheduler as Scheduler & { yield: () => Promise<void> }
-    ).yield();
+  const sched = globalThis as typeof globalThis & {
+    scheduler?: { yield?: () => Promise<void> };
+  };
+  if (typeof sched.scheduler?.yield === "function") {
+    await sched.scheduler.yield();
     return;
   }
   await new Promise<void>((resolve) => {
-    window.setTimeout(resolve, 0);
+    setTimeout(resolve, 0);
   });
 }
 
 /** Dynamic import — keeps jsPDF off the initial admin orders bundle. */
 export async function downloadAdminOrderPackingSlipPdf(order: PdfOrderInput) {
-  const [{ downloadOrderPdf }, { adminOrderToPackingSlip }] = await Promise.all([
-    import("@/lib/pdf/packing-slip-pdf"),
-    import("@/lib/pdf/admin-order-pdf-label"),
-  ]);
+  const [{ downloadOrderPdf }, { adminOrderToPackingSlip }] = await Promise.all(
+    [
+      import("@/lib/pdf/packing-slip-pdf"),
+      import("@/lib/pdf/admin-order-pdf-label"),
+    ],
+  );
   await downloadOrderPdf(adminOrderToPackingSlip(order));
 }
 
