@@ -40,6 +40,8 @@ type TrackOrderProps = {
   searchParams?: Promise<{ token?: string }>;
 };
 
+export const dynamic = "force-dynamic";
+
 const STATUS_STEPS = ["ordered", "packed", "shipped", "delivered"] as const;
 
 function normalizeStatus(status: string | null) {

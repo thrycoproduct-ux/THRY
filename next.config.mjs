@@ -148,7 +148,11 @@ export default withSentryConfig(nextConfig, {
   org: process.env.SENTRY_ORG?.trim() || undefined,
   project: process.env.SENTRY_PROJECT?.trim() || undefined,
   authToken: sentryAuthToken || undefined,
-  silent: !process.env.CI,
+  silent: !sentryAuthToken,
+  release: {
+    create: Boolean(sentryAuthToken),
+    finalize: Boolean(sentryAuthToken),
+  },
   // Same-origin tunnel avoids ad blockers + keeps CSP connect-src on 'self'.
   tunnelRoute: "/monitoring",
   widenClientFileUpload: Boolean(sentryAuthToken),

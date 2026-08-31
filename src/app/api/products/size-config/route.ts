@@ -7,7 +7,7 @@ import {
 import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 import { NextRequest, NextResponse } from "next/server";
 
-export const revalidate = 120;
+export const dynamic = "force-dynamic";
 
 const PUBLIC_CACHE = `public, s-maxage=${STOREFRONT_REVALIDATE_SECONDS}, stale-while-revalidate=${STOREFRONT_REVALIDATE_SECONDS * 2}`;
 const NO_STORE = "private, no-store";
@@ -101,7 +101,13 @@ export async function GET(request: NextRequest) {
       headers: { "Cache-Control": PUBLIC_CACHE },
     });
   } catch (error) {
-    console.error("[size-config] GET failed:", error);
+    const isDynamicUsage =
+      typeof error === "object" &&
+      error !== null &&
+      (error as { digest?: string }).digest === "DYNAMIC_SERVER_USAGE";
+    if (!isDynamicUsage) {
+      console.error("[size-config] GET failed:", error);
+    }
     return NextResponse.json(emptyPayload, {
       status: 200,
       headers: { "Cache-Control": NO_STORE },

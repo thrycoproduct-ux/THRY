@@ -7,6 +7,8 @@ import { getUserOrdersList } from "@/lib/orders/getUserOrdersList";
 import { getClient } from "@/lib/urql";
 import { redirect } from "next/navigation";
 
+export const dynamic = "force-dynamic";
+
 void BuyAgainCardFragment;
 
 const BuyAgainProductsQuery = gql(/* GraphQL */ `
