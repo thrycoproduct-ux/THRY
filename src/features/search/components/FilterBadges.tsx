@@ -9,7 +9,7 @@ import { Badge } from "@/components/ui/badge";
 type FilterBadgesProps = {
   query: SearchQuery;
   collections?: { label: string; id: string }[];
-  onDeleteHandler: (key: string, value?: string) => void;
+  onDeleteHandler: (key: string, value?: string) => string;
 };
 
 function FilterBadges({
