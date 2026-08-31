@@ -37,5 +37,9 @@ describe("security headers", () => {
     expect(CONTENT_SECURITY_POLICY).toContain("https://scripts.clarity.ms");
     expect(CONTENT_SECURITY_POLICY).toContain("https://*.clarity.ms");
     expect(CONTENT_SECURITY_POLICY).toContain("https://c.bing.com");
+    expect(CONTENT_SECURITY_POLICY).toContain(
+      "https://*.r2.cloudflarestorage.com",
+    );
+    expect(CONTENT_SECURITY_POLICY).toContain("https://media.thryco.com");
   });
 });

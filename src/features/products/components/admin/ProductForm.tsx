@@ -731,6 +731,7 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
           method: "PUT",
           headers: {
             "Content-Type": DIGITAL_ZIP_CONTENT_TYPE,
+            "Content-Length": String(file.size),
           },
           body: file,
         });
