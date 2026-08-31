@@ -352,7 +352,13 @@ export async function downloadOrdersPdf(orders: PackingSlipOrder[]) {
   const shopAddressLines = await fetchAdminShopAddressLines();
   const doc = new jsPDF({ unit: "mm", format: "a4" }) as unknown as Doc;
   for (let i = 0; i < orders.length; i++) {
-    if (i > 0) doc.addPage();
+    if (i > 0) {
+      doc.addPage();
+      // Yield between pages so clicks/tabs stay responsive during bulk PDF.
+      await new Promise<void>((resolve) => {
+        window.setTimeout(resolve, 0);
+      });
+    }
     await drawPackingSlip(doc, orders[i], shopAddressLines);
   }
   const blob = doc.output("blob");

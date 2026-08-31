@@ -18,8 +18,7 @@ import { useToast } from "@/components/ui/use-toast";
 import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
 import { AdminOrderLinePackingMeta } from "@/features/orders/components/admin/AdminOrderLinePackingMeta";
 import { AdminCheckoutOutcomeBadge } from "@/features/orders/components/admin/AdminCheckoutOutcomeBadge";
-import { adminOrderToPackingSlip } from "@/lib/pdf/admin-order-pdf-label";
-import { downloadOrderPdf } from "@/lib/pdf/packing-slip-pdf";
+import { downloadAdminOrderPackingSlipPdf } from "@/lib/pdf/download-packing-slip.client";
 import { cn, formatPrice } from "@/lib/utils";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 
@@ -72,7 +71,7 @@ function paymentBadgeClass(paymentStatus: string) {
     : "border-amber-500 text-amber-700";
 }
 
-function AdminOrderRow({
+const AdminOrderRow = React.memo(function AdminOrderRow({
   order,
   enablePdf,
 }: {
@@ -108,7 +107,7 @@ function AdminOrderRow({
 
     setDownloadingPdf(true);
     try {
-      await downloadOrderPdf(adminOrderToPackingSlip(order));
+      await downloadAdminOrderPackingSlipPdf(order);
       toast({
         title: "PDF downloaded",
         description: "Packing slip saved to your downloads.",
@@ -126,12 +125,12 @@ function AdminOrderRow({
   };
 
   return (
-    <Link
-      href={`/admin/orders/${order.id}`}
-      className="group block rounded-lg border bg-card transition-colors hover:border-primary/30 hover:bg-muted/20"
-    >
+    <div className="group rounded-lg border bg-card transition-colors hover:border-primary/30 hover:bg-muted/20">
       <div className="flex flex-col gap-3 p-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="min-w-0 flex-1 space-y-3">
+        <Link
+          href={`/admin/orders/${order.id}`}
+          className="min-w-0 flex-1 space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
+        >
           <div className="flex flex-wrap items-center gap-2">
             <p className="font-semibold">#{order.id}</p>
             <Badge variant="outline" className="capitalize">
@@ -188,7 +187,7 @@ function AdminOrderRow({
             {order.customerName ?? "Guest customer"}
             {order.customerMobile ? ` • ${order.customerMobile}` : ""}
           </p>
-        </div>
+        </Link>
 
         <div className="flex shrink-0 flex-col items-stretch gap-2 sm:items-end">
           <p className="text-sm font-semibold sm:text-right">
@@ -224,9 +223,9 @@ function AdminOrderRow({
           </Button>
         </div>
       </div>
-    </Link>
+    </div>
   );
-}
+});
 
 export function AdminOrdersList({
   orders,
@@ -243,6 +242,7 @@ export function AdminOrdersList({
   const router = useRouter();
   const pathname = usePathname();
   const searchParams = useSearchParams();
+  const [isPaging, startPagingTransition] = React.useTransition();
 
   const pushQueryParams = React.useCallback(
     (next: Record<string, string | null>) => {
@@ -252,9 +252,11 @@ export function AdminOrdersList({
         else params.set(key, value);
       });
       const qs = params.toString();
-      router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      startPagingTransition(() => {
+        router.push(qs ? `${pathname}?${qs}` : pathname, { scroll: false });
+      });
     },
-    [pathname, router, searchParams],
+    [pathname, router, searchParams, startPagingTransition],
   );
 
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));
@@ -294,7 +296,7 @@ export function AdminOrdersList({
   const rangeEnd = Math.min(start + orders.length, totalCount);
 
   return (
-    <div className="space-y-3">
+    <div className={cn("space-y-3", isPaging && "opacity-70")} aria-busy={isPaging}>
       {orders.map((order) => (
         <AdminOrderRow key={order.id} order={order} enablePdf={enablePdf} />
       ))}

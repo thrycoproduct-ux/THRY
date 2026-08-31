@@ -1,11 +1,10 @@
 "use client";
 
+import dynamic from "next/dynamic";
 import { useEffect, useMemo, useState } from "react";
-import Image from "next/image";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import {
-  CheckSquare,
   Copy,
   ExternalLink,
   FileDown,
@@ -16,7 +15,6 @@ import {
 import { Button } from "@/components/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Dialog, DialogClose, DialogContent } from "@/components/ui/dialog";
@@ -29,20 +27,26 @@ import {
 } from "@/components/ui/select";
 import { useToast } from "@/components/ui/use-toast";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
-import { adminOrderToPackingSlip } from "@/lib/pdf/admin-order-pdf-label";
-import { downloadOrderPdf } from "@/lib/pdf/packing-slip-pdf";
+import { downloadAdminOrderPackingSlipPdf } from "@/lib/pdf/download-packing-slip.client";
 import { formatPrice } from "@/lib/utils";
 import type { OrderPaymentBreakdown } from "@/lib/orders/order-payment-breakdown";
-import BarcodeScannerModal from "@/components/ui/BarcodeScannerModal";
 import { parseTrackingNumberFromBarcodeText } from "@/lib/dispatch/barcode-parsing";
 import { buildCourierTrackingUrl } from "@/lib/dispatch/courier-tracking-url";
 import { buildDispatchNotificationText } from "@/lib/dispatch/dispatch-message";
 import type { OrderDispatchInfo } from "@/lib/dispatch/get-order-dispatch-info";
-import { AdminOrderLinePackingMeta } from "@/features/orders/components/admin/AdminOrderLinePackingMeta";
+import { AdminOrderPackingChecklist } from "@/features/orders/components/admin/AdminOrderPackingChecklist";
 import { AdminCheckoutOutcomeBadge } from "@/features/orders/components/admin/AdminCheckoutOutcomeBadge";
-import type { CheckoutOutcome, CheckoutTelemetryState } from "@/lib/checkout/checkout-outcome";
+import type {
+  CheckoutOutcome,
+  CheckoutTelemetryState,
+} from "@/lib/checkout/checkout-outcome";
 
 const ADD_NEW_COURIER_VALUE = "__add_new_courier__";
+
+const BarcodeScannerModal = dynamic(
+  () => import("@/components/ui/BarcodeScannerModal"),
+  { ssr: false, loading: () => null },
+);
 
 type DispatchCourierOption = {
   id: string;
@@ -131,8 +135,13 @@ export function AdminOrderDetailView({
   adminUserId,
 }: Props) {
   const { toast } = useToast();
-  const [packedMap, setPackedMap] = useState<Record<string, boolean>>({});
   const [downloadingPdf, setDownloadingPdf] = useState(false);
+  const [localPaymentStatus, setLocalPaymentStatus] = useState(
+    order.paymentStatus,
+  );
+  const [localOrderStatus, setLocalOrderStatus] = useState(
+    order.orderStatus ?? "pending",
+  );
   const router = useRouter();
 
   const [dispatchOpen, setDispatchOpen] = useState(false);
@@ -160,7 +169,7 @@ export function AdminOrderDetailView({
     notificationText: string;
   } | null>(null);
 
-  const orderStatusNorm = (order.orderStatus ?? "").trim().toLowerCase();
+  const orderStatusNorm = localOrderStatus.trim().toLowerCase();
 
   const dispatchLastCourierKey = `dispatch:lastCourier:${adminUserId}`;
   const [memoryLoaded, setMemoryLoaded] = useState(false);
@@ -191,15 +200,8 @@ export function AdminOrderDetailView({
     }
   }, [courierOptions, lastCourierId, memoryLoaded]);
 
-  const packedCount = useMemo(
-    () => Object.values(packedMap).filter(Boolean).length,
-    [packedMap],
-  );
-
-  const allPacked = items.length > 0 && packedCount === items.length;
-
   const isPaid = ["paid", "success", "captured"].includes(
-    order.paymentStatus.trim().toLowerCase(),
+    localPaymentStatus.trim().toLowerCase(),
   );
 
   const canResyncRazorpay =
@@ -355,24 +357,22 @@ export function AdminOrderDetailView({
     if (downloadingPdf) return;
     setDownloadingPdf(true);
     try {
-      await downloadOrderPdf(
-        adminOrderToPackingSlip({
-          id: order.id,
-          createdAt: order.createdAt,
-          customerName: order.customerName,
-          customerMobile: order.customerMobile,
-          shippingAddress: order.shippingAddress,
-          lines: items.map((item) => ({
-            id: item.id,
-            quantity: item.quantity,
-            productName: item.productName,
-            productCode: item.productCode,
-            variantLabel: item.variantLabel,
-            imageUrl: item.imageUrl,
-            imageAlt: item.imageAlt,
-          })),
-        }),
-      );
+      await downloadAdminOrderPackingSlipPdf({
+        id: order.id,
+        createdAt: order.createdAt,
+        customerName: order.customerName,
+        customerMobile: order.customerMobile,
+        shippingAddress: order.shippingAddress,
+        lines: items.map((item) => ({
+          id: item.id,
+          quantity: item.quantity,
+          productName: item.productName,
+          productCode: item.productCode,
+          variantLabel: item.variantLabel,
+          imageUrl: item.imageUrl,
+          imageAlt: item.imageAlt,
+        })),
+      });
       toast({
         title: "PDF downloaded",
         description: "Packing slip saved to your downloads.",
@@ -440,7 +440,10 @@ export function AdminOrderDetailView({
                       ? "Order marked paid from Razorpay capture."
                       : "Razorpay still shows this order unpaid. Refresh Razorpay dashboard to double-check.",
                   });
-                  router.refresh();
+                  if (payload?.isPaid) {
+                    setLocalPaymentStatus("paid");
+                    router.refresh();
+                  }
                 } catch (error) {
                   toast({
                     variant: "destructive",
@@ -514,87 +517,7 @@ export function AdminOrderDetailView({
       </div>
 
       <div className="grid gap-4 lg:grid-cols-3">
-        <Card className="lg:col-span-2">
-          <CardHeader>
-            <CardTitle className="text-base">Items to Pack</CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="flex flex-wrap items-center justify-between gap-3 rounded-md border bg-muted/30 px-3 py-2">
-              <div className="text-sm text-muted-foreground">
-                Packed {packedCount}/{items.length}
-              </div>
-              <Button
-                size="sm"
-                variant="outline"
-                onClick={() =>
-                  setPackedMap(
-                    allPacked
-                      ? {}
-                      : Object.fromEntries(
-                          items.map((item) => [item.id, true]),
-                        ),
-                  )
-                }
-              >
-                <CheckSquare className="mr-2 h-4 w-4" />
-                {allPacked ? "Clear packed" : "Mark all packed"}
-              </Button>
-            </div>
-
-            <div className="space-y-3">
-              {items.map((item) => (
-                <div
-                  key={item.id}
-                  className="flex items-center gap-3 rounded-md border p-3"
-                >
-                  <Checkbox
-                    checked={Boolean(packedMap[item.id])}
-                    onCheckedChange={(checked) =>
-                      setPackedMap((prev) => ({
-                        ...prev,
-                        [item.id]: Boolean(checked),
-                      }))
-                    }
-                    aria-label={`Mark ${item.productName} as packed`}
-                  />
-                  <div className="relative h-14 w-14 overflow-hidden rounded-md border bg-muted">
-                    <Image
-                      src={item.imageUrl}
-                      alt={item.imageAlt}
-                      fill
-                      className="object-cover"
-                      sizes="56px"
-                    />
-                  </div>
-                  <div className="min-w-0 flex-1">
-                    {item.productSlug ? (
-                      <Link
-                        href={`/shop/${item.productSlug}`}
-                        className="line-clamp-1 text-sm font-medium hover:underline"
-                        target="_blank"
-                      >
-                        {item.productName}
-                      </Link>
-                    ) : (
-                      <p className="line-clamp-1 text-sm font-medium">
-                        {item.productName}
-                      </p>
-                    )}
-                    <AdminOrderLinePackingMeta
-                      productCode={item.productCode}
-                      quantity={item.quantity}
-                      variantLabel={item.variantLabel}
-                      extra={`Unit: ${formatPrice(item.unitPrice)}`}
-                    />
-                  </div>
-                  <div className="text-sm font-semibold">
-                    {formatPrice(item.lineTotal)}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </CardContent>
-        </Card>
+        <AdminOrderPackingChecklist items={items} />
 
         <div className="space-y-4">
           <Dialog open={dispatchOpen} onOpenChange={setDispatchOpen}>
@@ -671,7 +594,6 @@ export function AdminOrderDetailView({
                         onClick={() => {
                           setDispatchOpen(false);
                           setDispatchSuccess(null);
-                          router.refresh();
                         }}
                       >
                         Done
@@ -851,29 +773,31 @@ export function AdminOrderDetailView({
                       </p>
                     ) : null}
 
-                    <BarcodeScannerModal
-                      open={scannerOpen}
-                      onOpenChange={(next) => {
-                        setScannerOpen(next);
-                        if (!next) return;
-                        setDispatchError(null);
-                      }}
-                      onDetected={(raw) => {
-                        const parsed =
-                          parseTrackingNumberFromBarcodeText(raw) ?? null;
-
-                        if (parsed) {
-                          setDispatchTrackingInput(parsed);
+                    {scannerOpen ? (
+                      <BarcodeScannerModal
+                        open={scannerOpen}
+                        onOpenChange={(next) => {
+                          setScannerOpen(next);
+                          if (!next) return;
                           setDispatchError(null);
-                          return;
-                        }
+                        }}
+                        onDetected={(raw) => {
+                          const parsed =
+                            parseTrackingNumberFromBarcodeText(raw) ?? null;
 
-                        setDispatchTrackingInput(raw.trim());
-                        setDispatchError(
-                          "Scanned code could not be parsed. Please review/edit before confirming.",
-                        );
-                      }}
-                    />
+                          if (parsed) {
+                            setDispatchTrackingInput(parsed);
+                            setDispatchError(null);
+                            return;
+                          }
+
+                          setDispatchTrackingInput(raw.trim());
+                          setDispatchError(
+                            "Scanned code could not be parsed. Please review/edit before confirming.",
+                          );
+                        }}
+                      />
+                    ) : null}
 
                     {dispatchError ? (
                       <p className="text-sm text-destructive">
@@ -960,6 +884,7 @@ export function AdminOrderDetailView({
                                   },
                                 ),
                               });
+                              setLocalOrderStatus("dispatched");
                               toast({
                                 title: "Order dispatched",
                                 description: payload.trackingUrl
@@ -1105,10 +1030,10 @@ export function AdminOrderDetailView({
               </div>
               <div className="flex flex-wrap gap-2 pt-1">
                 <Badge variant="outline" className="capitalize">
-                  {order.orderStatus ?? "pending"}
+                  {localOrderStatus}
                 </Badge>
                 <Badge variant="outline" className="capitalize">
-                  {order.paymentStatus}
+                  {localPaymentStatus}
                 </Badge>
               </div>
               <p className="pt-1 text-xs text-muted-foreground">

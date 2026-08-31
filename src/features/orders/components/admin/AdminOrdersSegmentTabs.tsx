@@ -9,10 +9,8 @@ import AdminOrdersList from "@/features/orders/components/admin/AdminOrdersList"
 import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
 import { clampAdminOrdersPageSize } from "@/lib/admin/admin-orders-pagination";
 import { Button } from "@/components/ui/button";
-import { Skeleton } from "@/components/ui/skeleton";
 import { useToast } from "@/components/ui/use-toast";
-import { adminOrdersToPackingSlips } from "@/lib/pdf/admin-order-pdf-label";
-import { downloadOrdersPdf } from "@/lib/pdf/packing-slip-pdf";
+import { downloadAdminOrdersPackingSlipsPdf } from "@/lib/pdf/download-packing-slip.client";
 import { cn } from "@/lib/utils";
 
 export type OrdersSegment = "paid" | "unpaid";
@@ -54,16 +52,6 @@ export function segmentHref(nextSegment: OrdersSegment, pageSize: number) {
   // Keep shared page size; reset per-segment pages by omitting them.
   if (pageSize > 0) params.set("pageSize", String(pageSize));
   return `${ORDERS_PATH}?${params.toString()}`;
-}
-
-function OrdersListSkeleton() {
-  return (
-    <div className="space-y-3" aria-busy="true" aria-live="polite">
-      {Array.from({ length: 5 }).map((_, index) => (
-        <Skeleton key={index} className="h-24 w-full rounded-lg" />
-      ))}
-    </div>
-  );
 }
 
 export function AdminOrdersSegmentTabs({
@@ -112,8 +100,10 @@ export function AdminOrdersSegmentTabs({
 
   const displaySegment = pendingSegment ?? segment;
   const isLoading = pendingSegment != null || isNavPending;
+  const staleList = segment === "unpaid" ? unpaid : paid;
   const active = segment === "unpaid" ? unpaid : paid;
-  const showPdfToolbar = !isLoading && segment === "paid";
+  const listSource = isLoading ? staleList : active;
+  const showPdfToolbar = segment === "paid";
 
   const navigateTo = React.useCallback(
     (next: OrdersSegment) => {
@@ -148,7 +138,7 @@ export function AdminOrdersSegmentTabs({
     if (downloadingBulkPdf || paid.rows.length === 0) return;
     setDownloadingBulkPdf(true);
     try {
-      await downloadOrdersPdf(adminOrdersToPackingSlips(paid.rows));
+      await downloadAdminOrdersPackingSlipsPdf(paid.rows);
       toast({
         title: "PDF downloaded",
         description: `Packing slips for ${paid.rows.length} paid order${paid.rows.length === 1 ? "" : "s"} on this page.`,
@@ -310,26 +300,29 @@ export function AdminOrdersSegmentTabs({
         </div>
       ) : null}
 
-      {isLoading ? (
-        <OrdersListSkeleton />
-      ) : (
+
+      <div
+        className={cn(isLoading && "pointer-events-none opacity-60")}
+        aria-busy={isLoading}
+        aria-live="polite"
+      >
         <AdminOrdersList
           key={segment}
-          orders={active.rows}
-          totalCount={active.totalCount}
-          page={active.page}
-          pageSize={active.pageSize}
+          orders={listSource.rows}
+          totalCount={listSource.totalCount}
+          page={listSource.page}
+          pageSize={listSource.pageSize}
           pageParam={segment === "unpaid" ? unpaidPageParam : paidPageParam}
           pageSizeParam={pageSizeParam}
           resetPageParams={resetPageParams}
-          enablePdf={segment === "paid"}
+          enablePdf={segment === "paid" && !isLoading}
           emptyMessage={
             segment === "unpaid"
               ? "No unpaid orders right now."
               : "No paid orders yet."
           }
         />
-      )}
+      </div>
     </div>
   );
 }
