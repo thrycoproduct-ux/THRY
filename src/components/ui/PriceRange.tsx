@@ -26,7 +26,6 @@ function PriceRange({
   const [priceRange, setPriceRange] =
     React.useState<[number, number]>(defaultValue);
 
-  console.log("priceRange", priceRange);
   return (
     <div className="mt-5 flex px-5 items-end gap-x-5 place-items-center">
       <div className="flex flex-1 flex-col gap-5 overflow-hidden px-1">

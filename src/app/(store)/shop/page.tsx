@@ -4,6 +4,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { SearchProductsGridSkeleton } from "@/features/products";
 import {
   FilterSelections,
+  ListingFilterNavigationProvider,
   SearchProductsInifiteScroll,
 } from "@/features/search";
 import { SectionErrorNotice } from "@/components/errors/SectionErrorNotice";
@@ -92,32 +93,34 @@ async function ProductsPage({ searchParams }: ProductsPageProps) {
         }
       />
 
-      <Suspense
-        fallback={
-          <div>
-            <Skeleton className="mb-3 h-8 max-w-xl" />
-            <Skeleton className="h-8 max-w-2xl" />
-          </div>
-        }
-      >
-        <FilterSelections collectionsSection={collectionsSection} />
-      </Suspense>
-
-      {productsUnavailable ? (
-        <SectionErrorNotice
-          title="We could not load products right now"
-          description="Our catalogue is briefly unavailable. Please try again in a moment."
-        />
-      ) : (
-        <Suspense fallback={<SearchProductsGridSkeleton />}>
-          <SearchProductsInifiteScroll
-            initialSearchResult={initialSearchResult}
-            initialDraftIds={initialDraftIds ?? []}
-            initialPackLabels={initialPackLabels}
-            initialSizePreviews={initialSizePreviews}
-          />
+      <ListingFilterNavigationProvider>
+        <Suspense
+          fallback={
+            <div>
+              <Skeleton className="mb-3 h-8 max-w-xl" />
+              <Skeleton className="h-8 max-w-2xl" />
+            </div>
+          }
+        >
+          <FilterSelections collectionsSection={collectionsSection} />
         </Suspense>
-      )}
+
+        {productsUnavailable ? (
+          <SectionErrorNotice
+            title="We could not load products right now"
+            description="Our catalogue is briefly unavailable. Please try again in a moment."
+          />
+        ) : (
+          <Suspense fallback={<SearchProductsGridSkeleton />}>
+            <SearchProductsInifiteScroll
+              initialSearchResult={initialSearchResult}
+              initialDraftIds={initialDraftIds ?? []}
+              initialPackLabels={initialPackLabels}
+              initialSizePreviews={initialSizePreviews}
+            />
+          </Suspense>
+        )}
+      </ListingFilterNavigationProvider>
     </Shell>
   );
 }

@@ -15,6 +15,7 @@ import {
 import {
   fetchCartSizeConfigsByProductIds,
   shouldBlockBareCartAdd,
+  type CartSizeConfigPayload,
 } from "../cart-options-guard";
 import { purgeStaleCartLinesAfterCompleteAdd } from "../cart-purge";
 import { clearAuthCartClearedMarker } from "../cart-cleared-marker";
@@ -23,6 +24,8 @@ type AddOpts = {
   silent?: boolean;
   size?: string;
   selections?: OptionSelections;
+  /** Listing-card preview — skip `/api/products/size-config` when provided. */
+  sizeConfigHint?: CartSizeConfigPayload | null;
 };
 
 function useCartActions(
@@ -40,17 +43,24 @@ function useCartActions(
   const supabase: SupabaseClient | null = user ? createSupabaseClient() : null;
 
   const assertOptionsComplete = async (opts: AddOpts) => {
-    const configs = await fetchCartSizeConfigsByProductIds([productId]);
+    const resolveSizeConfig = async () => {
+      if (opts.sizeConfigHint !== undefined) {
+        return opts.sizeConfigHint;
+      }
+      const configs = await fetchCartSizeConfigsByProductIds([productId]);
+      return configs[productId] ?? null;
+    };
+
+    const sizeConfig = await resolveSizeConfig();
     if (
       shouldBlockBareCartAdd({
-        sizeConfig: configs[productId],
+        sizeConfig,
         selections: opts.selections,
         size: opts.size,
       })
     ) {
       if (!opts.silent) {
-        const optionName =
-          String(configs[productId]?.name ?? "").trim() || "option";
+        const optionName = String(sizeConfig?.name ?? "").trim() || "option";
         toast({
           title: `Select ${optionName} first`,
           description: `This product has ${optionName.toLowerCase()} options. Open the product page and choose before adding to cart.`,

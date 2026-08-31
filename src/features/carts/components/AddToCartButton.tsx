@@ -12,6 +12,7 @@ import { cn } from "@/lib/utils";
 import BulkOrderGuardDialog from "./BulkOrderGuardDialog";
 import { isBulkOrderQuantity } from "../constants/bulkOrder";
 import useCartActions from "../hooks/useCartActions";
+import { sizePreviewToCartConfig } from "../cart-options-guard";
 import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 
 interface AddToCartButtonProps extends ButtonProps {
@@ -114,7 +115,12 @@ function AddToCartButton({
             setBulkGuardOpen(true);
             return;
           }
-          const res = await addProductToCart(quantity, addOpts);
+          const res = await addProductToCart(quantity, {
+            ...(addOpts ?? {}),
+            ...(sizePreview != null
+              ? { sizeConfigHint: sizePreviewToCartConfig(sizePreview) }
+              : {}),
+          });
           if (res?.blockedBulk) {
             setBulkGuardOpen(true);
           }

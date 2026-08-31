@@ -4,6 +4,7 @@ import {
   resolveOptionSelections,
   type OptionSelections,
   type ProductSizeConfig,
+  type ProductSizePreview,
 } from "@/lib/products/sizeConfig-shared";
 import {
   DEFAULT_CART_VARIANT_KEY,
@@ -200,6 +201,31 @@ export function shouldBlockBareCartAdd(args: {
 }): boolean {
   if (!productRequiresOptions(args.sizeConfig)) return false;
   return !areCartSelectionsComplete(args);
+}
+
+/** Build guard config from batched listing preview — avoids per-click size-config fetch. */
+export function sizePreviewToCartConfig(
+  preview: ProductSizePreview,
+): CartSizeConfigPayload {
+  if (!preview.enabled) {
+    return { enabled: false };
+  }
+
+  return {
+    enabled: true,
+    name: preview.optionName,
+    groups: [
+      {
+        id: preview.groupId,
+        name: preview.optionName,
+        options: preview.choices.map((choice) => ({
+          value: choice.value,
+          size: choice.value,
+          qty: 1,
+        })),
+      },
+    ],
+  };
 }
 
 export async function fetchCartSizeConfigsByProductIds(

@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { cn, formatPrice } from "@/lib/utils";
 
 export type ProductOptionTileChoice = {
@@ -25,7 +26,7 @@ type ProductOptionTilesProps = {
  * Amazon / Flipkart style option tiles — sizes visible on the page, tap to select.
  * Replaces native `<select>` dropdowns on product and cart surfaces.
  */
-export function ProductOptionTiles({
+export const ProductOptionTiles = React.memo(function ProductOptionTiles({
   name,
   options,
   value,
@@ -125,4 +126,4 @@ export function ProductOptionTiles({
       </div>
     </div>
   );
-}
+});

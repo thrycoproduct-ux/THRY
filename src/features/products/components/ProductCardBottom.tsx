@@ -1,5 +1,6 @@
 "use client";
 
+import * as React from "react";
 import { Suspense, useEffect, useMemo, useState } from "react";
 import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 import { ProductOptionTiles } from "./ProductOptionTiles";
@@ -20,7 +21,11 @@ type Props = {
  * Keeps selected variant and add-to-cart in one client island so shoppers can
  * pick size/thickness on the card without opening the product page.
  */
-export function ProductCardBottom({ productId, stock, sizePreview }: Props) {
+export const ProductCardBottom = React.memo(function ProductCardBottom({
+  productId,
+  stock,
+  sizePreview,
+}: Props) {
   const pickable = Boolean(
     sizePreview?.canPickOnListing && (sizePreview.choices?.length ?? 0) > 0,
   );
@@ -91,6 +96,6 @@ export function ProductCardBottom({ productId, stock, sizePreview }: Props) {
       </div>
     </>
   );
-}
+});
 
 export default ProductCardBottom;

@@ -16,6 +16,8 @@ import { formatPriceRangeLabel } from "@/lib/storefront/shop-by-price-buckets";
 import type { ProductSizePreview } from "@/lib/products/sizeConfig-shared";
 import { useSearchParams } from "next/navigation";
 import { useCallback, useMemo } from "react";
+import { cn } from "@/lib/utils";
+import { useListingFilterNavigationPending } from "./ListingFilterNavigation";
 import { SearchMatchingCollections } from "./SearchMatchingCollections";
 import SearchProductsGridSkeleton from "./SearchProductsGridSkeleton";
 
@@ -43,6 +45,7 @@ const SearchResultPage = ({
   initialSizePreviews?: Record<string, ProductSizePreview>;
 }) => {
   const searchParams = useSearchParams();
+  const filterNavPending = useListingFilterNavigationPending();
   const { productsCollection, matchingCollections, fetching, error } =
     useStorefrontProductSearch(variables, collectionId, { initialData });
   const { draftIds, draftLoaded } = useDraftProductIds(initialDraftIds);
@@ -79,6 +82,8 @@ const SearchResultPage = ({
   const hasProductMatches = visibleEdges.length > 0;
   const hasAnyMatches = hasCollectionMatches || hasProductMatches;
   const showSkeleton = (fetching || !draftLoaded) && !productsCollection;
+  const isRefreshing =
+    filterNavPending || (fetching && Boolean(productsCollection));
 
   const endCursor = productsCollection?.pageInfo?.endCursor ?? "";
   const canLoadMore = Boolean(
@@ -103,8 +108,14 @@ const SearchResultPage = ({
 
       {showSkeleton && <SearchProductsGridSkeleton />}
 
-      {productsCollection && draftLoaded && !showSkeleton && (
-        <>
+      {productsCollection && draftLoaded && (
+        <div
+          className={cn(
+            isRefreshing && "pointer-events-none opacity-60 transition-opacity",
+          )}
+          aria-busy={isRefreshing}
+          aria-live="polite"
+        >
           {hasCollectionMatches ? (
             <SearchMatchingCollections
               collections={matchingCollections}
@@ -161,7 +172,7 @@ const SearchResultPage = ({
               ) : null}
             </div>
           ) : null}
-        </>
+        </div>
       )}
     </div>
   );

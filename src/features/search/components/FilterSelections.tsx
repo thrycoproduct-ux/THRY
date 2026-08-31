@@ -1,6 +1,5 @@
 "use client";
 import { useCallback, useEffect, useState } from "react";
-import * as z from "zod";
 
 import {
   DropdownMenu,
@@ -17,12 +16,13 @@ import {
   SheetTitle,
   SheetTrigger,
 } from "@/components/ui/sheet";
-import { usePathname, useRouter, useSearchParams } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 
 import { Icons } from "@/components/layouts/icons";
 import PriceRange from "@/components/ui/PriceRange";
 import { useDebounce } from "@/features/cms/hooks/use-debounce";
 import CollectionsSelection from "@/features/search/components/CollectionsSelection";
+import { useListingFilterNavigation } from "@/features/search/components/ListingFilterNavigation";
 import { SearchQuery } from "@/features/search/hooks/useSearchStore";
 import { SortEnum } from "@/validations/products";
 import React from "react";
@@ -35,23 +35,21 @@ type Props = {
 };
 
 function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
-  const router = useRouter();
   const pathname = usePathname();
-  const [isPending, startTransition] = React.useTransition();
+  const { isPending, pushListingFilters } = useListingFilterNavigation();
 
   const [query, setQuery] = useState<SearchQuery>({
     collections: [],
   });
 
   const searchParams = useSearchParams();
-  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   useEffect(() => {
     const priceRange = searchParams.get("price_range");
     const range = priceRange ? priceRange.split("-") : undefined;
 
     const collections =
-      (JSON.parse(searchParams.get("collections")) as string[]) ?? [];
+      (JSON.parse(searchParams.get("collections") ?? "[]") as string[]) ?? [];
     const sort = searchParams.get("sort") ?? undefined;
     const search = searchParams.get("search") ?? undefined;
 
@@ -79,11 +77,18 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
   const removeQueryString = useCallback(
     (name: string, value?: string) => {
       const params = new URLSearchParams(searchParams.toString());
-      console.log("name", name);
-      value ? params.set(name, value) : params.delete(name);
+      if (value) params.set(name, value);
+      else params.delete(name);
       return params.toString();
     },
     [searchParams],
+  );
+
+  const navigateQuery = useCallback(
+    (queryString: string) => {
+      pushListingFilters(queryString ? `${pathname}?${queryString}` : pathname);
+    },
+    [pathname, pushListingFilters],
   );
 
   const debouncedPrice = useDebounce(query.priceRange ?? [0, 10000], 500);
@@ -109,16 +114,13 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
     const nextRange = `${min}-${max}`;
     if (searchParams.get("price_range") === nextRange) return;
 
-    startTransition(() => {
-      router.push(`${pathname}?${createQueryString("price_range", nextRange)}`);
-    });
+    navigateQuery(createQueryString("price_range", nextRange));
   }, [
     createQueryString,
     debouncedPrice,
-    pathname,
+    navigateQuery,
     priceFilterTouched,
     query.priceRange,
-    router,
     searchParams,
   ]);
 
@@ -128,28 +130,27 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
     if (oldValue.includes(collectionId)) {
       const collections = oldValue.filter((item) => item !== collectionId);
       setQuery({ ...query, collections });
-      router.push(
-        pathname +
-          "?" +
-          createQueryString("collections", JSON.stringify(collections)),
+      navigateQuery(
+        createQueryString("collections", JSON.stringify(collections)),
       );
     } else {
       const collections = [...oldValue, collectionId];
       setQuery({ ...query, collections });
-      router.push(
-        pathname +
-          "?" +
-          removeQueryString(
-            "collections",
-            collections.length > 0 ? JSON.stringify(collections) : undefined,
-          ),
+      navigateQuery(
+        removeQueryString(
+          "collections",
+          collections.length > 0 ? JSON.stringify(collections) : undefined,
+        ),
       );
     }
   };
 
   return (
     <>
-      <section className="justify-between items-center hidden md:flex">
+      <section
+        className="justify-between items-center hidden md:flex"
+        aria-busy={isPending}
+      >
         <div className="flex gap-x-5 items-center">
           <span>Filter:</span>
           {shopLayout && (
@@ -158,6 +159,7 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
               value={query.collections}
               onCheckedChange={collectionChangeHandler}
               selections={collectionsSection}
+              disabled={isPending}
             />
           )}
 
@@ -209,10 +211,10 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
 
           <SortSelection
             id="sort"
-            disabled={isLoading}
+            disabled={isPending}
             onValueChange={(sort) => {
               setQuery({ ...query, sort: SortEnum[sort] });
-              router.push(`${pathname}?${createQueryString("sort", sort)}`);
+              navigateQuery(createQueryString("sort", sort));
             }}
             items={Object.entries(SortEnum).map(([key, value]) => ({
               value: key,
@@ -239,6 +241,7 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
                     value={query.collections}
                     onCheckedChange={collectionChangeHandler}
                     selections={collectionsSection}
+                    disabled={isPending}
                   />
                 </div>
               )}
@@ -272,9 +275,7 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
                   onReset={() => {
                     touchPriceFilter();
                     setQuery({ ...query, priceRange: undefined });
-                    router.push(
-                      pathname + "?" + removeQueryString("price_range"),
-                    );
+                    navigateQuery(removeQueryString("price_range"));
                   }}
                 />
               </div>
@@ -285,10 +286,10 @@ function FilterSelections({ collectionsSection, shopLayout = true }: Props) {
 
               <SortSelection
                 id="sort"
-                disabled={isLoading}
+                disabled={isPending}
                 onValueChange={(sort) => {
                   setQuery({ ...query, sort: SortEnum[sort] });
-                  router.push(`${pathname}?${createQueryString("sort", sort)}`);
+                  navigateQuery(createQueryString("sort", sort));
                 }}
                 defaultValue={query.sort}
                 items={Object.entries(SortEnum).map(([key, value]) => ({

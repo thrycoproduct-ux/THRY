@@ -4,6 +4,7 @@ import { CollectionBanner } from "@/features/collections";
 import { SearchProductsGridSkeleton } from "@/features/products";
 import {
   FilterSelections,
+  ListingFilterNavigationProvider,
   SearchProductsInifiteScroll,
 } from "@/features/search";
 import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
@@ -120,33 +121,35 @@ async function CategoryPage({ params, searchParams }: CategoryPageProps) {
     <Shell>
       <CollectionBanner collectionBannerData={collection} />
 
-      <Suspense
-        fallback={
-          <div>
-            <Skeleton className="max-w-xl h-8 mb-3" />
-            <Skeleton className="max-w-2xl h-8" />
-          </div>
-        }
-      >
-        <FilterSelections shopLayout={false} />
-      </Suspense>
-
-      {productsUnavailable ? (
-        <SectionErrorNotice
-          title="We could not load products in this collection"
-          description="This is usually temporary. Please try again in a moment."
-        />
-      ) : (
-        <Suspense fallback={<SearchProductsGridSkeleton />}>
-          <SearchProductsInifiteScroll
-            collectionId={collection.id}
-            initialSearchResult={initialSearchResult}
-            initialDraftIds={initialDraftIds ?? []}
-            initialPackLabels={initialPackLabels}
-            initialSizePreviews={initialSizePreviews}
-          />
+      <ListingFilterNavigationProvider>
+        <Suspense
+          fallback={
+            <div>
+              <Skeleton className="max-w-xl h-8 mb-3" />
+              <Skeleton className="max-w-2xl h-8" />
+            </div>
+          }
+        >
+          <FilterSelections shopLayout={false} />
         </Suspense>
-      )}
+
+        {productsUnavailable ? (
+          <SectionErrorNotice
+            title="We could not load products in this collection"
+            description="This is usually temporary. Please try again in a moment."
+          />
+        ) : (
+          <Suspense fallback={<SearchProductsGridSkeleton />}>
+            <SearchProductsInifiteScroll
+              collectionId={collection.id}
+              initialSearchResult={initialSearchResult}
+              initialDraftIds={initialDraftIds ?? []}
+              initialPackLabels={initialPackLabels}
+              initialSizePreviews={initialSizePreviews}
+            />
+          </Suspense>
+        )}
+      </ListingFilterNavigationProvider>
     </Shell>
   );
 }
