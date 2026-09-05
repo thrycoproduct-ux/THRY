@@ -319,7 +319,13 @@ export default {
       }
       const optionsRaw = rest.slice(0, slash);
       const keyRaw = rest.slice(slash + 1);
-      const response = await handleCdnGet(request, env, optionsRaw, keyRaw);
+      // Always process as GET so Cache API + Images transforms share one key path.
+      // HEAD alone was returning 502 from the Images binding / cache mismatch.
+      const getRequest = new Request(request.url, {
+        method: "GET",
+        headers: request.headers,
+      });
+      const response = await handleCdnGet(getRequest, env, optionsRaw, keyRaw);
       if (request.method === "HEAD") {
         return new Response(null, {
           status: response.status,
