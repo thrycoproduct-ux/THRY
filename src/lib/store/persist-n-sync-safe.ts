@@ -72,7 +72,13 @@ function safeGetCookie(name: string): string | undefined {
   try {
     const cookies = document.cookie.split("; ");
     const cookie = cookies.find((c) => c.startsWith(`${name}=`));
-    return cookie?.split("=").slice(1).join("=");
+    const raw = cookie?.split("=").slice(1).join("=");
+    if (!raw) return undefined;
+    try {
+      return decodeURIComponent(raw);
+    } catch {
+      return raw;
+    }
   } catch {
     return undefined;
   }
@@ -80,7 +86,9 @@ function safeGetCookie(name: string): string | undefined {
 
 function safeSetCookie(name: string, value: string): void {
   try {
-    document.cookie = `${name}=${value}; max-age=31536000; path=/; SameSite=Strict`;
+    // Always encode — raw JSON quotes/braces can break document.cookie round-trips
+    // so Zustand never rehydrates and /cart shows empty while the cookie still exists.
+    document.cookie = `${name}=${encodeURIComponent(value)}; max-age=31536000; path=/; SameSite=Strict`;
   } catch {
     /* ignore */
   }

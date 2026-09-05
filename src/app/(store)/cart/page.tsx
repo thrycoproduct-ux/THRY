@@ -30,6 +30,7 @@ async function CartPage() {
 
       <CartSection
         serverUserId={serverUser?.id ?? null}
+        guestCartItems={prefetch.guestCartItems}
         guestCartProducts={prefetch.guestCartProducts}
         userCart={prefetch.userCart}
         sizeConfigs={prefetch.sizeConfigs}

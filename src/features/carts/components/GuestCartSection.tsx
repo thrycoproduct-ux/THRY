@@ -33,6 +33,8 @@ import useCartStore, {
 } from "../useCartStore";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
 import { guestCartProductIds } from "@/lib/storefront/guest-cart-cookie";
+import { readClientCartCookie } from "../read-client-cart-cookie";
+import { cartHasLines } from "../guest-cart-merge";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useCourierChargesConfig } from "@/providers/CourierChargesProvider";
 import { useOfferCodesConfig } from "@/providers/OfferCodesProvider";
@@ -60,12 +62,14 @@ import { useToast } from "@/components/ui/use-toast";
 type CartSizeConfig = CartSizeConfigPayload;
 
 type GuestCartSectionProps = {
+  initialCartItems?: CartItems;
   initialProducts?: DocumentType<typeof FetchGuestCartQuery> | null;
   initialSizeConfigs?: Record<string, CartSizeConfig>;
   prefetchedProductIds?: string[];
 };
 
 function GuestCartSection({
+  initialCartItems,
   initialProducts,
   initialSizeConfigs,
   prefetchedProductIds,
@@ -81,10 +85,12 @@ function GuestCartSection({
   const [promoInput, setPromoInput] = useState("");
   const [appliedPromoCode, setAppliedPromoCode] = useState<string | null>(null);
   const cartItems = useCartStore((s) => s.cart);
+  const replaceCart = useCartStore((s) => s.replaceCart);
   const addProductToCart = useCartStore((s) => s.addProductToCart);
   const removeProduct = useCartStore((s) => s.removeProduct);
   const setProductSize = useCartStore((s) => s.setProductSize);
   const setProductSelections = useCartStore((s) => s.setProductSelections);
+  const seededFromCookieRef = useRef(false);
   const [sizeConfigsByProductId, setSizeConfigsByProductId] = useState<
     Record<string, CartSizeConfig>
   >(() => initialSizeConfigs ?? {});
@@ -92,6 +98,27 @@ function GuestCartSection({
   const skippedSizePrefetchRef = useRef(
     Boolean(initialSizeConfigs && prefetchedIdsKey),
   );
+
+  // Recover guest cart when Zustand missed cookie rehydration (common after
+  // unencoded JSON cookies / full page navigations to /cart).
+  useEffect(() => {
+    if (seededFromCookieRef.current) return;
+    if (cartHasLines(cartItems)) {
+      seededFromCookieRef.current = true;
+      return;
+    }
+    const fromServer =
+      initialCartItems && cartHasLines(initialCartItems)
+        ? initialCartItems
+        : null;
+    const fromCookie = readClientCartCookie();
+    const seed =
+      fromServer ??
+      (fromCookie && cartHasLines(fromCookie) ? fromCookie : null);
+    if (!seed) return;
+    seededFromCookieRef.current = true;
+    replaceCart(seed);
+  }, [cartItems, initialCartItems, replaceCart]);
 
   // `cartItems` is keyed by `lineKey` (productId + selected options), but
   // product hydration & pricing APIs work by plain `productId`.
@@ -107,7 +134,10 @@ function GuestCartSection({
     requestPolicy: "network-only",
   });
 
-  const productsData = data ?? initialProducts ?? null;
+  const productsData =
+    data?.productsCollection?.edges?.length
+      ? data
+      : initialProducts ?? data ?? null;
   const { pricing: livePricing } = useCartLivePricing(cartProductIds);
 
   const subtotal = useMemo(() => {

@@ -15,18 +15,21 @@ export function readClientCartCookie(): CartItems | null {
 
   if (!raw) return null;
 
+  const candidates = [raw];
   try {
-    const decoded = decodeURIComponent(raw);
-    const parsed = JSON.parse(decoded) as { cart?: CartItems };
-    if (!parsed?.cart || typeof parsed.cart !== "object") return null;
-    return normalizeCart(parsed.cart);
+    candidates.unshift(decodeURIComponent(raw));
   } catch {
+    /* raw may already be decoded JSON */
+  }
+
+  for (const candidate of candidates) {
     try {
-      const parsed = JSON.parse(raw) as { cart?: CartItems };
-      if (!parsed?.cart || typeof parsed.cart !== "object") return null;
+      const parsed = JSON.parse(candidate) as { cart?: CartItems };
+      if (!parsed?.cart || typeof parsed.cart !== "object") continue;
       return normalizeCart(parsed.cart);
     } catch {
-      return null;
+      /* try next candidate */
     }
   }
+  return null;
 }
