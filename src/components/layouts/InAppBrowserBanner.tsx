@@ -20,7 +20,8 @@ function isAndroidUa(ua: string) {
 
 /**
  * Soft prompt for Instagram/Facebook/etc. WebViews where Google login and
- * payments are unreliable. Does not block browsing.
+ * payments are unreliable. Stays visible during checkout (when store chrome
+ * hides) because that is when Razorpay/Google fail most often.
  */
 export function InAppBrowserBanner() {
   const { hideStoreChrome } = useCheckoutChrome();
@@ -30,10 +31,13 @@ export function InAppBrowserBanner() {
   const [visible, setVisible] = useState(false);
 
   useEffect(() => {
-    try {
-      if (sessionStorage.getItem(DISMISS_KEY) === "1") return;
-    } catch {
-      /* private / restricted storage */
+    // During active checkout, always re-show even if previously dismissed.
+    if (!hideStoreChrome) {
+      try {
+        if (sessionStorage.getItem(DISMISS_KEY) === "1") return;
+      } catch {
+        /* private / restricted storage */
+      }
     }
 
     const ua = navigator.userAgent;
@@ -43,15 +47,21 @@ export function InAppBrowserBanner() {
     setKind(detected);
     setAndroid(isAndroidUa(ua));
     setVisible(true);
-  }, []);
+  }, [hideStoreChrome]);
 
-  if (hideStoreChrome || !visible || !kind) return null;
+  if (!visible || !kind) return null;
 
   const appName = inAppBrowserLabel(kind);
   const pageUrl =
     typeof window !== "undefined" ? window.location.href : "https://thryco.com";
+  const checkoutMode = hideStoreChrome;
 
   const dismiss = () => {
+    // Never permanently dismiss while payment UI is open.
+    if (checkoutMode) {
+      setVisible(false);
+      return;
+    }
     setVisible(false);
     try {
       sessionStorage.setItem(DISMISS_KEY, "1");
@@ -82,14 +92,26 @@ export function InAppBrowserBanner() {
   return (
     <div
       className={cn(
-        "fixed inset-x-0 bottom-[calc(var(--mobile-nav-height)+0.75rem)] z-[90] px-3 md:bottom-4 md:px-4",
+        "fixed inset-x-0 z-[120] px-3 md:px-4",
+        checkoutMode
+          ? "top-3"
+          : "bottom-[calc(var(--mobile-nav-height)+0.75rem)] md:bottom-4",
       )}
       role="status"
     >
-      <div className="mx-auto flex max-w-lg items-start gap-3 rounded-xl border border-border/80 bg-background/95 p-3 shadow-lg backdrop-blur supports-[backdrop-filter]:bg-background/90">
+      <div
+        className={cn(
+          "mx-auto flex max-w-lg items-start gap-3 rounded-xl border p-3 shadow-lg backdrop-blur",
+          checkoutMode
+            ? "border-amber-500/50 bg-amber-50/95 text-amber-950 supports-[backdrop-filter]:bg-amber-50/90 dark:bg-amber-950/95 dark:text-amber-50"
+            : "border-border/80 bg-background/95 supports-[backdrop-filter]:bg-background/90",
+        )}
+      >
         <div className="min-w-0 flex-1 space-y-2">
           <p className="text-sm font-medium text-foreground">
-            Open in your browser for a smoother checkout
+            {checkoutMode
+              ? "Payment works best in Chrome / Safari"
+              : "Open in your browser for a smoother checkout"}
           </p>
           <p className="text-xs text-muted-foreground">
             {android

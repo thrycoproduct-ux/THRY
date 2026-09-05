@@ -46,53 +46,87 @@ export async function POST(
   }
 
   try {
-    const paymentLink = await createRazorpayPaymentLink({
-      orderId: order.id,
-      amountInRupees: amount,
-      customerName: order.name,
-      customerMobile: order.customer_mobile,
-      customerEmail: order.email,
-      expireInMinutes: 60 * 48,
-      notifySms: false,
-      notifyEmail: false,
-      createdAt: order.createdAt,
-    });
+    const meta = readPaymentMeta(order.payment_meta);
+    const existingUrl = String(meta.recoveryLinkUrl ?? "").trim();
 
-    if (!paymentLink?.short_url) {
-      throw new Error("Razorpay did not return a payment link URL.");
+    let paymentLinkUrl = existingUrl;
+    let paymentLinkId = String(meta.recoveryLinkId ?? "").trim();
+
+    if (!paymentLinkUrl) {
+      const paymentLink = await createRazorpayPaymentLink({
+        orderId: order.id,
+        amountInRupees: amount,
+        customerName: order.name,
+        customerMobile: order.customer_mobile,
+        customerEmail: order.email,
+        expireInMinutes: 60 * 48,
+        notifySms: false,
+        notifyEmail: false,
+        createdAt: order.createdAt,
+      });
+
+      if (!paymentLink?.short_url) {
+        throw new Error("Razorpay did not return a payment link URL.");
+      }
+
+      paymentLinkUrl = paymentLink.short_url;
+      paymentLinkId = paymentLink.id;
     }
 
-    const meta = readPaymentMeta(order.payment_meta);
     await db
       .update(orders)
       .set({
         payment_meta: mergePaymentMeta(meta, {
           recoveryLinkSent: true,
           recoveryLinkSentAt: new Date().toISOString(),
-          recoveryLinkId: paymentLink.id,
-          recoveryLinkUrl: paymentLink.short_url,
+          recoveryLinkId: paymentLinkId || meta.recoveryLinkId,
+          recoveryLinkUrl: paymentLinkUrl,
           recoveryLinkSentBy: user.id,
+          recoveryWhatsAppSent: false,
         }),
       })
       .where(eq(orders.id, order.id));
 
     let whatsappSent = false;
+    let whatsappReason: string | null = null;
     if (order.customer_mobile) {
       const waResult = await sendAbandonedCartWhatsApp({
         mobile: order.customer_mobile,
         customerName: order.name,
         orderId: order.id,
         amount: String(amount),
-        paymentLink: paymentLink.short_url,
+        paymentLink: paymentLinkUrl,
       });
       whatsappSent = waResult.sent;
+      if (waResult.sent) {
+        const latest = readPaymentMeta(
+          (
+            await db.query.orders.findFirst({
+              where: eq(orders.id, order.id),
+              columns: { payment_meta: true },
+            })
+          )?.payment_meta,
+        );
+        await db
+          .update(orders)
+          .set({
+            payment_meta: mergePaymentMeta(latest, {
+              recoveryWhatsAppSent: true,
+              recoveryWhatsAppSentAt: new Date().toISOString(),
+            }),
+          })
+          .where(eq(orders.id, order.id));
+      } else {
+        whatsappReason = waResult.reason;
+      }
     }
 
     return NextResponse.json({
       ok: true,
-      paymentLinkUrl: paymentLink.short_url,
-      paymentLinkId: paymentLink.id,
+      paymentLinkUrl,
+      paymentLinkId: paymentLinkId || null,
       whatsappSent,
+      whatsappReason,
     });
   } catch (error) {
     console.error("[admin] send-recovery-link failed:", error);

@@ -1,10 +1,14 @@
 "use client";
 
-import { clarityEvent, type ClarityFunnelEvent } from "@/lib/analytics/clarity-client";
+import {
+  clarityEvent,
+  type ClarityFunnelEvent,
+} from "@/lib/analytics/clarity-client";
 import {
   getOrCreateFunnelSessionId,
   type CheckoutFunnelEventType,
 } from "@/lib/checkout/checkout-funnel";
+import { detectInAppBrowser } from "@/lib/browser/in-app-browser";
 
 type ReportFunnelEventInput = {
   type: CheckoutFunnelEventType;
@@ -18,12 +22,15 @@ export function reportCheckoutFunnelEvent(input: ReportFunnelEventInput) {
 
   clarityEvent(input.type as ClarityFunnelEvent, input.reason ?? undefined);
 
+  const browserKind = detectInAppBrowser(navigator.userAgent);
+
   const body = JSON.stringify({
     funnelSessionId: getOrCreateFunnelSessionId(),
     type: input.type,
     reason: input.reason ?? null,
     orderId: input.orderId ?? null,
     path: window.location.pathname,
+    browserKind,
   });
 
   try {

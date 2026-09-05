@@ -77,6 +77,8 @@ type FormState = {
     phoneNumberId: string;
     templateName: string;
     templateLanguage: string;
+    abandonedTemplateName: string;
+    abandonedTemplateLanguage: string;
     notifySeller: boolean;
     sellerMobiles: string;
   };
@@ -112,6 +114,8 @@ const DEFAULT_FORM: FormState = {
     phoneNumberId: "",
     templateName: "",
     templateLanguage: "en",
+    abandonedTemplateName: "",
+    abandonedTemplateLanguage: "en",
     notifySeller: false,
     sellerMobiles: "",
   },
@@ -200,6 +204,12 @@ export function ApiIntegrationsForm() {
             phoneNumberId: String(whatsappValue.phoneNumberId ?? ""),
             templateName: String(whatsappValue.templateName ?? ""),
             templateLanguage: String(whatsappValue.templateLanguage ?? "en"),
+            abandonedTemplateName: String(
+              whatsappValue.abandonedTemplateName ?? "",
+            ),
+            abandonedTemplateLanguage: String(
+              whatsappValue.abandonedTemplateLanguage ?? "en",
+            ),
             notifySeller: Boolean(whatsappValue.notifySeller ?? false),
             sellerMobiles: String(whatsappValue.sellerMobiles ?? ""),
           },
@@ -345,6 +355,9 @@ export function ApiIntegrationsForm() {
           phoneNumberId: form.whatsapp.phoneNumberId.trim(),
           templateName: form.whatsapp.templateName.trim(),
           templateLanguage: form.whatsapp.templateLanguage.trim() || "en",
+          abandonedTemplateName: form.whatsapp.abandonedTemplateName.trim(),
+          abandonedTemplateLanguage:
+            form.whatsapp.abandonedTemplateLanguage.trim() || "en",
           notifySeller: form.whatsapp.notifySeller,
           sellerMobiles: form.whatsapp.sellerMobiles.trim(),
         },
@@ -717,6 +730,38 @@ export function ApiIntegrationsForm() {
               value={form.whatsapp.templateLanguage}
               onChange={(e) =>
                 updateWhatsApp("templateLanguage", e.target.value)
+              }
+              placeholder="en"
+            />
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="wa-abandoned-template">
+              Abandoned checkout template (recommended)
+            </Label>
+            <Input
+              id="wa-abandoned-template"
+              value={form.whatsapp.abandonedTemplateName}
+              onChange={(e) =>
+                updateWhatsApp("abandonedTemplateName", e.target.value)
+              }
+              placeholder="abandoned_cart_recovery"
+            />
+            <p className="text-xs text-muted-foreground">
+              Meta-approved template with body vars: name, amount, payment
+              link. Freeform WhatsApp text often fails outside the 24h window.
+            </p>
+          </div>
+
+          <div className="grid gap-2">
+            <Label htmlFor="wa-abandoned-lang">
+              Abandoned template language
+            </Label>
+            <Input
+              id="wa-abandoned-lang"
+              value={form.whatsapp.abandonedTemplateLanguage}
+              onChange={(e) =>
+                updateWhatsApp("abandonedTemplateLanguage", e.target.value)
               }
               placeholder="en"
             />

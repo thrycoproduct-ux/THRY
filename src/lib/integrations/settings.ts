@@ -447,6 +447,9 @@ export type WhatsAppConfig = {
   phoneNumberId: string;
   templateName?: string;
   templateLanguage?: string;
+  /** Approved Meta template for unpaid-cart recovery (body: name, amount, link). */
+  abandonedTemplateName?: string;
+  abandonedTemplateLanguage?: string;
   notifySeller: boolean;
   sellerMobiles: string[];
   enabled: boolean;
@@ -808,6 +811,18 @@ export async function getWhatsAppConfig(): Promise<WhatsAppConfig | null> {
     templateName: String(value.templateName ?? "").trim(),
     templateLanguage:
       String(value.templateLanguage ?? "en")
+        .trim()
+        .toLowerCase() || "en",
+    abandonedTemplateName: String(
+      value.abandonedTemplateName ?? value.abandoned_template_name ?? "",
+    ).trim(),
+    abandonedTemplateLanguage:
+      String(
+        value.abandonedTemplateLanguage ??
+          value.abandoned_template_language ??
+          value.templateLanguage ??
+          "en",
+      )
         .trim()
         .toLowerCase() || "en",
     notifySeller,

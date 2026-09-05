@@ -105,6 +105,8 @@ export const whatsappPayloadSchema = z.object({
   phoneNumberId: z.string().trim().min(1),
   templateName: z.string().trim().optional(),
   templateLanguage: z.string().trim().min(2).default("en"),
+  abandonedTemplateName: z.string().trim().optional(),
+  abandonedTemplateLanguage: z.string().trim().min(2).optional(),
   notifySeller: z.boolean().default(false),
   sellerMobiles: z.string().trim().default(""),
 });
@@ -172,6 +174,11 @@ export function normalizeWhatsAppIncoming(incoming: Record<string, unknown>) {
     templateName: String(incoming.templateName ?? "").trim(),
     templateLanguage:
       String(incoming.templateLanguage ?? "")
+        .trim()
+        .toLowerCase() || "en",
+    abandonedTemplateName: String(incoming.abandonedTemplateName ?? "").trim(),
+    abandonedTemplateLanguage:
+      String(incoming.abandonedTemplateLanguage ?? "")
         .trim()
         .toLowerCase() || "en",
     notifySeller: Boolean(incoming.notifySeller ?? false),

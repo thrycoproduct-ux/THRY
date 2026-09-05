@@ -16,15 +16,14 @@ export type AbandonedCartRecoveryResult = {
 
 /**
  * Find unpaid orders older than `minAgeMinutes` but younger than `maxAgeHours`
- * that haven't already been sent a recovery link. Generate a Razorpay Payment
- * Link and send it via WhatsApp.
+ * that need a recovery payment link and/or WhatsApp nudge.
  */
 export async function recoverAbandonedCarts(options?: {
   minAgeMinutes?: number;
   maxAgeHours?: number;
   limit?: number;
 }): Promise<AbandonedCartRecoveryResult> {
-  const minAge = options?.minAgeMinutes ?? 20;
+  const minAge = options?.minAgeMinutes ?? 15;
   const maxAge = options?.maxAgeHours ?? 24;
   const limit = Math.min(options?.limit ?? 20, 50);
 
@@ -38,8 +37,15 @@ export async function recoverAbandonedCarts(options?: {
       eq(orders.order_status, "pending"),
       gte(orders.createdAt, oldestAllowed),
       lt(orders.createdAt, newestAllowed),
-      sql`coalesce((${orders.payment_meta}->>'recoveryLinkSent')::boolean, false) = false`,
       sql`coalesce(${orders.customer_mobile}, '') <> ''`,
+      // Need a new link, or an existing link whose WhatsApp send failed.
+      sql`(
+        coalesce((${orders.payment_meta}->>'recoveryLinkSent')::boolean, false) = false
+        OR (
+          coalesce((${orders.payment_meta}->>'recoveryWhatsAppSent')::boolean, false) = false
+          AND coalesce(${orders.payment_meta}->>'recoveryLinkUrl', '') <> ''
+        )
+      )`,
     ),
     orderBy: (o, { desc }) => [desc(o.createdAt)],
     limit,
@@ -56,61 +62,113 @@ export async function recoverAbandonedCarts(options?: {
   for (const order of candidates) {
     try {
       const meta = readPaymentMeta(order.payment_meta);
-      if (meta.recoveryLinkSent) continue;
+      if (meta.recoveryWhatsAppSent) continue;
 
       const amount = Number(order.amount);
       if (!amount || amount <= 0) continue;
 
-      const paymentLink = await createRazorpayPaymentLink({
-        orderId: order.id,
-        amountInRupees: amount,
-        customerName: order.name,
-        customerMobile: order.customer_mobile,
-        customerEmail: order.email,
-        description: `Complete your ${siteConfig.name} order`,
-        expireInMinutes: 60 * 23, // 23 hours
-        notifySms: false,
-        notifyEmail: false,
-        createdAt: order.createdAt,
-      });
+      let paymentLinkUrl = String(meta.recoveryLinkUrl ?? "").trim();
+      let paymentLinkId = String(meta.recoveryLinkId ?? "").trim();
 
-      if (!paymentLink?.short_url) {
+      if (!paymentLinkUrl) {
+        const paymentLink = await createRazorpayPaymentLink({
+          orderId: order.id,
+          amountInRupees: amount,
+          customerName: order.name,
+          customerMobile: order.customer_mobile,
+          customerEmail: order.email,
+          description: `Complete your ${siteConfig.name} order`,
+          expireInMinutes: 60 * 23,
+          notifySms: false,
+          notifyEmail: false,
+          createdAt: order.createdAt,
+        });
+
+        if (!paymentLink?.short_url) {
+          result.errors.push({
+            orderId: order.id,
+            message: "Payment link creation returned no URL",
+          });
+          continue;
+        }
+
+        paymentLinkUrl = paymentLink.short_url;
+        paymentLinkId = paymentLink.id;
+        result.linksSent += 1;
+
+        await db
+          .update(orders)
+          .set({
+            payment_meta: mergePaymentMeta(meta, {
+              recoveryLinkSent: true,
+              recoveryLinkSentAt: new Date().toISOString(),
+              recoveryLinkId: paymentLinkId,
+              recoveryLinkUrl: paymentLinkUrl,
+              recoveryWhatsAppSent: false,
+            }),
+          })
+          .where(eq(orders.id, order.id));
+      }
+
+      if (!order.customer_mobile) {
         result.errors.push({
           orderId: order.id,
-          message: "Payment link creation returned no URL",
+          message: "Missing customer mobile for WhatsApp recovery",
         });
         continue;
       }
 
-      result.linksSent += 1;
+      const waResult = await sendAbandonedCartWhatsApp({
+        mobile: order.customer_mobile,
+        customerName: order.name,
+        orderId: order.id,
+        amount: String(amount),
+        paymentLink: paymentLinkUrl,
+      });
 
-      await db
-        .update(orders)
-        .set({
-          payment_meta: mergePaymentMeta(meta, {
-            recoveryLinkSent: true,
-            recoveryLinkSentAt: new Date().toISOString(),
-            recoveryLinkId: paymentLink.id,
-            recoveryLinkUrl: paymentLink.short_url,
-          }),
-        })
-        .where(eq(orders.id, order.id));
+      const latestMeta = readPaymentMeta(
+        (
+          await db.query.orders.findFirst({
+            where: eq(orders.id, order.id),
+            columns: { payment_meta: true },
+          })
+        )?.payment_meta ?? meta,
+      );
 
-      if (order.customer_mobile) {
-        const waResult = await sendAbandonedCartWhatsApp({
-          mobile: order.customer_mobile,
-          customerName: order.name,
+      if (waResult.sent) {
+        result.whatsappSent += 1;
+        await db
+          .update(orders)
+          .set({
+            payment_meta: mergePaymentMeta(latestMeta, {
+              recoveryLinkSent: true,
+              recoveryLinkId: paymentLinkId || latestMeta.recoveryLinkId,
+              recoveryLinkUrl: paymentLinkUrl,
+              recoveryWhatsAppSent: true,
+              recoveryWhatsAppSentAt: new Date().toISOString(),
+            }),
+          })
+          .where(eq(orders.id, order.id));
+        result.recovered += 1;
+      } else {
+        await db
+          .update(orders)
+          .set({
+            payment_meta: mergePaymentMeta(latestMeta, {
+              recoveryLinkSent: true,
+              recoveryLinkId: paymentLinkId || latestMeta.recoveryLinkId,
+              recoveryLinkUrl: paymentLinkUrl,
+              recoveryWhatsAppSent: false,
+              recoveryWhatsAppLastError: waResult.reason.slice(0, 300),
+              recoveryWhatsAppLastAttemptAt: new Date().toISOString(),
+            }),
+          })
+          .where(eq(orders.id, order.id));
+        result.errors.push({
           orderId: order.id,
-          amount: String(amount),
-          paymentLink: paymentLink.short_url,
+          message: `WhatsApp not sent: ${waResult.reason}`,
         });
-
-        if (waResult.sent) {
-          result.whatsappSent += 1;
-        }
       }
-
-      result.recovered += 1;
     } catch (error) {
       result.errors.push({
         orderId: order.id,

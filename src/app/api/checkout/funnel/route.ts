@@ -1,9 +1,7 @@
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { checkCheckoutRateLimit, getRequestIp } from "@/lib/auth/rate-limit";
-import {
-  CHECKOUT_FUNNEL_EVENT_TYPES,
-} from "@/lib/checkout/checkout-funnel";
+import { CHECKOUT_FUNNEL_EVENT_TYPES } from "@/lib/checkout/checkout-funnel";
 
 const bodySchema = z.object({
   funnelSessionId: z.string().trim().min(8).max(64),
@@ -11,6 +9,10 @@ const bodySchema = z.object({
   reason: z.string().trim().max(500).nullable().optional(),
   orderId: z.string().trim().max(64).nullable().optional(),
   path: z.string().trim().max(200).optional(),
+  browserKind: z
+    .enum(["instagram", "facebook", "whatsapp", "tiktok", "other"])
+    .nullable()
+    .optional(),
 });
 
 /** Structured pre-order funnel log for Vercel / ops (Clarity is primary). */
@@ -29,7 +31,8 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false }, { status: 400 });
   }
 
-  const { funnelSessionId, type, reason, orderId, path } = parsed.data;
+  const { funnelSessionId, type, reason, orderId, path, browserKind } =
+    parsed.data;
   console.info(
     "[checkout-funnel]",
     JSON.stringify({
@@ -39,6 +42,7 @@ export async function POST(request: NextRequest) {
       reason: reason ?? null,
       orderId: orderId ?? null,
       path: path ?? null,
+      browserKind: browserKind ?? null,
     }),
   );
 

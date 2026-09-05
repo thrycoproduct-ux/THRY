@@ -456,11 +456,12 @@ export async function openRazorpayCheckout(params: {
 
     try {
       checkout.open();
-      // Razorpay docs: modal opens synchronously after open(). Do not wait for
-      // iframe polling — that left users stuck on "Opening Razorpay" when the
-      // host guard froze the main thread.
+      // Prefer announcing only once the modal is actually visible. Forced
+      // announce left Instagram WebViews reporting payment_open with no UI.
       window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => announceOpened());
+        window.requestAnimationFrame(() => {
+          if (isRazorpayModalVisible()) announceOpened();
+        });
       });
     } catch (error) {
       settle(() =>
@@ -485,7 +486,8 @@ export async function openRazorpayCheckout(params: {
       }
     }, 120);
 
-    timers.hide = window.setTimeout(announceOpened, 1800);
+    // Do not force-announce after 1.8s — that marked payment_open even when
+    // Instagram WebViews never showed Razorpay. Wait for DOM or the timeout.
 
     timers.open = window.setTimeout(() => {
       if (isRazorpayModalVisible()) {

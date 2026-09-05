@@ -1,9 +1,17 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { ExternalLink } from "lucide-react";
 import { buildOAuthCallbackUrl } from "@/lib/auth/callback";
 import { resolveOAuthBrowserOrigin } from "@/lib/auth/site-urls";
+import {
+  buildAndroidChromeIntentUrl,
+  detectInAppBrowser,
+  inAppBrowserLabel,
+  type InAppBrowserKind,
+} from "@/lib/browser/in-app-browser";
 
 import { Spinner } from "@/components/ui/spinner";
 import { useToast } from "@/components/ui/use-toast";
@@ -45,11 +53,53 @@ function GoogleMark({ className }: { className?: string }) {
 
 function OAuthLoginButtons({ nextPath }: OAuthLoginButtonsProps) {
   const [isLoading, setIsLoading] = useState(false);
+  const [inAppKind, setInAppKind] = useState<InAppBrowserKind>(null);
+  const [copied, setCopied] = useState(false);
   const supabase = createClient();
   const router = useRouter();
   const { toast } = useToast();
 
+  useEffect(() => {
+    setInAppKind(detectInAppBrowser(navigator.userAgent));
+  }, []);
+
+  const guestHref = nextPath?.startsWith("/")
+    ? nextPath
+    : nextPath
+      ? `/${nextPath}`
+      : "/cart";
+
+  const openInBrowser = () => {
+    const pageUrl = window.location.href;
+    const intent = buildAndroidChromeIntentUrl(pageUrl);
+    if (intent) {
+      window.location.href = intent;
+      return;
+    }
+    void navigator.clipboard.writeText(pageUrl).then(
+      () => {
+        setCopied(true);
+        window.setTimeout(() => setCopied(false), 2000);
+        toast({
+          title: "Link copied",
+          description: "Paste it in Safari or Chrome to sign in with Google.",
+        });
+      },
+      () => {
+        toast({
+          title: "Open in browser",
+          description: `In ${inAppBrowserLabel(inAppKind)}, tap ··· → Open in browser, then sign in.`,
+        });
+      },
+    );
+  };
+
   const signWithGoogle = async () => {
+    if (inAppKind) {
+      openInBrowser();
+      return;
+    }
+
     setIsLoading(true);
 
     // Stay on the same host the shopper opened (www vs apex). Forcing
@@ -99,10 +149,43 @@ function OAuthLoginButtons({ nextPath }: OAuthLoginButtonsProps) {
     setIsLoading(false);
   };
 
+  if (inAppKind) {
+    const appName = inAppBrowserLabel(inAppKind);
+    return (
+      <div className="space-y-3">
+        <div className="rounded-lg border border-amber-500/40 bg-amber-50 px-3 py-3 text-sm text-amber-950 dark:bg-amber-950/40 dark:text-amber-50">
+          <p className="font-medium">Google sign-in blocked in {appName}</p>
+          <p className="mt-1 text-xs opacity-90">
+            Instagram / in-app browsers often fail Google login. Open in Chrome
+            or Safari, or checkout as guest from your cart.
+          </p>
+        </div>
+        <button
+          type="button"
+          onClick={openInBrowser}
+          className={cn(
+            "flex h-12 w-full items-center justify-center gap-2 rounded-lg",
+            "border border-[#dadce0] bg-white text-[15px] font-medium text-[#3c4043]",
+            "shadow-sm transition-colors hover:bg-[#f8f9fa]",
+          )}
+        >
+          <ExternalLink className="h-4 w-4" aria-hidden />
+          {copied ? "Link copied" : "Open in browser to use Google"}
+        </button>
+        <Link
+          href={guestHref}
+          className="flex h-11 w-full items-center justify-center rounded-lg bg-foreground text-sm font-medium text-background"
+        >
+          Continue as guest → Cart
+        </Link>
+      </div>
+    );
+  }
+
   return (
     <button
       type="button"
-      onClick={signWithGoogle}
+      onClick={() => void signWithGoogle()}
       disabled={isLoading}
       aria-label="Continue with Google"
       className={cn(

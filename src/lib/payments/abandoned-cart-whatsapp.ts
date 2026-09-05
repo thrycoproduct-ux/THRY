@@ -15,6 +15,32 @@ type SendAbandonedCartWhatsAppParams = {
 
 type WhatsAppSendResult = { sent: true } | { sent: false; reason: string };
 
+type WhatsAppTemplateBody = {
+  messaging_product: "whatsapp";
+  to: string;
+  type: "template";
+  template: {
+    name: string;
+    language: { code: string };
+    components: Array<{
+      type: "body";
+      parameters: Array<{ type: "text"; text: string }>;
+    }>;
+  };
+};
+
+type WhatsAppTextBody = {
+  messaging_product: "whatsapp";
+  to: string;
+  type: "text";
+  text: { body: string };
+};
+
+/**
+ * Recover unpaid checkouts. Prefers an approved abandoned-cart template
+ * (config `abandonedTemplateName` or env WHATSAPP_ABANDONED_TEMPLATE_NAME)
+ * because freeform text is rejected outside the 24h customer-care window.
+ */
 export async function sendAbandonedCartWhatsApp(
   params: SendAbandonedCartWhatsAppParams,
 ): Promise<WhatsAppSendResult> {
@@ -29,18 +55,60 @@ export async function sendAbandonedCartWhatsApp(
   }
 
   const name = String(params.customerName ?? "").trim() || "there";
-  const message = [
-    `Hi ${name}! 👋`,
-    ``,
-    `You left something in your cart at ${siteConfig.name}.`,
-    ``,
-    `Order amount: ₹${params.amount}`,
-    ``,
-    `Complete your purchase now:`,
-    params.paymentLink,
-    ``,
-    `This link expires in 23 hours. Need help? Just reply to this message.`,
-  ].join("\n");
+  const amount = String(params.amount ?? "").trim() || "0";
+  const paymentLink = String(params.paymentLink ?? "").trim();
+  if (!paymentLink) {
+    return { sent: false, reason: "missing_payment_link" };
+  }
+
+  const abandonedTemplate =
+    config.abandonedTemplateName?.trim() ||
+    process.env.WHATSAPP_ABANDONED_TEMPLATE_NAME?.trim() ||
+    "";
+  const language =
+    config.abandonedTemplateLanguage?.trim() ||
+    config.templateLanguage ||
+    "en";
+
+  const body: WhatsAppTemplateBody | WhatsAppTextBody = abandonedTemplate
+    ? {
+        messaging_product: "whatsapp",
+        to,
+        type: "template",
+        template: {
+          name: abandonedTemplate,
+          language: { code: language },
+          // Expected body vars: {{1}} name, {{2}} amount, {{3}} payment link
+          components: [
+            {
+              type: "body",
+              parameters: [
+                { type: "text", text: name },
+                { type: "text", text: amount },
+                { type: "text", text: paymentLink },
+              ],
+            },
+          ],
+        },
+      }
+    : {
+        messaging_product: "whatsapp",
+        to,
+        type: "text",
+        text: {
+          body: [
+            `Hi ${name}!`,
+            ``,
+            `You left an unpaid order at ${siteConfig.name}.`,
+            `Amount: ₹${amount}`,
+            ``,
+            `Complete payment here:`,
+            paymentLink,
+            ``,
+            `Link expires soon. Reply if you need help.`,
+          ].join("\n"),
+        },
+      };
 
   const endpoint = `https://graph.facebook.com/${WHATSAPP_API_VERSION}/${config.phoneNumberId}/messages`;
   const controller = new AbortController();
@@ -56,12 +124,7 @@ export async function sendAbandonedCartWhatsApp(
         "Content-Type": "application/json",
         Authorization: `Bearer ${config.accessToken}`,
       },
-      body: JSON.stringify({
-        messaging_product: "whatsapp",
-        to,
-        type: "text",
-        text: { body: message },
-      }),
+      body: JSON.stringify(body),
       cache: "no-store",
       signal: controller.signal,
     });
@@ -75,8 +138,7 @@ export async function sendAbandonedCartWhatsApp(
     } | null;
     return {
       sent: false,
-      reason:
-        payload?.error?.message || `WhatsApp API error (${res.status})`,
+      reason: payload?.error?.message || `WhatsApp API error (${res.status})`,
     };
   } catch (error) {
     return {

@@ -160,6 +160,7 @@ export function AdminOrderDetailView({
   const [dispatchTrackingInput, setDispatchTrackingInput] = useState("");
   const [dispatchSubmitting, setDispatchSubmitting] = useState(false);
   const [resyncSubmitting, setResyncSubmitting] = useState(false);
+  const [recoverySubmitting, setRecoverySubmitting] = useState(false);
   const [dispatchError, setDispatchError] = useState<string | null>(null);
   const [dispatchSuccess, setDispatchSuccess] = useState<{
     courierName: string;
@@ -209,6 +210,9 @@ export function AdminOrderDetailView({
     (order.paymentProvider?.toLowerCase() === "razorpay" ||
       order.paymentMethod?.toLowerCase() === "razorpay" ||
       Boolean(order.paymentReference?.startsWith("order_")));
+
+  const canSendRecoveryLink =
+    !isPaid && Boolean(String(order.customerMobile ?? "").trim());
 
   const canDispatch = isPaid && orderStatusNorm === "preparing";
 
@@ -463,6 +467,64 @@ export function AdminOrderDetailView({
               <Loader2 className="mr-2 h-4 w-4 animate-spin" />
             ) : null}
             {resyncSubmitting ? "Syncing…" : "Sync from Razorpay"}
+          </Button>
+        ) : null}
+        {canSendRecoveryLink ? (
+          <Button
+            variant="secondary"
+            disabled={recoverySubmitting}
+            title="Create Razorpay payment link and WhatsApp the shopper"
+            onClick={() => {
+              void (async () => {
+                if (recoverySubmitting) return;
+                setRecoverySubmitting(true);
+                try {
+                  const res = await fetch(
+                    `/api/admin/orders/${order.id}/send-recovery-link`,
+                    { method: "POST" },
+                  );
+                  const payload = (await res.json().catch(() => null)) as {
+                    message?: string;
+                    paymentLinkUrl?: string;
+                    whatsappSent?: boolean;
+                    whatsappReason?: string | null;
+                  } | null;
+                  if (!res.ok) {
+                    throw new Error(
+                      payload?.message || "Could not send recovery link.",
+                    );
+                  }
+                  toast({
+                    title: payload?.whatsappSent
+                      ? "Recovery WhatsApp sent"
+                      : "Payment link ready",
+                    description: payload?.whatsappSent
+                      ? "Shopper was messaged with a pay link."
+                      : payload?.whatsappReason
+                        ? `Link created. WhatsApp: ${payload.whatsappReason}`
+                        : payload?.paymentLinkUrl
+                          ? `Link: ${payload.paymentLinkUrl}`
+                          : "Payment link created.",
+                  });
+                } catch (error) {
+                  toast({
+                    variant: "destructive",
+                    title: "Recovery failed",
+                    description:
+                      error instanceof Error
+                        ? error.message
+                        : "Could not send recovery link.",
+                  });
+                } finally {
+                  setRecoverySubmitting(false);
+                }
+              })();
+            }}
+          >
+            {recoverySubmitting ? (
+              <Loader2 className="mr-2 h-4 w-4 animate-spin" />
+            ) : null}
+            {recoverySubmitting ? "Sending…" : "Send pay link"}
           </Button>
         ) : null}
         {canDispatch ? (
