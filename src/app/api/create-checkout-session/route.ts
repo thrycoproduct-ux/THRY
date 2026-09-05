@@ -62,7 +62,13 @@ import { z } from "zod";
 const shippingSchema = z.object({
   addressId: z.string().min(1),
   fullName: z.string().min(2),
-  email: z.string().email(),
+  email: z
+    .string()
+    .trim()
+    .refine(
+      (value) => value === "" || z.string().email().safeParse(value).success,
+      "Enter a valid email address",
+    ),
   mobile: z.string().min(10),
   state: z.string().min(1),
 });

@@ -33,7 +33,6 @@ export function userAddressToFormValues(
 export function isAddressCompleteForCheckout(record: UserAddressRecord) {
   return Boolean(
     record.fullName.trim() &&
-      record.email.trim() &&
       record.mobile.trim() &&
       record.line1.trim() &&
       record.city.trim() &&

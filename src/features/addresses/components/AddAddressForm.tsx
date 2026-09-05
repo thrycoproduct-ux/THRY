@@ -155,13 +155,11 @@ export function AddAddressForm({
           name="email"
           render={({ field }) => (
             <FormItem>
-              <FormLabel>
-                <RequiredLabel>Email</RequiredLabel>
-              </FormLabel>
+              <FormLabel>Email</FormLabel>
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="Enter email"
+                  placeholder="Enter email (optional)"
                   autoComplete="email"
                   {...field}
                 />

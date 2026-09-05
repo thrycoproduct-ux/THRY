@@ -94,4 +94,30 @@ describe("buildOrderPaymentBreakdown", () => {
     });
     expect(result.lines.find((l) => l.key === "total")?.amount).toBe(999);
   });
+
+  it("omits GST line when includeGst is false", () => {
+    const result = buildOrderPaymentBreakdown({
+      orderAmount: 4404,
+      includeGst: false,
+      paymentMeta: {
+        subtotalAmount: 3632,
+        discountAmount: 0,
+        discountPercentage: 0,
+        discountedSubtotal: 3632,
+        courierCharge: 100,
+        courierRule: "qty1_base",
+        gstAmount: 672,
+        gstEnabled: true,
+        gstPercentage: 18,
+      },
+    });
+
+    expect(result.total).toBe(4404);
+    expect(result.lines.map((l) => l.key)).toEqual([
+      "subtotal",
+      "courier",
+      "total",
+    ]);
+    expect(result.lines.find((l) => l.key === "total")?.amount).toBe(4404);
+  });
 });

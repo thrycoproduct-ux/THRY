@@ -55,6 +55,7 @@ function buildBreakdownLines(input: OrderConfirmationEmailInput) {
       unitPrice: line.unitPrice,
       quantity: line.quantity,
     })),
+    includeGst: false,
   });
 }
 

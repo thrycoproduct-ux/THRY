@@ -78,7 +78,9 @@ describe("order confirmation email content", () => {
     expect(text).toContain("Payment: Razorpay · UPI");
     expect(text).toContain("Phone: +91 9876543210");
     expect(text).toContain("Mandala Kit (MK-001) × 1");
-    expect(text).toContain("GST (18%)");
+    expect(text).toContain("Subtotal");
+    expect(text).toContain("Courier");
+    expect(text).not.toContain("GST");
     expect(text).toContain("12 MG Road");
     expect(text).toContain("PIN: 635126");
     expect(text).toContain(baseInput.orderUrl);

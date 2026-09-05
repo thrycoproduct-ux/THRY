@@ -45,9 +45,12 @@ export function buildOrderPaymentBreakdown(params: {
   paymentMeta: unknown;
   orderAmount: number;
   lineItems?: Array<{ unitPrice: number; quantity: number }>;
+  /** When false, omit the GST line (customer email). Default true for admin. */
+  includeGst?: boolean;
 }): OrderPaymentBreakdown {
   const meta = readPaymentMeta(params.paymentMeta);
   const total = Math.max(0, asFiniteNumber(params.orderAmount) ?? 0);
+  const includeGst = params.includeGst !== false;
 
   const subtotalFromMeta = asNonNegative(meta.subtotalAmount);
   const lineSubtotal =
@@ -129,7 +132,7 @@ export function buildOrderPaymentBreakdown(params: {
     });
   }
 
-  if (gstAmount !== null || gstEnabled) {
+  if (includeGst && (gstAmount !== null || gstEnabled)) {
     lines.push({
       key: "gst",
       label: formatCartGstLabel({ gstEnabled, gstPercentage }),
