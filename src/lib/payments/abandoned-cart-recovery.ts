@@ -151,6 +151,7 @@ export async function recoverAbandonedCarts(options?: {
           .where(eq(orders.id, order.id));
         result.recovered += 1;
       } else {
+        const waReason = waResult.reason ?? "whatsapp_failed";
         await db
           .update(orders)
           .set({
@@ -159,14 +160,14 @@ export async function recoverAbandonedCarts(options?: {
               recoveryLinkId: paymentLinkId || latestMeta.recoveryLinkId,
               recoveryLinkUrl: paymentLinkUrl,
               recoveryWhatsAppSent: false,
-              recoveryWhatsAppLastError: waResult.reason.slice(0, 300),
+              recoveryWhatsAppLastError: waReason.slice(0, 300),
               recoveryWhatsAppLastAttemptAt: new Date().toISOString(),
             }),
           })
           .where(eq(orders.id, order.id));
         result.errors.push({
           orderId: order.id,
-          message: `WhatsApp not sent: ${waResult.reason}`,
+          message: `WhatsApp not sent: ${waReason}`,
         });
       }
     } catch (error) {

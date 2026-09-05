@@ -13,7 +13,10 @@ type SendAbandonedCartWhatsAppParams = {
   paymentLink: string;
 };
 
-type WhatsAppSendResult = { sent: true } | { sent: false; reason: string };
+type WhatsAppSendResult = {
+  sent: boolean;
+  reason?: string;
+};
 
 type WhatsAppTemplateBody = {
   messaging_product: "whatsapp";

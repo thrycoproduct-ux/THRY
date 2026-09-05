@@ -97,8 +97,8 @@ export async function POST(
         amount: String(amount),
         paymentLink: paymentLinkUrl,
       });
-      whatsappSent = waResult.sent;
       if (waResult.sent) {
+        whatsappSent = true;
         const latest = readPaymentMeta(
           (
             await db.query.orders.findFirst({
@@ -117,7 +117,7 @@ export async function POST(
           })
           .where(eq(orders.id, order.id));
       } else {
-        whatsappReason = waResult.reason;
+        whatsappReason = waResult.reason ?? "whatsapp_failed";
       }
     }
 
