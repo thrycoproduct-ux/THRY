@@ -748,8 +748,8 @@ export function ApiIntegrationsForm() {
               placeholder="abandoned_cart_recovery"
             />
             <p className="text-xs text-muted-foreground">
-              Meta-approved template with body vars: name, amount, payment
-              link. Freeform WhatsApp text often fails outside the 24h window.
+              Meta-approved template with body vars: name, amount, payment link.
+              Freeform WhatsApp text often fails outside the 24h window.
             </p>
           </div>
 

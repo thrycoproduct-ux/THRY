@@ -66,9 +66,7 @@ export async function sendAbandonedCartWhatsApp(
     process.env.WHATSAPP_ABANDONED_TEMPLATE_NAME?.trim() ||
     "";
   const language =
-    config.abandonedTemplateLanguage?.trim() ||
-    config.templateLanguage ||
-    "en";
+    config.abandonedTemplateLanguage?.trim() || config.templateLanguage || "en";
 
   const body: WhatsAppTemplateBody | WhatsAppTextBody = abandonedTemplate
     ? {
