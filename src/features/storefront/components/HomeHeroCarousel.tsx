@@ -91,8 +91,10 @@ export function HomeHeroCarousel({ slides }: Props) {
                     alt={slide.imageAlt}
                     fill
                     priority={isFirstSlide}
+                    fetchPriority={isFirstSlide ? "high" : "auto"}
                     loading={isFirstSlide ? undefined : "lazy"}
                     sizes="100vw"
+                    optimizeWidth={1200}
                     className="object-cover object-[center_20%] sm:object-center"
                   />
                   <div

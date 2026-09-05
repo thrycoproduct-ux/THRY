@@ -37,6 +37,7 @@ function PriceCircleCard({ bucket }: { bucket: ShopByPriceBucket }) {
             alt={bucket.imageAlt}
             fill
             sizes="(max-width: 640px) 46vw, 200px"
+            optimizeWidth={400}
             className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.06]"
             loading="lazy"
           />

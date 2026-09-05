@@ -1,7 +1,8 @@
 "use client";
 
 import Image, { type ImageProps } from "next/image";
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
+import { CDN_PRESETS, cdnImageUrl } from "@/lib/media/cdn-image";
 import {
   getStorefrontImageProps,
   STOREFRONT_IMAGE_FALLBACK,
@@ -9,22 +10,42 @@ import {
 
 type Props = Omit<ImageProps, "onError" | "src"> & {
   src: string;
+  /**
+   * When set, rewrite R2/CDN URLs through Cloudflare Images resize
+   * (media.thryco.com/cdn/...). Ignored for local SVGs / legacy mode.
+   */
+  optimizeWidth?: number;
 };
 
 /**
  * Storefront photo with a local fallback when the CDN URL 404s or fails.
  */
-export function StorefrontImage({ src, alt, ...props }: Props) {
+export function StorefrontImage({
+  src,
+  alt,
+  optimizeWidth,
+  ...props
+}: Props) {
   const [failed, setFailed] = useState(false);
+
+  const optimizedSrc = useMemo(() => {
+    if (!src || src === STOREFRONT_IMAGE_FALLBACK) return src;
+    if (optimizeWidth == null) return src;
+    return cdnImageUrl(src, {
+      width: optimizeWidth,
+      quality: CDN_PRESETS.card.quality,
+      format: "webp",
+    });
+  }, [src, optimizeWidth]);
 
   useEffect(() => {
     setFailed(false);
-  }, [src]);
+  }, [optimizedSrc]);
 
   const displaySrc =
-    !src || failed || src === STOREFRONT_IMAGE_FALLBACK
+    !optimizedSrc || failed || optimizedSrc === STOREFRONT_IMAGE_FALLBACK
       ? STOREFRONT_IMAGE_FALLBACK
-      : src;
+      : optimizedSrc;
 
   return (
     <Image

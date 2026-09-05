@@ -137,6 +137,7 @@ function ProductImageShowcase({
                   alt={image.alt || `Product thumbnail ${index + 1}`}
                   fill
                   sizes="64px"
+                  optimizeWidth={128}
                   className="object-cover object-top"
                 />
               </button>
@@ -158,6 +159,7 @@ function ProductImageShowcase({
             alt={activeImage.alt || "Product image"}
             fill
             sizes="(max-width: 768px) 100vw, (max-width: 1200px) 55vw, 640px"
+            optimizeWidth={800}
             className="object-contain object-center"
             style={viewTransitionStyle(transitionName)}
             priority
@@ -219,6 +221,7 @@ function ProductImageShowcase({
                     alt={image.alt || `Product thumbnail ${index + 1}`}
                     fill
                     sizes="56px"
+                    optimizeWidth={112}
                     className="object-cover object-top"
                   />
                 </button>

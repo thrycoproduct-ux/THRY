@@ -46,6 +46,7 @@ function ReelProductCard({
           alt={featuredImage.alt || name}
           fill
           sizes="(max-width: 640px) 45vw, 220px"
+          optimizeWidth={400}
           className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.05]"
           style={viewTransitionStyle(productImageTransitionName(id))}
           loading="lazy"

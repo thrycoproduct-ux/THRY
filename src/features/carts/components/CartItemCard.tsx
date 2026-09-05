@@ -110,6 +110,7 @@ function CartItemCard({
             alt={imageAlt}
             width={150}
             height={150}
+            optimizeWidth={200}
             className="aspect-square h-[72px] w-[72px] rounded-md object-cover md:h-[120px] md:w-[120px]"
           />
         </Link>

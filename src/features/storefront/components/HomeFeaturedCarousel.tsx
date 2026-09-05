@@ -73,6 +73,7 @@ function FeaturedSlide({
             alt={featuredImage?.alt || name}
             fill
             sizes="(max-width: 640px) 78vw, (max-width: 1024px) 42vw, 360px"
+            optimizeWidth={400}
             className="object-cover object-top transition-transform duration-500 group-hover:scale-[1.04]"
             style={viewTransitionStyle(productImageTransitionName(id))}
             loading="lazy"

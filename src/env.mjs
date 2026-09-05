@@ -50,6 +50,12 @@ export const env = createEnv({
     NEXT_PUBLIC_CDN_URL: z.string().url(),
     NEXT_PUBLIC_SUPABASE_URL: z.string(),
     NEXT_PUBLIC_SENTRY_DSN: optionalUrl,
+    /** cloudflare = resize via media.thryco.com; legacy = raw R2 URLs */
+    NEXT_PUBLIC_IMAGE_DELIVERY_MODE: z.preprocess(
+      (value) => (value === "" || value == null ? "legacy" : value),
+      z.enum(["cloudflare", "legacy"]),
+    ),
+    NEXT_PUBLIC_MEDIA_CDN_ORIGIN: optionalUrl,
   },
 
   /**
@@ -68,6 +74,9 @@ export const env = createEnv({
     NEXT_PUBLIC_S3_BUCKET: process.env.NEXT_PUBLIC_S3_BUCKET,
     NEXT_PUBLIC_S3_REGION: process.env.NEXT_PUBLIC_S3_REGION,
     NEXT_PUBLIC_CDN_URL: process.env.NEXT_PUBLIC_CDN_URL,
+    NEXT_PUBLIC_IMAGE_DELIVERY_MODE:
+      process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE,
+    NEXT_PUBLIC_MEDIA_CDN_ORIGIN: process.env.NEXT_PUBLIC_MEDIA_CDN_ORIGIN,
     S3_ENDPOINT: process.env.S3_ENDPOINT,
     S3_ACCESS_KEY_ID: process.env.S3_ACCESS_KEY_ID,
     S3_SECRET_ACCESS_KEY: process.env.S3_SECRET_ACCESS_KEY,

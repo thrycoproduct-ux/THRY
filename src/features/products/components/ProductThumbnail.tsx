@@ -35,6 +35,7 @@ export function ProductThumbnail({
         alt={alt}
         fill
         sizes={productThumbnailSizes}
+        optimizeWidth={400}
         className={cn(productThumbnailImageClass, imageClassName)}
         priority={priority}
         loading={priority ? undefined : "lazy"}

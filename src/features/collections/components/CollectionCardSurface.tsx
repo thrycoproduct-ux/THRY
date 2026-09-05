@@ -41,10 +41,11 @@ export function CollectionCardSurface({
         alt={imageAlt}
         fill
         priority={priority}
-        fetchPriority={priority ? "high" : "auto"}
+        fetchPriority="auto"
         decoding={priority ? "sync" : "async"}
         loading={priority ? undefined : "lazy"}
         sizes={sizes}
+        optimizeWidth={400}
         className="object-cover object-center transition-transform duration-500 group-hover:scale-[1.05]"
         style={
           viewTransitionName

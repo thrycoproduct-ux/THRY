@@ -15,7 +15,8 @@ import { getLandingPageDataCached } from "@/lib/storefront/landing-data";
 import { getShopByPriceBucketsCached } from "@/lib/storefront/shop-by-price";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
 import { siteConfig } from "@/config/site";
-import { cn, keytoUrl } from "@/lib/utils";
+import { cn } from "@/lib/utils";
+import { CDN_PRESETS, cdnImageUrl } from "@/lib/media/cdn-image";
 import type { Metadata } from "next";
 
 const HomePriceCarousel = dynamic(() =>
@@ -100,20 +101,18 @@ export default async function Home() {
     featuredProducts.map(({ node }) => node.id),
   );
 
-  const firstCategoryImageKey =
-    collectionScrollCards?.edges?.find((edge) => edge.node.featuredImage?.key)
-      ?.node.featuredImage?.key ?? null;
-  const firstCategoryImageSrc = firstCategoryImageKey
-    ? keytoUrl(firstCategoryImageKey)
+  const firstHeroImage = slides[0]?.image?.trim() || null;
+  const firstHeroImageSrc = firstHeroImage
+    ? cdnImageUrl(firstHeroImage, CDN_PRESETS.hero)
     : null;
 
   return (
     <main className="min-h-screen w-full min-w-0 overflow-x-hidden">
-      {firstCategoryImageSrc ? (
+      {firstHeroImageSrc ? (
         <link
           rel="preload"
           as="image"
-          href={firstCategoryImageSrc}
+          href={firstHeroImageSrc}
           fetchPriority="high"
         />
       ) : null}
