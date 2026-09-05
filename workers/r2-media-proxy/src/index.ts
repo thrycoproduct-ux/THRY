@@ -34,11 +34,7 @@ type R2BucketBinding = {
 /** Minimal Images binding surface (Cloudflare Images Free supports R2 transforms). */
 type ImagesBinding = {
   input: (stream: ReadableStream) => {
-    transform: (opts: {
-      width?: number;
-      height?: number;
-      fit?: string;
-    }) => {
+    transform: (opts: { width?: number; height?: number; fit?: string }) => {
       output: (opts: {
         format?: string;
         quality?: number;
@@ -188,9 +184,7 @@ type CdnOptions = {
   format: "image/webp" | "image/avif" | "image/jpeg";
 };
 
-function parseCdnFormat(
-  raw: string | undefined,
-): CdnOptions["format"] | null {
+function parseCdnFormat(raw: string | undefined): CdnOptions["format"] | null {
   const v = (raw || "webp").toLowerCase();
   if (v === "webp") return "image/webp";
   if (v === "avif") return "image/avif";
@@ -199,7 +193,10 @@ function parseCdnFormat(
 }
 
 function parseCdnOptions(raw: string): CdnOptions | null {
-  const parts = raw.split(",").map((p) => p.trim()).filter(Boolean);
+  const parts = raw
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
   let width = DEFAULT_CDN_WIDTH;
   let quality = DEFAULT_CDN_QUALITY;
   let format: CdnOptions["format"] = "image/webp";
@@ -276,9 +273,7 @@ async function handleCdnGet(
       "Cache-Control",
       "public, max-age=31536000, stale-while-revalidate=86400, immutable",
     );
-    Object.entries(corsHeaders(request)).forEach(([k, v]) =>
-      headers.set(k, v),
-    );
+    Object.entries(corsHeaders(request)).forEach(([k, v]) => headers.set(k, v));
 
     const response = new Response(imageResponse.body, {
       status: 200,
@@ -313,7 +308,10 @@ export default {
     }
 
     // Public resize: /cdn/{options}/{key...}
-    if (request.method === "GET" && url.pathname.startsWith("/cdn/")) {
+    if (
+      (request.method === "GET" || request.method === "HEAD") &&
+      url.pathname.startsWith("/cdn/")
+    ) {
       const rest = url.pathname.slice("/cdn/".length);
       const slash = rest.indexOf("/");
       if (slash <= 0) {
@@ -321,7 +319,14 @@ export default {
       }
       const optionsRaw = rest.slice(0, slash);
       const keyRaw = rest.slice(slash + 1);
-      return handleCdnGet(request, env, optionsRaw, keyRaw);
+      const response = await handleCdnGet(request, env, optionsRaw, keyRaw);
+      if (request.method === "HEAD") {
+        return new Response(null, {
+          status: response.status,
+          headers: response.headers,
+        });
+      }
+      return response;
     }
 
     if (url.pathname !== "/object") {

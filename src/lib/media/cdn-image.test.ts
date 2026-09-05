@@ -23,9 +23,9 @@ describe("cdn-image", () => {
     process.env.NEXT_PUBLIC_CDN_URL = prevCdn;
   });
 
-  it("defaults to legacy mode until CF CDN is enabled", () => {
+  it("defaults to cloudflare mode once CF CDN is validated", () => {
     delete process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE;
-    expect(getImageDeliveryMode()).toBe("legacy");
+    expect(getImageDeliveryMode()).toBe("cloudflare");
   });
 
   it("extracts keys from r2.dev URLs and raw keys", () => {

@@ -20,14 +20,12 @@ const DEFAULT_MEDIA_ORIGIN = "https://media.thryco.com";
 const FALLBACK = "/images/thry-hero-statues.svg";
 
 export function getImageDeliveryMode(): ImageDeliveryMode {
-  // Default legacy until media.thryco.com /cdn is deployed & validated.
-  // Set NEXT_PUBLIC_IMAGE_DELIVERY_MODE=cloudflare on Vercel after Worker deploy.
-  const raw = String(
-    process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE ?? "legacy",
-  )
+  // Cloudflare /cdn is live on media.thryco.com (validated ~98% smaller WebP).
+  // Set NEXT_PUBLIC_IMAGE_DELIVERY_MODE=legacy to roll back to raw R2 URLs.
+  const raw = String(process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE ?? "cloudflare")
     .trim()
     .toLowerCase();
-  return raw === "cloudflare" ? "cloudflare" : "legacy";
+  return raw === "legacy" ? "legacy" : "cloudflare";
 }
 
 function mediaOrigin(): string {
@@ -61,10 +59,7 @@ export function extractMediaObjectKey(keyOrUrl: string): string | null {
   if (raw.startsWith("http://") || raw.startsWith("https://")) {
     try {
       const url = new URL(raw);
-      if (
-        url.hostname === "media.thryco.com" ||
-        url.origin === mediaOrigin()
-      ) {
+      if (url.hostname === "media.thryco.com" || url.origin === mediaOrigin()) {
         const m = url.pathname.match(/^\/cdn\/[^/]+\/(.+)$/);
         return m?.[1] ? decodeURIComponent(m[1]) : null;
       }
@@ -102,9 +97,7 @@ export function cdnImageUrl(
 
   const key = extractMediaObjectKey(input);
   if (!key || !key.startsWith("uploads/")) {
-    return input.startsWith("http") || input.startsWith("/")
-      ? input
-      : FALLBACK;
+    return input.startsWith("http") || input.startsWith("/") ? input : FALLBACK;
   }
 
   const width = Math.min(

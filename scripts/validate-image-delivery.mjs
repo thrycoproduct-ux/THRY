@@ -16,11 +16,13 @@ const key =
   process.argv[2]?.trim() || "uploads/upload-bat0Jc4NISjTbZoNSmUlQ.png";
 
 async function head(url) {
-  const res = await fetch(url, { method: "HEAD" });
+  // Prefer GET: some edge paths mishandle HEAD before body exists.
+  const res = await fetch(url, { method: "GET" });
+  const buf = res.ok ? await res.arrayBuffer() : null;
   return {
     url,
     status: res.status,
-    bytes: Number(res.headers.get("content-length") || 0),
+    bytes: buf ? buf.byteLength : Number(res.headers.get("content-length") || 0),
     type: res.headers.get("content-type"),
   };
 }
