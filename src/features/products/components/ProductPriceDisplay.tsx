@@ -1,3 +1,5 @@
+"use client";
+
 import { cn, formatPrice } from "@/lib/utils";
 import {
   formatDiscountBadgeLabel,
@@ -6,6 +8,8 @@ import {
   isProductDiscountActive,
   type ProductDiscountFields,
 } from "@/lib/products/discount";
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
+import { useCourierChargesConfig } from "@/providers/CourierChargesProvider";
 
 type ProductPriceDisplayProps = {
   product: ProductDiscountFields;
@@ -13,6 +17,11 @@ type ProductPriceDisplayProps = {
   saleClassName?: string;
   originalClassName?: string;
   layout?: "inline" | "stacked";
+  /**
+   * Storefront default: show GST-inclusive prices when GST is enabled.
+   * Admin catalog columns pass false to keep exclusive DB prices.
+   */
+  inclusive?: boolean;
 };
 
 export function ProductPriceDisplay({
@@ -21,10 +30,18 @@ export function ProductPriceDisplay({
   saleClassName,
   originalClassName,
   layout = "stacked",
+  inclusive = true,
 }: ProductPriceDisplayProps) {
+  const courierConfig = useCourierChargesConfig();
   const onSale = isProductDiscountActive(product);
-  const salePrice = getSaleProductPrice(product);
-  const originalPrice = getOriginalProductPrice(product);
+  const saleExclusive = getSaleProductPrice(product);
+  const originalExclusive = getOriginalProductPrice(product);
+  const salePrice = inclusive
+    ? toGstInclusiveAmount(saleExclusive, courierConfig)
+    : saleExclusive;
+  const originalPrice = inclusive
+    ? toGstInclusiveAmount(originalExclusive, courierConfig)
+    : originalExclusive;
 
   if (!onSale) {
     return (

@@ -2,6 +2,8 @@
 
 import * as React from "react";
 import { cn, formatPrice } from "@/lib/utils";
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
+import { useCourierChargesConfig } from "@/providers/CourierChargesProvider";
 
 export type ProductOptionTileChoice = {
   value: string;
@@ -20,6 +22,8 @@ type ProductOptionTilesProps = {
   /** Compact tiles for cart rows */
   compact?: boolean;
   className?: string;
+  /** Storefront shows GST-inclusive option prices by default. */
+  inclusive?: boolean;
 };
 
 /**
@@ -34,7 +38,9 @@ export const ProductOptionTiles = React.memo(function ProductOptionTiles({
   disabled = false,
   compact = false,
   className,
+  inclusive = true,
 }: ProductOptionTilesProps) {
+  const courierConfig = useCourierChargesConfig();
   const selected = String(value ?? "")
     .trim()
     .toUpperCase();
@@ -69,9 +75,14 @@ export const ProductOptionTiles = React.memo(function ProductOptionTiles({
         {options.map((option) => {
           const isSelected = option.value === selected;
           const isDisabled = disabled || Boolean(option.disabled);
+          const exclusive = Number(option.price);
           const priceText =
-            option.price != null && Number.isFinite(Number(option.price))
-              ? formatPrice(Number(option.price))
+            option.price != null && Number.isFinite(exclusive)
+              ? formatPrice(
+                  inclusive
+                    ? toGstInclusiveAmount(exclusive, courierConfig)
+                    : exclusive,
+                )
               : null;
 
           return (

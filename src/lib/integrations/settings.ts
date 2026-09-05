@@ -3,6 +3,9 @@ import { parseAnnouncementItems } from "@/lib/announcements/parse";
 import {
   calculateCourierCharge,
   calculateGstAmount,
+  getGstInclusiveFactor,
+  toGstInclusiveAmount,
+  buildCheckoutMoneyTotals,
   normalizeStateForCourier,
   type CourierChargeBreakdown,
   type CourierChargesConfig,
@@ -147,7 +150,14 @@ export type StockControlConfig = {
   lowStockThreshold: number;
 };
 export type { CourierChargeBreakdown, CourierChargesConfig };
-export { calculateCourierCharge, calculateGstAmount, normalizeStateForCourier };
+export {
+  calculateCourierCharge,
+  calculateGstAmount,
+  getGstInclusiveFactor,
+  toGstInclusiveAmount,
+  buildCheckoutMoneyTotals,
+  normalizeStateForCourier,
+};
 export type OfferCodeItem = {
   code: string;
   percentage: number;

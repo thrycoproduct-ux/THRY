@@ -4,7 +4,8 @@ import { DocumentType } from "@/gql";
 import { FetchCartQuery } from "../queries/cart-page-queries";
 import {
   calculateCourierCharge,
-  calculateGstAmount,
+  buildCheckoutMoneyTotals,
+  toGstInclusiveAmount,
 } from "@/lib/courier/calculate";
 import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
 import { cn } from "@/lib/utils";
@@ -387,11 +388,21 @@ function UserCartSection({
     !courierEnabled ||
     (pincodeLookup.status === "ready" && Boolean(courierBreakdown));
   const hasDeliveryStateSelected = pricingReady;
-  const gstAmount = calculateGstAmount({
-    taxableAmount: discountedSubtotal + courierCharge,
+  const money = buildCheckoutMoneyTotals({
+    exclusiveMerchandise: discountedSubtotal,
+    courierCharge,
     config: courierConfig,
   });
-  const totalAmount = discountedSubtotal + courierCharge + gstAmount;
+  const gstAmount = money.gstAmount;
+  const totalAmount = money.total;
+  const displaySubtotal = toGstInclusiveAmount(subtotal, courierConfig);
+  const displayDiscountAmount = toGstInclusiveAmount(
+    discountAmount,
+    courierConfig,
+  );
+  const displayCourierBreakdown = courierBreakdown
+    ? { ...courierBreakdown, charge: money.displayCourier }
+    : null;
 
   useEffect(() => {
     const draft = loadCheckoutAddressDraft();
@@ -767,77 +778,77 @@ function UserCartSection({
 
   const removeHandler = async (row: DbCartRow) => {
     const run = async () => {
-    if (!dbCartLoaded) {
-      toast({
-        title: "Cart still loading",
-        description: "Please wait a moment and try again.",
-        variant: "destructive",
-      });
-      return;
-    }
-
-    const lineKey = buildCartLineKey({
-      productId: row.product_id,
-      size: row.size ?? undefined,
-      selections:
-        row.selections && Object.keys(row.selections).length > 0
-          ? row.selections
-          : undefined,
-    });
-    cartMutationInFlightRef.current = true;
-    loadDbCartRowsRequestId.current += 1;
-    let optimisticRows: DbCartRow[] = [];
-    setDbCartRows((prev) => {
-      optimisticRows = prev.filter((entry) => entry.id !== row.id);
-      return optimisticRows;
-    });
-    removeProductStorage(lineKey);
-    setIsLoading(true);
-    try {
-      const { deletedIds, error: delErr } = await deleteAuthCartRow({
-        supabase,
-        userId: user.id,
-        row,
-      });
-      if (delErr) {
-        throw delErr;
-      }
-      if (deletedIds.length === 0) {
-        throw new Error("Could not remove item from cart. Please try again.");
+      if (!dbCartLoaded) {
+        toast({
+          title: "Cart still loading",
+          description: "Please wait a moment and try again.",
+          variant: "destructive",
+        });
+        return;
       }
 
-      if (optimisticRows.length === 0) {
-        markAuthCartCleared(user.id);
-        const { error: clearErr } = await clearAuthCartForUser({
+      const lineKey = buildCartLineKey({
+        productId: row.product_id,
+        size: row.size ?? undefined,
+        selections:
+          row.selections && Object.keys(row.selections).length > 0
+            ? row.selections
+            : undefined,
+      });
+      cartMutationInFlightRef.current = true;
+      loadDbCartRowsRequestId.current += 1;
+      let optimisticRows: DbCartRow[] = [];
+      setDbCartRows((prev) => {
+        optimisticRows = prev.filter((entry) => entry.id !== row.id);
+        return optimisticRows;
+      });
+      removeProductStorage(lineKey);
+      setIsLoading(true);
+      try {
+        const { deletedIds, error: delErr } = await deleteAuthCartRow({
           supabase,
           userId: user.id,
+          row,
         });
-        if (clearErr) {
-          throw clearErr;
+        if (delErr) {
+          throw delErr;
         }
-        setDbCartRows([]);
-        replaceCart({});
-        clearPersistedCartStorage();
-        replaceCart({});
-      } else {
-        setDbCartRows(optimisticRows);
-        syncDbCartRowsToStorage(optimisticRows);
-      }
+        if (deletedIds.length === 0) {
+          throw new Error("Could not remove item from cart. Please try again.");
+        }
 
-      toast({ title: "Removed a Product." });
-      reexecuteQuery({ requestPolicy: "network-only" });
-      await loadDbCartRows();
-    } catch (e) {
-      await loadDbCartRows();
-      toast({
-        title: "Error",
-        description: e instanceof Error ? e.message : "Unexpected error",
-        variant: "destructive",
-      });
-    } finally {
-      cartMutationInFlightRef.current = false;
-      setIsLoading(false);
-    }
+        if (optimisticRows.length === 0) {
+          markAuthCartCleared(user.id);
+          const { error: clearErr } = await clearAuthCartForUser({
+            supabase,
+            userId: user.id,
+          });
+          if (clearErr) {
+            throw clearErr;
+          }
+          setDbCartRows([]);
+          replaceCart({});
+          clearPersistedCartStorage();
+          replaceCart({});
+        } else {
+          setDbCartRows(optimisticRows);
+          syncDbCartRowsToStorage(optimisticRows);
+        }
+
+        toast({ title: "Removed a Product." });
+        reexecuteQuery({ requestPolicy: "network-only" });
+        await loadDbCartRows();
+      } catch (e) {
+        await loadDbCartRows();
+        toast({
+          title: "Error",
+          description: e instanceof Error ? e.message : "Unexpected error",
+          variant: "destructive",
+        });
+      } finally {
+        cartMutationInFlightRef.current = false;
+        setIsLoading(false);
+      }
     };
 
     const next = removeChainRef.current.then(run, run);
@@ -998,10 +1009,10 @@ function UserCartSection({
     appliedPromoCode,
     promoPercentage,
     onRemovePromo,
-    subtotal,
-    discountAmount,
-    discountedSubtotal,
-    courierBreakdown,
+    subtotal: displaySubtotal,
+    discountAmount: displayDiscountAmount,
+    discountedSubtotal: money.displayMerchandise,
+    courierBreakdown: displayCourierBreakdown,
     gstEnabled: courierConfig.gstEnabled,
     gstPercentage: courierConfig.gstPercentage,
     gstAmount,

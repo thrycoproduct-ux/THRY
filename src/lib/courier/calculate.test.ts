@@ -1,5 +1,9 @@
 import {
   calculateCourierCharge,
+  calculateGstAmount,
+  getGstInclusiveFactor,
+  toGstInclusiveAmount,
+  buildCheckoutMoneyTotals,
   type CourierChargesConfig,
 } from "@/lib/courier/calculate";
 
@@ -80,5 +84,56 @@ describe("calculateCourierCharge free shipping", () => {
     });
     expect(result.charge).toBe(120);
     expect(result.ruleApplied).toBe("qty1_base");
+  });
+});
+
+describe("GST inclusive display helpers", () => {
+  const gstOn: CourierChargesConfig = {
+    ...baseConfig,
+    gstEnabled: true,
+    gstPercentage: 18,
+  };
+
+  it("returns factor 1 when GST is off", () => {
+    expect(getGstInclusiveFactor(baseConfig)).toBe(1);
+    expect(toGstInclusiveAmount(1000, baseConfig)).toBe(1000);
+  });
+
+  it("bumps exclusive prices by GST % for storefront display", () => {
+    expect(getGstInclusiveFactor(gstOn)).toBe(1.18);
+    expect(toGstInclusiveAmount(1000, gstOn)).toBe(1180);
+    expect(toGstInclusiveAmount(999, gstOn)).toBe(1178.82);
+  });
+
+  it("buildCheckoutMoneyTotals matches exclusive + courier + gst once", () => {
+    const money = buildCheckoutMoneyTotals({
+      exclusiveMerchandise: 1000,
+      courierCharge: 80,
+      config: gstOn,
+    });
+    const expectedGst = calculateGstAmount({
+      taxableAmount: 1080,
+      config: gstOn,
+    });
+    expect(money.gstAmount).toBe(expectedGst);
+    expect(money.total).toBe(1000 + 80 + expectedGst);
+    expect(money.displayMerchandise).toBe(1180);
+    expect(money.displayCourier).toBe(toGstInclusiveAmount(80, gstOn));
+    // Inclusive display rows must not be used as a second GST base.
+    expect(money.total).not.toBe(
+      money.displayMerchandise + money.displayCourier + money.gstAmount,
+    );
+  });
+
+  it("when GST off, display amounts equal exclusive and gst is 0", () => {
+    const money = buildCheckoutMoneyTotals({
+      exclusiveMerchandise: 500,
+      courierCharge: 40,
+      config: baseConfig,
+    });
+    expect(money.gstAmount).toBe(0);
+    expect(money.total).toBe(540);
+    expect(money.displayMerchandise).toBe(500);
+    expect(money.displayCourier).toBe(40);
   });
 });

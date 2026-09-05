@@ -36,6 +36,10 @@ import { getEffectiveProductPrice } from "@/lib/products/discount";
 import { formatProductPackLabel } from "@/lib/products/pack";
 import { withFallback } from "@/lib/resilience";
 import {
+  resolveCourierChargesConfig,
+  toGstInclusiveAmount,
+} from "@/lib/integrations/settings";
+import {
   resolveProductPricingForSelection,
   toProductDiscountFields,
 } from "@/lib/products/pricing";
@@ -97,13 +101,7 @@ async function ProductDetailPage({ params }: Props) {
   const productEdge = data?.productsCollection?.edges?.[0];
   if (!productEdge?.node) return notFound();
 
-  const {
-    id,
-    name,
-    description,
-    stock,
-    featuredImage,
-  } = productEdge.node;
+  const { id, name, description, stock, featuredImage } = productEdge.node;
   const productSlug = resolvedParams.slug;
   const recommendationIds =
     data.recommendations?.edges?.map(({ node }) => node.id) ?? [];
@@ -185,6 +183,12 @@ async function ProductDetailPage({ params }: Props) {
       ? "Available options"
       : `Available ${optionName.toLowerCase()}`;
 
+  const courierConfig = await resolveCourierChargesConfig();
+  const jsonLdPrice = toGstInclusiveAmount(
+    getEffectiveProductPrice(displayPricing),
+    courierConfig,
+  );
+
   return (
     <Shell>
       <JsonLd
@@ -198,7 +202,7 @@ async function ProductDetailPage({ params }: Props) {
             name,
             slug: productSlug,
             description,
-            price: getEffectiveProductPrice(displayPricing),
+            price: jsonLdPrice,
             imageUrl: featuredImage?.key ? keytoUrl(featuredImage.key) : null,
             inStock: Number(stock ?? 0) > 0,
           }),
@@ -339,7 +343,6 @@ async function ProductDetailPage({ params }: Props) {
             />
           ))}
       </div>
-
     </Shell>
   );
 }

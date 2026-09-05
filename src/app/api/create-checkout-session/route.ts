@@ -41,7 +41,7 @@ import db from "@/lib/supabase/db";
 import { address, medias, orderLines, orders } from "@/lib/supabase/schema";
 import {
   calculateCourierCharge,
-  calculateGstAmount,
+  buildCheckoutMoneyTotals,
   getCashfreeConfig,
   getIntegrationSetting,
   getPhonePeConfig,
@@ -354,11 +354,13 @@ export async function POST(request: Request) {
       config: courierConfig,
     });
     const courierCharge = courierConfig.enabled ? courierBreakdown.charge : 0;
-    const gstAmount = calculateGstAmount({
-      taxableAmount: discountedSubtotal + courierCharge,
+    const money = buildCheckoutMoneyTotals({
+      exclusiveMerchandise: discountedSubtotal,
+      courierCharge,
       config: courierConfig,
     });
-    const amount = discountedSubtotal + courierCharge + gstAmount;
+    const gstAmount = money.gstAmount;
+    const amount = money.total;
     const paymentEnvironment = resolveCheckoutPaymentEnvironment({
       preferRazorpay,
       preferCashfree,

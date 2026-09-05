@@ -32,6 +32,10 @@ import {
 } from "@/lib/supabase/schema";
 import { formatDate, formatPrice, keytoUrl } from "@/lib/utils";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
+import {
+  resolveCourierChargesConfig,
+  toGstInclusiveAmount,
+} from "@/lib/integrations/settings";
 import { eq } from "drizzle-orm";
 import { StorefrontImage } from "@/components/media/StorefrontImage";
 
@@ -104,6 +108,8 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
 
   const order = orderRows[0];
   if (!order) return notFound();
+
+  const courierConfig = await resolveCourierChargesConfig();
 
   const allowed = await canViewOrder(
     {
@@ -317,7 +323,12 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
                       )}
                       <p className="text-xs text-muted-foreground">
                         Qty: {line.quantity} •{" "}
-                        {formatPrice(Number(line.unitPrice))}
+                        {formatPrice(
+                          toGstInclusiveAmount(
+                            Number(line.unitPrice),
+                            courierConfig,
+                          ),
+                        )}
                       </p>
                       {line.isDigitalSnapshot ? (
                         order.paymentStatus === "paid" ? (

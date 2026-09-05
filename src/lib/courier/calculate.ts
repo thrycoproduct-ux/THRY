@@ -142,3 +142,77 @@ export function calculateGstAmount(params: {
   const percentage = Math.max(0, Number(params.config.gstPercentage ?? 0));
   return Math.round(amount * percentage * 100) / 10000;
 }
+
+/** Multiplier for storefront-inclusive display (1 when GST off). */
+export function getGstInclusiveFactor(
+  config: Pick<CourierChargesConfig, "gstEnabled" | "gstPercentage">,
+): number {
+  if (!config.gstEnabled) return 1;
+  const percentage = Math.max(0, Number(config.gstPercentage ?? 0));
+  if (!Number.isFinite(percentage) || percentage <= 0) return 1;
+  return 1 + percentage / 100;
+}
+
+/** Round money to 2 decimal places (rupees). */
+export function roundRupeeAmount(amount: number): number {
+  if (!Number.isFinite(amount)) return 0;
+  return Math.round(amount * 100) / 100;
+}
+
+/**
+ * Convert an exclusive (DB) amount to GST-inclusive for storefront display.
+ * Does not change stored prices; charge math still uses calculateGstAmount.
+ */
+export function toGstInclusiveAmount(
+  exclusiveAmount: number,
+  config: Pick<CourierChargesConfig, "gstEnabled" | "gstPercentage">,
+): number {
+  const exclusive = Number(exclusiveAmount);
+  if (!Number.isFinite(exclusive) || exclusive <= 0) return 0;
+  return roundRupeeAmount(exclusive * getGstInclusiveFactor(config));
+}
+
+/**
+ * Single source of truth for checkout / cart totals.
+ * GST is applied once on exclusive merchandise + courier (never on inclusive display).
+ */
+export function buildCheckoutMoneyTotals(params: {
+  exclusiveMerchandise: number;
+  courierCharge: number;
+  config: CourierChargesConfig;
+}): {
+  exclusiveMerchandise: number;
+  courierCharge: number;
+  gstAmount: number;
+  total: number;
+  /** Storefront-visible merchandise (inclusive when GST on). */
+  displayMerchandise: number;
+  /** Storefront-visible courier (inclusive when GST on). */
+  displayCourier: number;
+} {
+  const exclusiveMerchandise = roundRupeeAmount(
+    Math.max(0, Number(params.exclusiveMerchandise) || 0),
+  );
+  const courierCharge = roundRupeeAmount(
+    Math.max(0, Number(params.courierCharge) || 0),
+  );
+  const gstAmount = calculateGstAmount({
+    taxableAmount: exclusiveMerchandise + courierCharge,
+    config: params.config,
+  });
+  const total = roundRupeeAmount(
+    exclusiveMerchandise + courierCharge + gstAmount,
+  );
+
+  return {
+    exclusiveMerchandise,
+    courierCharge,
+    gstAmount,
+    total,
+    displayMerchandise: toGstInclusiveAmount(
+      exclusiveMerchandise,
+      params.config,
+    ),
+    displayCourier: toGstInclusiveAmount(courierCharge, params.config),
+  };
+}

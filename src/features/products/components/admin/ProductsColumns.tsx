@@ -276,6 +276,7 @@ const ProductsColumns: ColumnDef<ProductRow>[] = [
           product={product}
           layout="stacked"
           className="text-sm"
+          inclusive={false}
         />
       );
     },

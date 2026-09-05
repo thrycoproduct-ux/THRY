@@ -1,6 +1,8 @@
 "use client";
 import { DocumentType, gql } from "@/gql";
 import { formatPrice, keytoUrl } from "@/lib/utils";
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
+import { useCourierChargesConfig } from "@/providers/CourierChargesProvider";
 import { StorefrontImage } from "@/components/media/StorefrontImage";
 import Link from "next/link";
 import { Card, CardContent, CardHeader } from "../../../components/ui/card";
@@ -28,6 +30,7 @@ export const BuyAgainCardFragment = gql(/* GraphQL */ `
 `);
 
 function BuyAgainCard({ products }: BuyAgainCardProps) {
+  const courierConfig = useCourierChargesConfig();
   return (
     <Card>
       <CardHeader className="px-6 py-3 flex flex-row justify-between items-center bg-zinc-100">
@@ -56,7 +59,11 @@ function BuyAgainCard({ products }: BuyAgainCardProps) {
                   {node.name}
                 </Link>
                 <Link href={node.slug} className="text-red-700">
-                  <p>{formatPrice(node.price)}</p>
+                  <p>
+                    {formatPrice(
+                      toGstInclusiveAmount(Number(node.price), courierConfig),
+                    )}
+                  </p>
                 </Link>
               </div>
             </div>
