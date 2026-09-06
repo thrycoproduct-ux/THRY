@@ -45,7 +45,6 @@ import {
 } from "@/lib/products/pricing";
 import { keytoUrl } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
-import { ProductMobileStickyBuyBar } from "@/features/products/components/ProductMobileStickyBuyBar";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 
@@ -269,7 +268,7 @@ async function ProductDetailPage({ params }: Props) {
             <AddToWishListButton productId={id} />
           </section>
 
-          <section id="product-buy-box" className="mb-8 scroll-mt-28 space-y-5">
+          <section id="product-buy-box" className="mb-8 space-y-5">
             <Suspense>
               {hasConfiguredSizes ? (
                 <ProductBuyBox
@@ -291,14 +290,6 @@ async function ProductDetailPage({ params }: Props) {
               )}
             </Suspense>
           </section>
-
-          <ProductMobileStickyBuyBar
-            productId={id}
-            stock={stock}
-            sizeConfig={sizeConfig}
-            pricingProduct={displayPricing}
-            hasConfiguredSizes={hasConfiguredSizes}
-          />
 
           <section className="space-y-6">
             {description?.trim() ? (
