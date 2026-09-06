@@ -210,6 +210,11 @@ export default {
     const incoming = new URL(request.url);
     const host = incoming.hostname.toLowerCase();
 
+    if (incoming.protocol === "http:") {
+      incoming.protocol = "https:";
+      return Response.redirect(incoming.toString(), 308);
+    }
+
     if (host === WWW) {
       incoming.hostname = APEX;
       incoming.protocol = "https:";

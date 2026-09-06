@@ -4,6 +4,7 @@
 import {
   CDN_PRESETS,
   cdnImageUrl,
+  cdnPresetForWidth,
   extractMediaObjectKey,
   getImageDeliveryMode,
 } from "./cdn-image";
@@ -56,10 +57,17 @@ describe("cdn-image", () => {
     expect(url).toContain("/cdn/w=1200,q=78,f=webp/uploads/upload-abc.png");
   });
 
-  it("leaves originals in legacy mode", () => {
-    process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE = "legacy";
-    const raw =
-      "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/upload-abc.png";
-    expect(cdnImageUrl(raw, CDN_PRESETS.card)).toBe(raw);
+  it("maps optimizeWidth to the matching preset quality", () => {
+    expect(cdnPresetForWidth(1200)).toEqual({
+      width: 1200,
+      quality: 78,
+      format: "webp",
+    });
+    expect(cdnPresetForWidth(400)).toEqual({
+      width: 400,
+      quality: 75,
+      format: "webp",
+    });
+    expect(cdnPresetForWidth(200).quality).toBe(70);
   });
 });

@@ -129,7 +129,7 @@ export function HomeCategoriesCarousel({
         aria-label="Product categories"
         className="grid grid-cols-2 gap-3 sm:grid-cols-3 sm:gap-4 lg:grid-cols-4 lg:gap-6"
       >
-        {edges.map(({ node }, index) => {
+        {edges.map(({ node }) => {
           const imageKey = node.featuredImage?.key;
           if (!imageKey) return null;
           return (
@@ -143,7 +143,7 @@ export function HomeCategoriesCarousel({
                   imageSrc={keytoUrl(imageKey)}
                   imageAlt={node.featuredImage?.alt || node.label}
                   sizes="(max-width: 640px) 48vw, (max-width: 1024px) 31vw, 260px"
-                  priority={index < 2}
+                  priority={false}
                   viewTransitionName={collectionImageTransitionName(node.id)}
                 />
               </ViewTransitionLink>

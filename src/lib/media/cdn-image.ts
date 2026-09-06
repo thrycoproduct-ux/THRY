@@ -16,13 +16,33 @@ export const CDN_PRESETS = {
   hero: { width: 1200, quality: 78, format: "webp" as const },
 } as const;
 
+/**
+ * Pick CDN quality/format for an optimizeWidth so preload URLs match
+ * StorefrontImage (e.g. 1200 → hero q=78, not card q=75).
+ */
+export function cdnPresetForWidth(width: number): CdnImageOptions {
+  const w = Math.round(width);
+  if (w >= CDN_PRESETS.hero.width) {
+    return { ...CDN_PRESETS.hero, width: w };
+  }
+  if (w >= CDN_PRESETS.pdp.width) {
+    return { ...CDN_PRESETS.pdp, width: w };
+  }
+  if (w >= CDN_PRESETS.card.width) {
+    return { ...CDN_PRESETS.card, width: w };
+  }
+  return { ...CDN_PRESETS.thumb, width: w };
+}
+
 const DEFAULT_MEDIA_ORIGIN = "https://media.thryco.com";
 const FALLBACK = "/images/thry-hero-statues.svg";
 
 export function getImageDeliveryMode(): ImageDeliveryMode {
   // Cloudflare /cdn is live on media.thryco.com (validated ~98% smaller WebP).
   // Set NEXT_PUBLIC_IMAGE_DELIVERY_MODE=legacy to roll back to raw R2 URLs.
-  const raw = String(process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE ?? "cloudflare")
+  const raw = String(
+    process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE ?? "cloudflare",
+  )
     .trim()
     .toLowerCase();
   return raw === "legacy" ? "legacy" : "cloudflare";
