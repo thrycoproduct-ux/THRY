@@ -1,6 +1,7 @@
 "use client";
 
 import dynamic from "next/dynamic";
+import { useEffect, useState } from "react";
 
 /**
  * Non-critical store chrome: load in the browser only.
@@ -35,13 +36,59 @@ const InAppBrowserBanner = dynamic(
   { ssr: false },
 );
 
+/**
+ * Cart stub / welcome / floating actions wait for idle or first input so the
+ * hero LCP is not competing for bandwidth. InAppBrowserBanner mounts immediately
+ * (Instagram / WebView conversion).
+ */
 export function StoreDeferredChrome() {
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    let idleId: number | undefined;
+    let timeoutId: ReturnType<typeof setTimeout> | undefined;
+    let done = false;
+
+    const enable = () => {
+      if (done) return;
+      done = true;
+      setReady(true);
+    };
+
+    const onInteract = () => enable();
+
+    window.addEventListener("pointerdown", onInteract, {
+      once: true,
+      passive: true,
+    });
+    window.addEventListener("keydown", onInteract, { once: true });
+
+    if (typeof window.requestIdleCallback === "function") {
+      idleId = window.requestIdleCallback(enable, { timeout: 2500 });
+    } else {
+      timeoutId = setTimeout(enable, 2000);
+    }
+
+    return () => {
+      window.removeEventListener("pointerdown", onInteract);
+      window.removeEventListener("keydown", onInteract);
+      if (idleId != null && typeof window.cancelIdleCallback === "function") {
+        window.cancelIdleCallback(idleId);
+      }
+      if (timeoutId) clearTimeout(timeoutId);
+    };
+  }, []);
+
   return (
     <>
-      <CartSheet />
-      <StoreFloatingActions />
-      <WelcomeOfferDialog />
       <InAppBrowserBanner />
+      {ready ? (
+        <>
+          <CartSheet />
+          <StoreFloatingActions />
+          <WelcomeOfferDialog />
+        </>
+      ) : null}
     </>
   );
 }

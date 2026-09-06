@@ -103,7 +103,7 @@ export default async function Home() {
 
   const firstHeroImage = slides[0]?.image?.trim() || null;
   const firstHeroImageSrc = firstHeroImage
-    ? cdnImageUrl(firstHeroImage, CDN_PRESETS.hero)
+    ? cdnImageUrl(firstHeroImage, CDN_PRESETS.heroMobile)
     : null;
 
   return (

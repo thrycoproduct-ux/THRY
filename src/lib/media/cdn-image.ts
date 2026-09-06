@@ -13,6 +13,8 @@ export const CDN_PRESETS = {
   thumb: { width: 200, quality: 70, format: "webp" as const },
   card: { width: 400, quality: 75, format: "webp" as const },
   pdp: { width: 800, quality: 78, format: "webp" as const },
+  /** Mobile LCP hero — smaller than desktop `hero` so high-DPR phones do not pull 1200w. */
+  heroMobile: { width: 800, quality: 75, format: "webp" as const },
   hero: { width: 1200, quality: 78, format: "webp" as const },
 } as const;
 

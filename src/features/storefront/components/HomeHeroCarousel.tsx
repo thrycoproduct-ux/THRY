@@ -13,6 +13,7 @@ import { heroSlides, type HeroSlide } from "@/config/heroSlides";
 import { useCarouselAutoAdvance } from "@/features/storefront/hooks/useCarouselAutoAdvance";
 import { cn } from "@/lib/utils";
 import { StorefrontImage } from "@/components/media/StorefrontImage";
+import { CDN_PRESETS, cdnImageUrl } from "@/lib/media/cdn-image";
 
 const HERO_AUTOPLAY_MS = 5500;
 
@@ -78,6 +79,7 @@ export function HomeHeroCarousel({ slides }: Props) {
         <CarouselContent className="ml-0">
           {activeSlides.map((slide, index) => {
             const isFirstSlide = index === 0;
+            const desktopSrc = cdnImageUrl(slide.image, CDN_PRESETS.hero);
             return (
               <CarouselItem key={slide.id} className="basis-full pl-0">
                 <div className="relative aspect-[4/5] w-full sm:aspect-[16/10] md:aspect-[21/9] md:max-h-[min(72vh,520px)]">
@@ -86,17 +88,23 @@ export function HomeHeroCarousel({ slides }: Props) {
                     className="absolute inset-0 z-[1]"
                     aria-label={`${slide.title} — ${slide.cta}`}
                   />
-                  <StorefrontImage
-                    src={slide.image}
-                    alt={slide.imageAlt}
-                    fill
-                    priority={isFirstSlide}
-                    fetchPriority={isFirstSlide ? "high" : "auto"}
-                    loading={isFirstSlide ? undefined : "lazy"}
-                    sizes="100vw"
-                    optimizeWidth={1200}
-                    className="object-cover object-[center_20%] sm:object-center"
-                  />
+                  <picture className="absolute inset-0">
+                    <source
+                      media="(min-width: 768px)"
+                      srcSet={desktopSrc}
+                    />
+                    <StorefrontImage
+                      src={slide.image}
+                      alt={slide.imageAlt}
+                      fill
+                      priority={isFirstSlide}
+                      fetchPriority={isFirstSlide ? "high" : "auto"}
+                      loading={isFirstSlide ? undefined : "lazy"}
+                      sizes="100vw"
+                      cdnOptions={CDN_PRESETS.heroMobile}
+                      className="object-cover object-[center_20%] sm:object-center"
+                    />
+                  </picture>
                   <div
                     className="absolute inset-0 bg-gradient-to-t from-black/75 via-black/35 to-black/15"
                     aria-hidden
