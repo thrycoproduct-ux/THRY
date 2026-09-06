@@ -92,7 +92,8 @@ function ProductImageShowcase({
     return (
       <div
         className={cn(
-          "w-full min-w-0 overflow-hidden rounded-md bg-muted aspect-[3/4] max-h-[70vh]",
+          "w-full min-w-0 overflow-hidden rounded-md bg-muted",
+          "aspect-[4/5] max-h-[min(42dvh,20rem)] md:aspect-[3/4] md:max-h-[min(70vh,36rem)]",
           className,
         )}
       />
@@ -151,7 +152,7 @@ function ProductImageShowcase({
         <div
           className={cn(
             "relative w-full overflow-hidden rounded-md bg-muted",
-            "aspect-[3/4] max-h-[min(70vh,36rem)]",
+            "aspect-[4/5] max-h-[min(42dvh,20rem)] md:aspect-[3/4] md:max-h-[min(70vh,36rem)]",
           )}
         >
           <StorefrontImage

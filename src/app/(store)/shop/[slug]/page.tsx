@@ -47,6 +47,15 @@ import { keytoUrl } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import dynamic from "next/dynamic";
+
+const ProductMobileStickyBuyBar = dynamic(
+  () =>
+    import("@/features/products/components/ProductMobileStickyBuyBar").then(
+      (mod) => mod.ProductMobileStickyBuyBar,
+    ),
+  { ssr: false },
+);
 
 export const revalidate = 120;
 
@@ -208,8 +217,8 @@ async function ProductDetailPage({ params }: Props) {
           }),
         ]}
       />
-      <div className="grid grid-cols-12 gap-x-8 gap-y-8">
-        <div className="space-y-8 relative col-span-12 md:col-span-7 min-w-0 overflow-hidden">
+      <div className="grid grid-cols-12 gap-x-8 gap-y-4 md:gap-y-8">
+        <div className="space-y-4 relative col-span-12 md:col-span-7 md:space-y-8 min-w-0 overflow-hidden">
           <div className="relative min-w-0 w-full max-w-full">
             <ProductDiscountBadge
               product={displayPricing}
@@ -222,7 +231,7 @@ async function ProductDetailPage({ params }: Props) {
         <div className="col-span-12 md:col-span-5 min-w-0">
           <section className="flex justify-between items-start max-w-lg">
             <div>
-              <h1 className="text-4xl font-semibold tracking-wide mb-3">
+              <h1 className="mb-2 text-2xl font-semibold tracking-wide sm:mb-3 sm:text-3xl md:text-4xl">
                 {name}
               </h1>
               {!hasConfiguredSizes ? (
@@ -268,7 +277,7 @@ async function ProductDetailPage({ params }: Props) {
             <AddToWishListButton productId={id} />
           </section>
 
-          <section className="mb-8 space-y-5">
+          <section id="product-buy-box" className="mb-8 scroll-mt-28 space-y-5">
             <Suspense>
               {hasConfiguredSizes ? (
                 <ProductBuyBox
@@ -290,6 +299,14 @@ async function ProductDetailPage({ params }: Props) {
               )}
             </Suspense>
           </section>
+
+          <ProductMobileStickyBuyBar
+            productId={id}
+            stock={stock}
+            sizeConfig={sizeConfig}
+            pricingProduct={displayPricing}
+            hasConfiguredSizes={hasConfiguredSizes}
+          />
 
           <section className="space-y-6">
             {description?.trim() ? (
