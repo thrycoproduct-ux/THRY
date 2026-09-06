@@ -45,17 +45,9 @@ import {
 } from "@/lib/products/pricing";
 import { keytoUrl } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
+import { ProductMobileStickyBuyBar } from "@/features/products/components/ProductMobileStickyBuyBar";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
-import dynamic from "next/dynamic";
-
-const ProductMobileStickyBuyBar = dynamic(
-  () =>
-    import("@/features/products/components/ProductMobileStickyBuyBar").then(
-      (mod) => mod.ProductMobileStickyBuyBar,
-    ),
-  { ssr: false },
-);
 
 export const revalidate = 120;
 
