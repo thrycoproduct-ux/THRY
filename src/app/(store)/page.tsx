@@ -1,5 +1,4 @@
 import { Shell } from "@/components/layouts/Shell";
-import { DeferredStoreButterflies } from "@/components/layouts/DeferredStoreButterflies";
 import { Icons } from "@/components/layouts/icons";
 import {
   HomeHeroCarousel,
@@ -116,7 +115,6 @@ export default async function Home() {
           fetchPriority="high"
         />
       ) : null}
-      <DeferredStoreButterflies />
       <HomeHeroCarousel slides={slides} />
 
       <Shell>

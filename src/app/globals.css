@@ -391,6 +391,8 @@ html {
   --announcement-rail-height: 2.15rem;
   position: relative;
   overflow: hidden;
+  cursor: pointer;
+  touch-action: manipulation;
   border-bottom: 1px solid hsl(var(--brand-rose) / 0.18);
   background: linear-gradient(
     180deg,
@@ -556,63 +558,6 @@ html {
   margin-top: 0.35rem;
 }
 
-/* Two realistic butterflies — always on top, random JS flight */
-.store-butterflies {
-  position: fixed;
-  inset: 0;
-  z-index: 9999;
-  pointer-events: none;
-  overflow: hidden;
-  contain: layout style paint;
-  opacity: 1;
-  transition: opacity 0.85s ease;
-}
-
-.store-butterflies--fade-out {
-  opacity: 0;
-}
-
-.store-butterfly {
-  position: absolute;
-  top: 0;
-  left: 0;
-  display: block;
-  width: 28px;
-  height: 28px;
-  opacity: 0.95;
-  will-change: transform;
-  filter: drop-shadow(0 2px 3px rgba(60, 30, 50, 0.18));
-}
-
-.store-butterfly__svg {
-  display: block;
-  overflow: visible;
-}
-
-.store-butterfly__wing {
-  transform-box: fill-box;
-  transform-origin: center;
-  animation: butterfly-wing 0.22s ease-in-out infinite alternate;
-}
-
-.store-butterfly__wing--left {
-  transform-origin: right center;
-}
-
-.store-butterfly__wing--right {
-  transform-origin: left center;
-  animation-delay: 0.03s;
-}
-
-@keyframes butterfly-wing {
-  from {
-    transform: scaleX(1) rotate(0deg);
-  }
-  to {
-    transform: scaleX(0.45) rotate(8deg);
-  }
-}
-
 @media (prefers-reduced-motion: reduce) {
   .animate-announcement-scroll {
     animation: none;
@@ -621,10 +566,6 @@ html {
   .animate-whatsapp-glow,
   .animate-phone-glow {
     animation: none;
-  }
-
-  .store-butterflies {
-    display: none;
   }
 
   .announcement-marquee-track {
@@ -734,4 +675,20 @@ html {
 
 .checkout-progress-shimmer {
   animation: checkout-progress-shimmer 1.35s ease-in-out infinite;
+}
+
+/*
+ * Razorpay appends its overlay to <body>. Our sticky bars, mobile nav and
+ * floating actions must never stack above it, and the iframe must not inherit
+ * a dark color-scheme (renders as an opaque white sheet when it does).
+ */
+.razorpay-container {
+  z-index: 2147483647 !important;
+  pointer-events: auto !important;
+}
+
+.razorpay-container,
+.razorpay-container *,
+[class*="razorpay"] {
+  color-scheme: light !important;
 }
