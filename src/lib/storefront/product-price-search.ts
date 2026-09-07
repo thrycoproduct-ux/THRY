@@ -19,7 +19,6 @@ type ProductCardNode = NonNullable<
 type ProductRow = {
   id: string;
   name: string;
-  description: string | null;
   rating: string;
   slug: string;
   badge: "new_product" | "best_sale" | "featured" | null;
@@ -41,7 +40,6 @@ function mapRowToProductCardNode(row: ProductRow): ProductCardNode {
   return {
     id: row.id,
     name: row.name,
-    description: row.description,
     rating: row.rating,
     slug: row.slug,
     badge: row.badge,
@@ -146,7 +144,6 @@ export async function fetchProductsByEffectivePriceRange(
     .select({
       id: products.id,
       name: products.name,
-      description: products.description,
       rating: products.rating,
       slug: products.slug,
       badge: products.badge,

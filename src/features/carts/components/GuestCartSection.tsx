@@ -132,7 +132,8 @@ function GuestCartSection({
       first: Math.max(cartProductIds.length, 1),
     },
     pause: cartProductIds.length === 0,
-    requestPolicy: "network-only",
+    // Prefer SSR hydrate; avoid unconditional network round-trip on every cart view.
+    requestPolicy: initialProducts ? "cache-first" : "cache-and-network",
   });
 
   const productsData = data?.productsCollection?.edges?.length

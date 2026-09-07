@@ -2470,13 +2470,6 @@ export type CreateCollectionMutationMutation = {
   } | null;
 };
 
-export type ProductCommentsSectionFragmentFragment = {
-  __typename?: "comments";
-  id: string;
-  comment: string;
-  profile?: { __typename?: "profiles"; name?: string | null } | null;
-};
-
 export type ImageGridFragmentFragment = {
   __typename?: "medias";
   id: string;
@@ -2536,7 +2529,6 @@ export type ProductCardFragmentFragment = {
   __typename?: "products";
   id: string;
   name: string;
-  description?: string | null;
   rating: any;
   slug: string;
   badge?: string | null;
@@ -2607,7 +2599,6 @@ export type RecomendationProductsQueryQuery = {
         __typename?: "products";
         id: string;
         name: string;
-        description?: string | null;
         rating: any;
         slug: string;
         badge?: string | null;
@@ -2874,7 +2865,6 @@ export type SearchQuery = {
         __typename?: "products";
         id: string;
         name: string;
-        description?: string | null;
         rating: any;
         slug: string;
         badge?: string | null;
@@ -2926,7 +2916,6 @@ export type SearchWithPriceQuery = {
         __typename?: "products";
         id: string;
         name: string;
-        description?: string | null;
         rating: any;
         slug: string;
         badge?: string | null;
@@ -2977,7 +2966,6 @@ export type SearchInCollectionQuery = {
         __typename?: "products";
         id: string;
         name: string;
-        description?: string | null;
         rating: any;
         slug: string;
         badge?: string | null;
@@ -3030,7 +3018,6 @@ export type SearchInCollectionWithPriceQuery = {
         __typename?: "products";
         id: string;
         name: string;
-        description?: string | null;
         rating: any;
         slug: string;
         badge?: string | null;
@@ -3075,7 +3062,6 @@ export type FeaturedProductsQueryQuery = {
         __typename?: "products";
         id: string;
         name: string;
-        description?: string | null;
         rating: any;
         slug: string;
         badge?: string | null;
@@ -3129,106 +3115,6 @@ export type CollectionRouteQueryQuery = {
           id: string;
           key: string;
           alt: string;
-        } | null;
-      };
-    }>;
-  } | null;
-};
-
-export type ProductDetailPageQueryQueryVariables = Exact<{
-  productSlug?: InputMaybe<Scalars["String"]>;
-}>;
-
-export type ProductDetailPageQueryQuery = {
-  __typename?: "Query";
-  productsCollection?: {
-    __typename?: "productsConnection";
-    edges: Array<{
-      __typename?: "productsEdge";
-      node: {
-        __typename?: "products";
-        id: string;
-        name: string;
-        description?: string | null;
-        rating: any;
-        price: any;
-        stock?: number | null;
-        tags: any;
-        totalComments: number;
-        discountEnabled?: boolean | null;
-        discountPercent?: number | null;
-        commentsCollection?: {
-          __typename?: "commentsConnection";
-          edges: Array<{
-            __typename?: "commentsEdge";
-            node: {
-              __typename?: "comments";
-              id: string;
-              comment: string;
-              profile?: {
-                __typename?: "profiles";
-                name?: string | null;
-              } | null;
-            };
-          }>;
-        } | null;
-        collections?: {
-          __typename?: "collections";
-          id: string;
-          label: string;
-          slug: string;
-        } | null;
-        featuredImage?: {
-          __typename?: "medias";
-          id: string;
-          key: string;
-          alt: string;
-        } | null;
-        images?: {
-          __typename?: "product_mediasConnection";
-          edges: Array<{
-            __typename?: "product_mediasEdge";
-            node: {
-              __typename?: "product_medias";
-              media?: {
-                __typename?: "medias";
-                id: string;
-                key: string;
-                alt: string;
-              } | null;
-            };
-          }>;
-        } | null;
-      };
-    }>;
-  } | null;
-  recommendations?: {
-    __typename?: "productsConnection";
-    edges: Array<{
-      __typename?: "productsEdge";
-      node: {
-        __typename?: "products";
-        id: string;
-        name: string;
-        description?: string | null;
-        rating: any;
-        slug: string;
-        badge?: string | null;
-        price: any;
-        stock?: number | null;
-        discountEnabled?: boolean | null;
-        discountPercent?: number | null;
-        featuredImage?: {
-          __typename?: "medias";
-          id: string;
-          key: string;
-          alt: string;
-        } | null;
-        collections?: {
-          __typename?: "collections";
-          id: string;
-          label: string;
-          slug: string;
         } | null;
       };
     }>;
@@ -3465,36 +3351,6 @@ export const CollectionFromFragmentFragmentDoc = {
     },
   ],
 } as unknown as DocumentNode<CollectionFromFragmentFragment, unknown>;
-export const ProductCommentsSectionFragmentFragmentDoc = {
-  kind: "Document",
-  definitions: [
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "ProductCommentsSectionFragment" },
-      typeCondition: {
-        kind: "NamedType",
-        name: { kind: "Name", value: "comments" },
-      },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "id" } },
-          { kind: "Field", name: { kind: "Name", value: "comment" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "profile" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                { kind: "Field", name: { kind: "Name", value: "name" } },
-              ],
-            },
-          },
-        ],
-      },
-    },
-  ],
-} as unknown as DocumentNode<ProductCommentsSectionFragmentFragment, unknown>;
 export const ImageGridFragmentFragmentDoc = {
   kind: "Document",
   definitions: [
@@ -3633,7 +3489,6 @@ export const ProductCardFragmentFragmentDoc = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -6021,7 +5876,6 @@ export const RecomendationProductsQueryDocument = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -7425,7 +7279,6 @@ export const SearchDocument = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -7843,7 +7696,6 @@ export const SearchWithPriceDocument = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -8254,7 +8106,6 @@ export const SearchInCollectionDocument = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -8717,7 +8568,6 @@ export const SearchInCollectionWithPriceDocument = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -8927,7 +8777,6 @@ export const FeaturedProductsQueryDocument = {
         selections: [
           { kind: "Field", name: { kind: "Name", value: "id" } },
           { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
           { kind: "Field", name: { kind: "Name", value: "rating" } },
           { kind: "Field", name: { kind: "Name", value: "slug" } },
           { kind: "Field", name: { kind: "Name", value: "badge" } },
@@ -9242,470 +9091,6 @@ export const CollectionRouteQueryDocument = {
 } as unknown as DocumentNode<
   CollectionRouteQueryQuery,
   CollectionRouteQueryQueryVariables
->;
-export const ProductDetailPageQueryDocument = {
-  kind: "Document",
-  definitions: [
-    {
-      kind: "OperationDefinition",
-      operation: "query",
-      name: { kind: "Name", value: "ProductDetailPageQuery" },
-      variableDefinitions: [
-        {
-          kind: "VariableDefinition",
-          variable: {
-            kind: "Variable",
-            name: { kind: "Name", value: "productSlug" },
-          },
-          type: { kind: "NamedType", name: { kind: "Name", value: "String" } },
-        },
-      ],
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "productsCollection" },
-            arguments: [
-              {
-                kind: "Argument",
-                name: { kind: "Name", value: "filter" },
-                value: {
-                  kind: "ObjectValue",
-                  fields: [
-                    {
-                      kind: "ObjectField",
-                      name: { kind: "Name", value: "slug" },
-                      value: {
-                        kind: "ObjectValue",
-                        fields: [
-                          {
-                            kind: "ObjectField",
-                            name: { kind: "Name", value: "eq" },
-                            value: {
-                              kind: "Variable",
-                              name: { kind: "Name", value: "productSlug" },
-                            },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-            ],
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                {
-                  kind: "Field",
-                  name: { kind: "Name", value: "edges" },
-                  selectionSet: {
-                    kind: "SelectionSet",
-                    selections: [
-                      {
-                        kind: "Field",
-                        name: { kind: "Name", value: "node" },
-                        selectionSet: {
-                          kind: "SelectionSet",
-                          selections: [
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "id" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "name" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "description" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "rating" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "price" },
-                            },
-                            {
-                              kind: "Field",
-                              alias: { kind: "Name", value: "discountEnabled" },
-                              name: { kind: "Name", value: "discount_enabled" },
-                            },
-                            {
-                              kind: "Field",
-                              alias: { kind: "Name", value: "discountPercent" },
-                              name: { kind: "Name", value: "discount_percent" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "stock" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "tags" },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "totalComments" },
-                            },
-                            {
-                              kind: "FragmentSpread",
-                              name: {
-                                kind: "Name",
-                                value: "ProductImageShowcaseFragment",
-                              },
-                            },
-                            {
-                              kind: "Field",
-                              name: {
-                                kind: "Name",
-                                value: "commentsCollection",
-                              },
-                              arguments: [
-                                {
-                                  kind: "Argument",
-                                  name: { kind: "Name", value: "first" },
-                                  value: { kind: "IntValue", value: "5" },
-                                },
-                              ],
-                              selectionSet: {
-                                kind: "SelectionSet",
-                                selections: [
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "edges" },
-                                    selectionSet: {
-                                      kind: "SelectionSet",
-                                      selections: [
-                                        {
-                                          kind: "Field",
-                                          name: { kind: "Name", value: "node" },
-                                          selectionSet: {
-                                            kind: "SelectionSet",
-                                            selections: [
-                                              {
-                                                kind: "FragmentSpread",
-                                                name: {
-                                                  kind: "Name",
-                                                  value:
-                                                    "ProductCommentsSectionFragment",
-                                                },
-                                              },
-                                            ],
-                                          },
-                                        },
-                                      ],
-                                    },
-                                  },
-                                ],
-                              },
-                            },
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "collections" },
-                              selectionSet: {
-                                kind: "SelectionSet",
-                                selections: [
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "id" },
-                                  },
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "label" },
-                                  },
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "slug" },
-                                  },
-                                ],
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-          {
-            kind: "Field",
-            alias: { kind: "Name", value: "recommendations" },
-            name: { kind: "Name", value: "productsCollection" },
-            arguments: [
-              {
-                kind: "Argument",
-                name: { kind: "Name", value: "filter" },
-                value: {
-                  kind: "ObjectValue",
-                  fields: [
-                    {
-                      kind: "ObjectField",
-                      name: { kind: "Name", value: "featured" },
-                      value: {
-                        kind: "ObjectValue",
-                        fields: [
-                          {
-                            kind: "ObjectField",
-                            name: { kind: "Name", value: "eq" },
-                            value: { kind: "BooleanValue", value: true },
-                          },
-                        ],
-                      },
-                    },
-                  ],
-                },
-              },
-              {
-                kind: "Argument",
-                name: { kind: "Name", value: "first" },
-                value: { kind: "IntValue", value: "4" },
-              },
-              {
-                kind: "Argument",
-                name: { kind: "Name", value: "orderBy" },
-                value: {
-                  kind: "ListValue",
-                  values: [
-                    {
-                      kind: "ObjectValue",
-                      fields: [
-                        {
-                          kind: "ObjectField",
-                          name: { kind: "Name", value: "created_at" },
-                          value: { kind: "EnumValue", value: "DescNullsLast" },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              },
-            ],
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                {
-                  kind: "Field",
-                  name: { kind: "Name", value: "edges" },
-                  selectionSet: {
-                    kind: "SelectionSet",
-                    selections: [
-                      {
-                        kind: "Field",
-                        name: { kind: "Name", value: "node" },
-                        selectionSet: {
-                          kind: "SelectionSet",
-                          selections: [
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "id" },
-                            },
-                            {
-                              kind: "FragmentSpread",
-                              name: {
-                                kind: "Name",
-                                value: "ProductCardFragment",
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      },
-    },
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "ProductImageShowcaseFragment" },
-      typeCondition: {
-        kind: "NamedType",
-        name: { kind: "Name", value: "products" },
-      },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "id" } },
-          {
-            kind: "Field",
-            alias: { kind: "Name", value: "featuredImage" },
-            name: { kind: "Name", value: "medias" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                { kind: "Field", name: { kind: "Name", value: "id" } },
-                { kind: "Field", name: { kind: "Name", value: "key" } },
-                { kind: "Field", name: { kind: "Name", value: "alt" } },
-              ],
-            },
-          },
-          {
-            kind: "Field",
-            alias: { kind: "Name", value: "images" },
-            name: { kind: "Name", value: "product_mediasCollection" },
-            arguments: [
-              {
-                kind: "Argument",
-                name: { kind: "Name", value: "orderBy" },
-                value: {
-                  kind: "ListValue",
-                  values: [
-                    {
-                      kind: "ObjectValue",
-                      fields: [
-                        {
-                          kind: "ObjectField",
-                          name: { kind: "Name", value: "priority" },
-                          value: { kind: "EnumValue", value: "DescNullsLast" },
-                        },
-                      ],
-                    },
-                  ],
-                },
-              },
-            ],
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                {
-                  kind: "Field",
-                  name: { kind: "Name", value: "edges" },
-                  selectionSet: {
-                    kind: "SelectionSet",
-                    selections: [
-                      {
-                        kind: "Field",
-                        name: { kind: "Name", value: "node" },
-                        selectionSet: {
-                          kind: "SelectionSet",
-                          selections: [
-                            {
-                              kind: "Field",
-                              name: { kind: "Name", value: "media" },
-                              selectionSet: {
-                                kind: "SelectionSet",
-                                selections: [
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "id" },
-                                  },
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "key" },
-                                  },
-                                  {
-                                    kind: "Field",
-                                    name: { kind: "Name", value: "alt" },
-                                  },
-                                ],
-                              },
-                            },
-                          ],
-                        },
-                      },
-                    ],
-                  },
-                },
-              ],
-            },
-          },
-        ],
-      },
-    },
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "ProductCommentsSectionFragment" },
-      typeCondition: {
-        kind: "NamedType",
-        name: { kind: "Name", value: "comments" },
-      },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "id" } },
-          { kind: "Field", name: { kind: "Name", value: "comment" } },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "profile" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                { kind: "Field", name: { kind: "Name", value: "name" } },
-              ],
-            },
-          },
-        ],
-      },
-    },
-    {
-      kind: "FragmentDefinition",
-      name: { kind: "Name", value: "ProductCardFragment" },
-      typeCondition: {
-        kind: "NamedType",
-        name: { kind: "Name", value: "products" },
-      },
-      selectionSet: {
-        kind: "SelectionSet",
-        selections: [
-          { kind: "Field", name: { kind: "Name", value: "id" } },
-          { kind: "Field", name: { kind: "Name", value: "name" } },
-          { kind: "Field", name: { kind: "Name", value: "description" } },
-          { kind: "Field", name: { kind: "Name", value: "rating" } },
-          { kind: "Field", name: { kind: "Name", value: "slug" } },
-          { kind: "Field", name: { kind: "Name", value: "badge" } },
-          { kind: "Field", name: { kind: "Name", value: "price" } },
-          {
-            kind: "Field",
-            alias: { kind: "Name", value: "discountEnabled" },
-            name: { kind: "Name", value: "discount_enabled" },
-          },
-          {
-            kind: "Field",
-            alias: { kind: "Name", value: "discountPercent" },
-            name: { kind: "Name", value: "discount_percent" },
-          },
-          { kind: "Field", name: { kind: "Name", value: "stock" } },
-          {
-            kind: "Field",
-            alias: { kind: "Name", value: "featuredImage" },
-            name: { kind: "Name", value: "medias" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                { kind: "Field", name: { kind: "Name", value: "id" } },
-                { kind: "Field", name: { kind: "Name", value: "key" } },
-                { kind: "Field", name: { kind: "Name", value: "alt" } },
-              ],
-            },
-          },
-          {
-            kind: "Field",
-            name: { kind: "Name", value: "collections" },
-            selectionSet: {
-              kind: "SelectionSet",
-              selections: [
-                { kind: "Field", name: { kind: "Name", value: "id" } },
-                { kind: "Field", name: { kind: "Name", value: "label" } },
-                { kind: "Field", name: { kind: "Name", value: "slug" } },
-              ],
-            },
-          },
-        ],
-      },
-    },
-  ],
-} as unknown as DocumentNode<
-  ProductDetailPageQueryQuery,
-  ProductDetailPageQueryQueryVariables
 >;
 export const LandingRouteQueryDocument = {
   kind: "Document",

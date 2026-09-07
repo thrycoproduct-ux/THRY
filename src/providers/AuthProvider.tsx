@@ -236,7 +236,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
     const supabase = createClient();
     supabase
       .from("wishlist")
-      .select()
+      .select("product_id, created_at")
       .eq("user_id", userId)
       .then((data) => {
         const wishlistItems: Parameters<typeof setWishlist>[0] = {};
@@ -273,28 +273,26 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
         setSession(session);
 
         switch (_event) {
-          case "INITIAL_SESSION":
-            supabase.auth.getUser().then(async ({ data }) => {
-              if (cancelled) return;
-              setUser(data.user);
-              if (!data.user?.id) {
-                sawLoggedOutInThisRuntimeRef.current = true;
-                return;
-              }
+          case "INITIAL_SESSION": {
+            // Prefer session payload from the auth event (avoids extra /auth/v1/user).
+            const nextUser = session?.user ?? null;
+            setUser(nextUser);
+            if (!nextUser?.id) {
+              sawLoggedOutInThisRuntimeRef.current = true;
+              break;
+            }
 
-              loadWishlistForUser(data.user.id);
-              await syncAuthCartOnAuthEvent({
-                supabase,
-                userId: data.user.id,
-                authEvent: "INITIAL_SESSION",
-                sawLoggedOutInThisRuntime: sawLoggedOutInThisRuntimeRef.current,
-              });
+            loadWishlistForUser(nextUser.id);
+            void syncAuthCartOnAuthEvent({
+              supabase,
+              userId: nextUser.id,
+              authEvent: "INITIAL_SESSION",
+              sawLoggedOutInThisRuntime: sawLoggedOutInThisRuntimeRef.current,
             });
             break;
+          }
           case "PASSWORD_RECOVERY":
-            supabase.auth.getUser().then(({ data }) => {
-              setUser(data.user);
-            });
+            setUser(session?.user ?? null);
             if (
               typeof window !== "undefined" &&
               !window.location.pathname.startsWith("/reset-password")
@@ -303,40 +301,37 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
             }
             break;
 
-          case "SIGNED_IN":
-            supabase.auth.getUser().then(({ data }) => {
-              setUser(data.user);
+          case "SIGNED_IN": {
+            const nextUser = session?.user ?? null;
+            setUser(nextUser);
 
-              if (!data.user) {
-                sawLoggedOutInThisRuntimeRef.current = true;
-                return;
-              }
-
-              void syncAuthCartOnAuthEvent({
-                supabase,
-                userId: data.user.id,
-                authEvent: "SIGNED_IN",
-                sawLoggedOutInThisRuntime: sawLoggedOutInThisRuntimeRef.current,
-              });
-            });
-
-            if (session?.user?.id) {
-              loadWishlistForUser(session.user.id);
+            if (!nextUser) {
+              sawLoggedOutInThisRuntimeRef.current = true;
+              break;
             }
 
+            void syncAuthCartOnAuthEvent({
+              supabase,
+              userId: nextUser.id,
+              authEvent: "SIGNED_IN",
+              sawLoggedOutInThisRuntime: sawLoggedOutInThisRuntimeRef.current,
+            });
+
+            loadWishlistForUser(nextUser.id);
+
             if (
-              session?.user?.id &&
-              session.user.id !== lastWelcomedUserId.current &&
-              !hasWelcomedInSession(session.user.id)
+              nextUser.id !== lastWelcomedUserId.current &&
+              !hasWelcomedInSession(nextUser.id)
             ) {
-              lastWelcomedUserId.current = session.user.id;
-              markWelcomedInSession(session.user.id);
+              lastWelcomedUserId.current = nextUser.id;
+              markWelcomedInSession(nextUser.id);
               toast({
                 title: "Welcome back.",
                 description: "You are already signed in.",
               });
             }
             break;
+          }
           case "SIGNED_OUT":
             setUser(null);
             lastWelcomedUserId.current = null;
@@ -351,9 +346,7 @@ export const SupabaseAuthProvider: React.FC<SupabaseAuthProviderProps> = ({
           case "TOKEN_REFRESHED":
           case "USER_UPDATED":
           case "MFA_CHALLENGE_VERIFIED":
-            supabase.auth.getUser().then(({ data }) => {
-              setUser(data.user);
-            });
+            setUser(session?.user ?? null);
             break;
         }
       });
