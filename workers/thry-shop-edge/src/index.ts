@@ -14,10 +14,14 @@ const APEX = "thryco.com";
 const WWW = "www.thryco.com";
 
 /** Fallback TTL when origin omits s-maxage (seconds). */
-const DEFAULT_HTML_S_MAXAGE = 60;
+const DEFAULT_HTML_S_MAXAGE = 120;
+/** Rarely changing info pages (payment, shipping, policies). */
+const DEFAULT_STATIC_HTML_S_MAXAGE = 600;
 const DEFAULT_API_S_MAXAGE = 120;
-/** Hard ceiling so a misconfigured origin cannot pin cache too long. */
+/** Hard ceiling for catalog HTML / APIs. */
 const MAX_S_MAXAGE = 300;
+/** Hard ceiling for static info HTML only. */
+const MAX_STATIC_HTML_S_MAXAGE = 900;
 
 const SIZE_CONFIG_PATH = "/api/products/size-config";
 
@@ -102,26 +106,29 @@ function isPrivatePath(pathname: string): boolean {
   );
 }
 
+const STATIC_INFO_PATHS = new Set([
+  "/about",
+  "/contact",
+  "/faq",
+  "/shipping-returns",
+  "/privacy-policy",
+  "/payment-methods",
+  "/store-policy",
+  "/terms-and-conditions",
+  "/terms-of-use",
+]);
+
+function isStaticInfoHtmlPath(pathname: string): boolean {
+  return STATIC_INFO_PATHS.has(pathname.toLowerCase());
+}
+
 function isPublicHtmlPath(pathname: string): boolean {
   const path = pathname.toLowerCase();
   if (path === "/" || path === "") return true;
   if (path === "/shop" || path.startsWith("/shop/")) return true;
   if (path === "/collections" || path.startsWith("/collections/")) return true;
   if (path === "/featured") return true;
-  if (
-    path === "/about" ||
-    path === "/contact" ||
-    path === "/faq" ||
-    path === "/shipping-returns" ||
-    path === "/privacy-policy" ||
-    path === "/payment-methods" ||
-    path === "/store-policy" ||
-    path === "/terms-and-conditions" ||
-    path === "/terms-of-use"
-  ) {
-    return true;
-  }
-  return false;
+  return isStaticInfoHtmlPath(path);
 }
 
 function isPublicStorefrontApi(pathname: string): boolean {
@@ -174,31 +181,44 @@ function normalizeCacheKeyUrl(requestUrl: URL): URL {
 function parseSMaxAge(
   cacheControl: string | null,
   fallback: number,
+  ceiling: number,
 ): number {
   if (!cacheControl) return fallback;
   const lower = cacheControl.toLowerCase();
   if (lower.includes("no-store") || lower.includes("private")) return 0;
   const match = lower.match(/(?:^|,)\s*s-maxage=(\d+)/);
-  if (match) return Math.min(Number(match[1]), MAX_S_MAXAGE);
+  if (match) return Math.min(Number(match[1]), ceiling);
   const maxAge = lower.match(/(?:^|,)\s*max-age=(\d+)/);
-  if (maxAge) return Math.min(Number(maxAge[1]), MAX_S_MAXAGE);
+  if (maxAge) return Math.min(Number(maxAge[1]), ceiling);
   return fallback;
 }
 
 /**
  * Edge TTL for anonymous public responses.
  * Next.js App Router often sends `private, no-store` on HTML even for public
- * catalog pages — safe to edge-cache briefly after auth/cookie gates above.
+ * catalog pages — safe to edge-cache after auth/cookie gates above.
+ * Static info pages get a longer TTL so cold-origin TTFB stops dominating LCP.
  */
-function resolveEdgeTtl(
-  pathname: string,
-  cacheControl: string | null,
-): number {
+function resolveEdgeTtl(pathname: string, cacheControl: string | null): number {
   if (isPublicStorefrontApi(pathname)) {
-    return parseSMaxAge(cacheControl, DEFAULT_API_S_MAXAGE);
+    return parseSMaxAge(cacheControl, DEFAULT_API_S_MAXAGE, MAX_S_MAXAGE);
+  }
+  if (isStaticInfoHtmlPath(pathname)) {
+    // Info pages rarely change; ignore short origin s-maxage so edge stays warm.
+    const parsed = parseSMaxAge(
+      cacheControl,
+      DEFAULT_STATIC_HTML_S_MAXAGE,
+      MAX_STATIC_HTML_S_MAXAGE,
+    );
+    if (parsed <= 0) return DEFAULT_STATIC_HTML_S_MAXAGE;
+    return Math.max(parsed, DEFAULT_STATIC_HTML_S_MAXAGE);
   }
   if (isPublicHtmlPath(pathname)) {
-    const parsed = parseSMaxAge(cacheControl, DEFAULT_HTML_S_MAXAGE);
+    const parsed = parseSMaxAge(
+      cacheControl,
+      DEFAULT_HTML_S_MAXAGE,
+      MAX_S_MAXAGE,
+    );
     if (parsed > 0) return parsed;
     // Origin no-store/private on public HTML → still allow short edge TTL.
     return DEFAULT_HTML_S_MAXAGE;
@@ -297,7 +317,7 @@ async function handleCachedGet(
   storeHeaders.delete("set-cookie");
   storeHeaders.set(
     "Cache-Control",
-    `public, s-maxage=${sMaxAge}, stale-while-revalidate=${Math.min(sMaxAge * 2, MAX_S_MAXAGE)}`,
+    `public, s-maxage=${sMaxAge}, stale-while-revalidate=${sMaxAge * 2}`,
   );
   storeHeaders.set("X-THRY-Cache", "MISS");
 

@@ -97,7 +97,7 @@ export function FeaturedProductsResultPage({
             <ProductCard
               key={node.id}
               product={node as ProductNode}
-              priorityImage={!variables.after && index < 2}
+              priorityImage={!variables.after && index < 4}
               packLabel={packLabels[node.id] ?? null}
               sizePreview={sizePreviews[node.id] ?? null}
             />

@@ -25,6 +25,24 @@ const PRIVATE_PREFIXES = [
   "/api/storefront/welcome-offer",
 ];
 
+const STATIC_INFO_PATHS = new Set([
+  "/about",
+  "/contact",
+  "/faq",
+  "/shipping-returns",
+  "/privacy-policy",
+  "/payment-methods",
+  "/store-policy",
+  "/terms-and-conditions",
+  "/terms-of-use",
+]);
+
+const DEFAULT_HTML_S_MAXAGE = 120;
+const DEFAULT_STATIC_HTML_S_MAXAGE = 600;
+const DEFAULT_API_S_MAXAGE = 120;
+const MAX_S_MAXAGE = 300;
+const MAX_STATIC_HTML_S_MAXAGE = 900;
+
 function hasSupabaseAuthCookie(cookieHeader) {
   if (!cookieHeader) return false;
   return /(?:^|;\s*)sb-[^=;\s]+-auth-token=/.test(cookieHeader);
@@ -37,23 +55,17 @@ function isPrivatePath(pathname) {
   );
 }
 
+function isStaticInfoHtmlPath(pathname) {
+  return STATIC_INFO_PATHS.has(pathname.toLowerCase());
+}
+
 function isPublicHtmlPath(pathname) {
   const path = pathname.toLowerCase();
   if (path === "/" || path === "") return true;
   if (path === "/shop" || path.startsWith("/shop/")) return true;
   if (path === "/collections" || path.startsWith("/collections/")) return true;
   if (path === "/featured") return true;
-  return [
-    "/about",
-    "/contact",
-    "/faq",
-    "/shipping-returns",
-    "/privacy-policy",
-    "/payment-methods",
-    "/store-policy",
-    "/terms-and-conditions",
-    "/terms-of-use",
-  ].includes(path);
+  return isStaticInfoHtmlPath(path);
 }
 
 function isPublicStorefrontApi(pathname) {
@@ -75,6 +87,42 @@ function isCacheableGet({ method, pathname, cookie, authorization }) {
   return isPublicHtmlPath(pathname) || isPublicStorefrontApi(pathname);
 }
 
+function parseSMaxAge(cacheControl, fallback, ceiling) {
+  if (!cacheControl) return fallback;
+  const lower = cacheControl.toLowerCase();
+  if (lower.includes("no-store") || lower.includes("private")) return 0;
+  const match = lower.match(/(?:^|,)\s*s-maxage=(\d+)/);
+  if (match) return Math.min(Number(match[1]), ceiling);
+  const maxAge = lower.match(/(?:^|,)\s*max-age=(\d+)/);
+  if (maxAge) return Math.min(Number(maxAge[1]), ceiling);
+  return fallback;
+}
+
+function resolveEdgeTtl(pathname, cacheControl) {
+  if (isPublicStorefrontApi(pathname)) {
+    return parseSMaxAge(cacheControl, DEFAULT_API_S_MAXAGE, MAX_S_MAXAGE);
+  }
+  if (isStaticInfoHtmlPath(pathname)) {
+    const parsed = parseSMaxAge(
+      cacheControl,
+      DEFAULT_STATIC_HTML_S_MAXAGE,
+      MAX_STATIC_HTML_S_MAXAGE,
+    );
+    if (parsed <= 0) return DEFAULT_STATIC_HTML_S_MAXAGE;
+    return Math.max(parsed, DEFAULT_STATIC_HTML_S_MAXAGE);
+  }
+  if (isPublicHtmlPath(pathname)) {
+    const parsed = parseSMaxAge(
+      cacheControl,
+      DEFAULT_HTML_S_MAXAGE,
+      MAX_S_MAXAGE,
+    );
+    if (parsed > 0) return parsed;
+    return DEFAULT_HTML_S_MAXAGE;
+  }
+  return 0;
+}
+
 const cases = [
   { name: "home GET", method: "GET", pathname: "/", expect: true },
   { name: "shop GET", method: "GET", pathname: "/shop", expect: true },
@@ -82,6 +130,12 @@ const cases = [
     name: "pdp GET",
     method: "GET",
     pathname: "/shop/baby-shivan-idol",
+    expect: true,
+  },
+  {
+    name: "payment-methods GET",
+    method: "GET",
+    pathname: "/payment-methods",
     expect: true,
   },
   {
@@ -118,11 +172,52 @@ const cases = [
   },
 ];
 
+const ttlCases = [
+  {
+    name: "static info TTL floor 600",
+    pathname: "/payment-methods",
+    cacheControl: "public, s-maxage=60",
+    expect: 600,
+  },
+  {
+    name: "static info no-store still 600",
+    pathname: "/shipping-returns",
+    cacheControl: "private, no-store",
+    expect: 600,
+  },
+  {
+    name: "catalog HTML respects short s-maxage capped",
+    pathname: "/collections/art-craft",
+    cacheControl: "public, s-maxage=60",
+    expect: 60,
+  },
+  {
+    name: "catalog HTML no-store → default 120",
+    pathname: "/featured",
+    cacheControl: "private, no-store",
+    expect: 120,
+  },
+  {
+    name: "cart path TTL 0",
+    pathname: "/cart",
+    cacheControl: "public, s-maxage=60",
+    expect: 0,
+  },
+];
+
 let failed = 0;
 for (const c of cases) {
   const got = isCacheableGet(c);
   const ok = got === c.expect;
   console.log(`${ok ? "PASS" : "FAIL"}  ${c.name} → ${got} (want ${c.expect})`);
+  if (!ok) failed += 1;
+}
+for (const c of ttlCases) {
+  const got = resolveEdgeTtl(c.pathname, c.cacheControl);
+  const ok = got === c.expect;
+  console.log(
+    `${ok ? "PASS" : "FAIL"}  TTL ${c.name} → ${got} (want ${c.expect})`,
+  );
   if (!ok) failed += 1;
 }
 process.exit(failed ? 1 : 0);
