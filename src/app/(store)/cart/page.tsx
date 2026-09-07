@@ -1,10 +1,10 @@
 import CartDeepLinkAdd from "@/features/carts/components/CartDeepLinkAdd";
 import CartSection from "@/features/carts/components/CartSection";
 import RecommendationProductsSection from "@/features/products/components/RecommendationProductsSection";
+import { HardNavigationLink } from "@/components/navigation/HardNavigationLink";
 import { Shell } from "@/components/layouts/Shell";
 import { getSessionUser } from "@/lib/auth/admin";
 import { prefetchCartPageData } from "@/lib/storefront/cart-server";
-import Link from "next/link";
 
 export const dynamic = "force-dynamic";
 
@@ -18,12 +18,12 @@ async function CartPage() {
     <Shell>
       <section className="flex items-center justify-between gap-3 py-4 md:py-8">
         <h1 className="text-2xl font-bold md:text-3xl">Your Cart</h1>
-        <Link
+        <HardNavigationLink
           href="/shop"
           className="shrink-0 text-sm font-medium text-primary md:text-base"
         >
           Continue shopping
-        </Link>
+        </HardNavigationLink>
       </section>
 
       <CartDeepLinkAdd />
@@ -37,7 +37,8 @@ async function CartPage() {
         prefetchedProductIds={prefetch.prefetchedProductIds}
       />
 
-      <div className="mt-6 hidden md:block">
+      {/* Show on mobile too — empty-cart visitors (esp. Instagram) need a next step. */}
+      <div className="mt-6">
         <RecommendationProductsSection />
       </div>
     </Shell>
