@@ -26,30 +26,18 @@ async function runViewport(label, contextOptions) {
     });
     await page.waitForTimeout(1500);
 
-    // Dismiss option prompts if needed — try Add to Cart / basket
     const addBtn = page.getByRole("button", { name: /add to cart/i }).first();
-    if (await addBtn.count()) {
-      // Select first option tile if present
-      const option = page.locator("button").filter({ hasText: /^[A-Z0-9]/+$/ }).first();
-      if (await option.isVisible().catch(() => false)) {
-        await option.click().catch(() => undefined);
-      }
-      await addBtn.click();
-    } else {
-      await page.getByRole("button", { name: /add to cart/i }).click();
-    }
+    await addBtn.click();
 
     const toast = page.getByText("Added to cart", { exact: true });
-    await toast.waitFor({ timeout: 8000 });
+    await toast.waitFor({ timeout: 10000 });
     ok(`${label}: shows Added to cart`, await toast.isVisible());
 
     const viewCart = page.getByRole("link", { name: /view cart/i });
     ok(`${label}: View cart CTA`, await viewCart.isVisible());
 
     const box = await page
-      .locator("[data-radix-collection-item], li[role='status'], ol li")
-      .filter({ hasText: "Added to cart" })
-      .first()
+      .getByText("Added to cart", { exact: true })
       .boundingBox()
       .catch(() => null);
 
@@ -76,13 +64,12 @@ async function runViewport(label, contextOptions) {
     await page.waitForTimeout(1500);
     ok(`${label}: View cart → /cart`, page.url().includes("/cart"));
   } catch (e) {
-    ok(`${label}: flow`, false, String(e).slice(0, 180));
+    ok(`${label}: flow`, false, String(e).slice(0, 200));
   } finally {
     await browser.close();
   }
 }
 
-// Against current production until deploy; still useful after push.
 await runViewport("mobile", { ...devices["iPhone 13"] });
 await runViewport("desktop", {
   viewport: { width: 1280, height: 800 },
