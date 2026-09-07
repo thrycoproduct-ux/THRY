@@ -14,6 +14,7 @@ import {
 } from "../cart-options-guard";
 import { purgeStaleCartLinesAfterCompleteAdd } from "../cart-purge";
 import { clearAuthCartClearedMarker } from "../cart-cleared-marker";
+import { scheduleAddedToCartToast } from "../added-to-cart-toast";
 import {
   buildOptimisticCartLineKeys,
   getCartLineQuantity,
@@ -34,10 +35,7 @@ function scheduleAddToCartToast(
   toast: ReturnType<typeof useToast>["toast"],
   silent?: boolean,
 ) {
-  if (silent) return;
-  queueMicrotask(() => {
-    toast({ title: "Success, Added a Product to the Cart." });
-  });
+  scheduleAddedToCartToast(toast, { silent });
 }
 
 function useCartActions(
@@ -96,14 +94,19 @@ function useCartActions(
       return { blockedBulk: false, added: false, blockedOptions: true };
     }
 
-    const { normalizedSize, selections, variantKey, lineKey, sizeOrSelections } =
-      buildOptimisticCartLineKeys({
-        productId,
-        quantity,
-        size: opts.size,
-        selections: opts.selections,
-        sizeConfig: opts.sizeConfigHint,
-      });
+    const {
+      normalizedSize,
+      selections,
+      variantKey,
+      lineKey,
+      sizeOrSelections,
+    } = buildOptimisticCartLineKeys({
+      productId,
+      quantity,
+      size: opts.size,
+      selections: opts.selections,
+      sizeConfig: opts.sizeConfigHint,
+    });
 
     const currentQuantity = getCartLineQuantity(
       guestCart,
@@ -183,14 +186,19 @@ function useCartActions(
       return { blockedBulk: false, added: false, blockedOptions: true };
     }
 
-    const { normalizedSize, selections, variantKey, lineKey, sizeOrSelections } =
-      buildOptimisticCartLineKeys({
-        productId,
-        quantity,
-        size: opts.size,
-        selections: opts.selections,
-        sizeConfig: opts.sizeConfigHint,
-      });
+    const {
+      normalizedSize,
+      selections,
+      variantKey,
+      lineKey,
+      sizeOrSelections,
+    } = buildOptimisticCartLineKeys({
+      productId,
+      quantity,
+      size: opts.size,
+      selections: opts.selections,
+      sizeConfig: opts.sizeConfigHint,
+    });
 
     const currentQuantity = getCartLineQuantity(
       guestCart,

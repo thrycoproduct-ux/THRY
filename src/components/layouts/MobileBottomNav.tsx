@@ -6,6 +6,7 @@ import { usePathname } from "next/navigation";
 import { Home, Heart, Search, ShoppingCart, User } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { useCartCount } from "@/features/carts/hooks/useCartCount";
+import { useCartAddedPulse } from "@/features/carts/hooks/useCartAddedPulse";
 import useWishlistStore from "@/features/wishlists/useWishlistStore";
 import { useMobileSearch } from "@/components/layouts/MobileSearchContext";
 import { useRobustNavigate } from "@/hooks/useRobustNavigate";
@@ -37,6 +38,7 @@ type NavItem = {
 export function MobileBottomNav() {
   const pathname = usePathname();
   const cartCount = useCartCount();
+  const cartPulse = useCartAddedPulse();
   const wishlist = useWishlistStore((s) => s.wishlist);
   const wishCount = Object.keys(wishlist).length;
   const { onNavigateClick } = useRobustNavigate();
@@ -96,7 +98,12 @@ export function MobileBottomNav() {
       label: "Cart",
       active: pathname === "/cart",
       icon: (
-        <span className="relative inline-flex">
+        <span
+          className={cn(
+            "relative inline-flex transition-transform duration-300",
+            cartPulse && "scale-125",
+          )}
+        >
           <ShoppingCart className="h-5 w-5 shrink-0" strokeWidth={1.75} />
           <NavBadge count={cartCount} />
         </span>
