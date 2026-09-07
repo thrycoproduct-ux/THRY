@@ -6,7 +6,10 @@ export type AuthCartEvent =
   | "USER_UPDATED"
   | string;
 
-export type GuestCartMergeAction = "sync_from_db" | "merge_cookie_to_db" | "skip";
+export type GuestCartMergeAction =
+  | "sync_from_db"
+  | "merge_cookie_to_db"
+  | "skip";
 
 export type GuestCartMergeInput = {
   authEvent: AuthCartEvent;
@@ -15,6 +18,12 @@ export type GuestCartMergeInput = {
   dbHasLines: boolean;
   cookieHasLines: boolean;
   authCartCleared: boolean;
+};
+
+export type ShowGuestCartInput = {
+  activeUserId: string | null | undefined;
+  userCartHasLines: boolean;
+  guestHasLines: boolean;
 };
 
 /**
@@ -46,6 +55,16 @@ export function decideGuestCartMerge(
   if (!input.cookieHasLines) return "sync_from_db";
 
   return "merge_cookie_to_db";
+}
+
+/**
+ * Industry rule: authenticated shoppers always use the DB cart UI.
+ * Never fall back to the guest cookie when logged in — that resurrects
+ * removed lines after refresh (empty DB + stale cookie).
+ */
+export function shouldShowGuestCart(input: ShowGuestCartInput): boolean {
+  if (input.activeUserId) return false;
+  return input.guestHasLines || !input.userCartHasLines;
 }
 
 export function cartHasLines(

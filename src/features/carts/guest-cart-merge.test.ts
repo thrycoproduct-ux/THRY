@@ -1,4 +1,8 @@
-import { cartHasLines, decideGuestCartMerge } from "./guest-cart-merge";
+import {
+  cartHasLines,
+  decideGuestCartMerge,
+  shouldShowGuestCart,
+} from "./guest-cart-merge";
 
 describe("decideGuestCartMerge", () => {
   const base = {
@@ -72,6 +76,48 @@ describe("decideGuestCartMerge", () => {
         authCartCleared: true,
       }),
     ).toBe("sync_from_db");
+  });
+});
+
+describe("shouldShowGuestCart", () => {
+  it("never shows guest cart when the user is authenticated (even with stale cookie)", () => {
+    expect(
+      shouldShowGuestCart({
+        activeUserId: "user-1",
+        userCartHasLines: false,
+        guestHasLines: true,
+      }),
+    ).toBe(false);
+  });
+
+  it("shows auth cart UI path when logged in with DB lines", () => {
+    expect(
+      shouldShowGuestCart({
+        activeUserId: "user-1",
+        userCartHasLines: true,
+        guestHasLines: false,
+      }),
+    ).toBe(false);
+  });
+
+  it("shows guest cart when logged out with cookie lines", () => {
+    expect(
+      shouldShowGuestCart({
+        activeUserId: null,
+        userCartHasLines: false,
+        guestHasLines: true,
+      }),
+    ).toBe(true);
+  });
+
+  it("shows guest cart when logged out with empty cookie (empty guest UI)", () => {
+    expect(
+      shouldShowGuestCart({
+        activeUserId: undefined,
+        userCartHasLines: false,
+        guestHasLines: false,
+      }),
+    ).toBe(true);
   });
 });
 

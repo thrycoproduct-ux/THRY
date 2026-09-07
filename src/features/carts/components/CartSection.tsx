@@ -4,7 +4,7 @@ import type { CartPagePrefetch } from "@/lib/storefront/cart-server";
 import type { User } from "@supabase/supabase-js";
 import UserCartSection from "./UserCartSection";
 import GuestCartSection from "./GuestCartSection";
-import { cartHasLines } from "../guest-cart-merge";
+import { cartHasLines, shouldShowGuestCart } from "../guest-cart-merge";
 
 type CartSectionProps = Pick<
   CartPagePrefetch,
@@ -28,10 +28,13 @@ function CartSection({
   const { user: clientUser } = useAuth();
   const activeUserId = clientUser?.id ?? serverUserId ?? null;
   const userCartHasLines = Boolean(userCart?.cartsCollection?.edges?.length);
-  // Prefer guest cookie cart when an auth session is empty/stale so shoppers
-  // don't see an empty /cart while the guest cookie still has lines.
-  const showGuestCart =
-    !activeUserId || (!userCartHasLines && cartHasLines(guestCartItems));
+  // Authenticated users always use the DB cart — never fall back to a stale
+  // guest cookie (that resurrected removed lines after refresh).
+  const showGuestCart = shouldShowGuestCart({
+    activeUserId,
+    userCartHasLines,
+    guestHasLines: cartHasLines(guestCartItems),
+  });
 
   if (activeUserId && !showGuestCart) {
     const user: User =

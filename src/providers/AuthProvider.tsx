@@ -9,6 +9,7 @@ import {
   fetchCartSizeConfigsByProductIds,
   shouldBlockBareCartAdd,
 } from "@/features/carts/cart-options-guard";
+import { applyDbCartRowsToClientMirror } from "@/features/carts/apply-db-cart-mirror";
 import { dbCartRowsToCartItems } from "@/features/carts/cart-storage-sync";
 import { readClientCartCookie } from "@/features/carts/read-client-cart-cookie";
 import {
@@ -97,20 +98,15 @@ function applyDbCartToCookie(
     selections?: Record<string, string> | null;
   }>,
 ) {
-  const mapped = dbRows.map((row) => ({
-    product_id: String(row.product_id ?? ""),
-    quantity: Number(row.quantity ?? 0),
-    size: row.size ?? null,
-    selections: row.selections ?? null,
-  }));
-  const dbHasLines = mapped.some((row) => row.quantity > 0);
-  if (dbHasLines) {
-    useCartStore.getState().replaceCart(dbCartRowsToCartItems(mapped));
-    return;
-  }
-  useCartStore.getState().replaceCart({});
-  clearPersistedCartStorage();
-  useCartStore.getState().replaceCart({});
+  applyDbCartRowsToClientMirror(
+    dbRows.map((row) => ({
+      product_id: String(row.product_id ?? ""),
+      quantity: Number(row.quantity ?? 0),
+      size: row.size ?? null,
+      selections: row.selections ?? null,
+    })),
+    (cart) => useCartStore.getState().replaceCart(cart),
+  );
 }
 
 async function mergeGuestCookieIntoDb(args: {
