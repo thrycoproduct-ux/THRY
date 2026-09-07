@@ -42,4 +42,11 @@ describe("security headers", () => {
     );
     expect(CONTENT_SECURITY_POLICY).toContain("https://media.thryco.com");
   });
+
+  it("allows the Cloudflare Web Analytics beacon (script + RUM endpoint)", () => {
+    const scriptSrc = CONTENT_SECURITY_POLICY.match(/script-src ([^;]+);/)?.[1];
+    const connectSrc = CONTENT_SECURITY_POLICY.match(/connect-src ([^;]+);/)?.[1];
+    expect(scriptSrc).toContain("https://static.cloudflareinsights.com");
+    expect(connectSrc).toContain("https://cloudflareinsights.com");
+  });
 });
