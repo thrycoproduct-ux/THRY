@@ -1,7 +1,8 @@
 "use client";
 
-import type { ReactNode } from "react";
+import { useRef, type ReactNode } from "react";
 import CheckoutTermsNotice from "@/components/layouts/CheckoutTermsNotice";
+import { useBottomDockHeight } from "@/hooks/useBottomDockHeight";
 import {
   Card,
   CardContent,
@@ -35,9 +36,14 @@ export function CartCheckoutSummary({
   mobileStickyOnly = false,
 }: CartCheckoutSummaryProps) {
   const itemLabel = productCount === 1 ? "1 item" : `${productCount} items`;
+  const dockRef = useRef<HTMLDivElement | null>(null);
+  // Publish dock height so toasts ("Stock limit", "Removed", etc.) render above it.
+  useBottomDockHeight(dockRef);
 
   const mobileSticky = (
-    <div className="fixed inset-x-0 bottom-[var(--mobile-nav-height)] z-[180] border-t border-border bg-background/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+    <div
+      ref={dockRef}
+      className="fixed inset-x-0 bottom-[var(--mobile-nav-height)] z-[180] border-t border-border bg-background/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
       <div className="mx-auto flex max-w-lg items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{itemLabel}</p>

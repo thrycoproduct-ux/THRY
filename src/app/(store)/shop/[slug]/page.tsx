@@ -47,6 +47,7 @@ import { keytoUrl } from "@/lib/utils";
 import { JsonLd } from "@/components/seo/JsonLd";
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
+import { ProductMobileStickyBuyBar } from "@/features/products/components/ProductMobileStickyBuyBar";
 
 export const revalidate = 120;
 
@@ -268,7 +269,10 @@ async function ProductDetailPage({ params }: Props) {
             <AddToWishListButton productId={id} />
           </section>
 
-          <section id="product-buy-box" className="mb-8 space-y-5">
+          <section
+            id="product-buy-box"
+            className="mb-8 scroll-mt-28 space-y-5"
+          >
             <Suspense>
               {hasConfiguredSizes ? (
                 <ProductBuyBox
@@ -291,7 +295,15 @@ async function ProductDetailPage({ params }: Props) {
             </Suspense>
           </section>
 
-          <section className="space-y-6">
+          <ProductMobileStickyBuyBar
+            productId={id}
+            stock={stock}
+            sizeConfig={sizeConfig}
+            pricingProduct={displayPricing}
+            hasConfiguredSizes={hasConfiguredSizes}
+          />
+
+          <section className="space-y-6 pb-[calc(var(--mobile-nav-height)+5rem)] md:pb-0">
             {description?.trim() ? (
               <div>
                 <h2 className="text-lg font-semibold tracking-wide mb-3">
@@ -320,7 +332,7 @@ async function ProductDetailPage({ params }: Props) {
 
       <Header heading={`We Think You'll Love`} />
 
-      <div className="container grid grid-cols-2 lg:grid-cols-4 gap-x-8 ">
+      <div className="container grid grid-cols-2 gap-x-8 pb-[calc(var(--mobile-nav-height)+5rem)] lg:grid-cols-4 md:pb-0">
         {data.recommendations &&
           data.recommendations.edges.map(({ node }) => (
             <ProductCard

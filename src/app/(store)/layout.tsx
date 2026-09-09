@@ -5,6 +5,7 @@ import { MobileSearchOverlay } from "@/components/layouts/MobileSearchOverlay";
 import Navbar from "@/components/layouts/MainNavbar";
 import { StoreHeaderMetrics } from "@/components/layouts/StoreHeaderMetrics";
 import { StoreDeferredChrome } from "@/components/layouts/StoreDeferredChrome";
+import { InAppBrowserBannerGate } from "@/components/layouts/InAppBrowserBannerGate";
 import { MobileBottomNav } from "@/components/layouts/MobileBottomNav";
 import { JsonLd } from "@/components/seo/JsonLd";
 import {
@@ -94,6 +95,7 @@ async function StoreLayout({ children }: Props) {
                       <main className="storefront-atmosphere w-full max-w-[100vw] overflow-x-hidden pt-[var(--store-header-offset-mobile)] md:pt-[var(--store-header-offset-desktop)] pb-[var(--mobile-nav-height)] md:pb-0">
                         {children}
                       </main>
+                      <InAppBrowserBannerGate />
                       <StoreDeferredChrome />
                       <MobileBottomNav />
                       <div className="md:contents pb-[var(--mobile-nav-height)] md:pb-0">

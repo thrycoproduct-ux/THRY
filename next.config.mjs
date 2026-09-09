@@ -32,7 +32,11 @@ const nextConfig = {
       {
         source: "/:path*",
         // HSTS + Permissions-Policy + CSP enforced on the Cloudflare Workers path.
-        headers: buildNextSecurityHeaders({ enforceCsp: true }),
+        // Dev only: allow 'unsafe-eval' so Next dev bundles can hydrate locally.
+        headers: buildNextSecurityHeaders({
+          enforceCsp: true,
+          allowDevEval: process.env.NODE_ENV === "development",
+        }),
       },
     ];
   },

@@ -14,9 +14,11 @@ const ToastViewport = React.forwardRef<
   <ToastPrimitives.Viewport
     ref={ref}
     className={cn(
-      // Mobile: above bottom cart tab. Desktop: under header near bag icon.
-      "fixed z-[100] flex max-h-screen w-full flex-col-reverse gap-2 p-3",
-      "bottom-[calc(var(--mobile-nav-height)+0.5rem)] left-0 right-0 top-auto",
+      // Mobile: above bottom cart tab AND any sticky dock (ATC / checkout bar),
+      // z above those docks (nav 220, sticky ATC 210, cart summary 180) so
+      // "Added to cart" feedback is never hidden. Desktop: under header near bag.
+      "fixed z-[240] flex max-h-screen w-full flex-col-reverse gap-2 p-3",
+      "bottom-[calc(var(--mobile-nav-height)+var(--bottom-dock-height,0px)+0.5rem)] left-0 right-0 top-auto",
       "md:bottom-auto md:left-auto md:right-4 md:top-[calc(var(--store-header-offset-desktop)+0.5rem)] md:max-w-[380px] md:flex-col",
       className,
     )}

@@ -30,15 +30,27 @@ export const SECURITY_HEADERS = [
 export const CONTENT_SECURITY_POLICY =
   "default-src 'self'; base-uri 'self'; form-action 'self' https://accounts.google.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://*.razorpay.com; object-src 'none'; frame-ancestors 'self'; script-src 'self' 'unsafe-inline' https://sdk.cashfree.com https://checkout.razorpay.com https://cdn.razorpay.com https://*.razorpay.com https://www.clarity.ms https://scripts.clarity.ms https://*.clarity.ms https://c.bing.com https://static.cloudflareinsights.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; font-src 'self' data:; worker-src 'self' blob:; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://vitals.vercel-insights.com https://*.ingest.sentry.io https://*.ingest.de.sentry.io https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://cdn.razorpay.com https://lumberjack.razorpay.com https://*.razorpay.com https://*.clarity.ms https://c.bing.com https://*.r2.cloudflarestorage.com https://media.thryco.com https://cloudflareinsights.com; frame-src 'self' https://accounts.google.com https://www.youtube-nocookie.com https://player.vimeo.com https://sdk.cashfree.com https://api.cashfree.com https://sandbox.cashfree.com https://payments.cashfree.com https://payments-test.cashfree.com https://www.cashfree.com https://api.razorpay.com https://checkout.razorpay.com https://cdn.razorpay.com https://*.razorpay.com; upgrade-insecure-requests";
 
+/**
+ * Next.js dev server ships eval-based bundles (source maps / HMR). Enforcing the
+ * production CSP in dev blocks `eval` → React never hydrates → every button is
+ * dead locally. Only the dev server gets 'unsafe-eval'; production is unchanged.
+ */
+export function withDevUnsafeEval(csp) {
+  return csp.replace(/script-src 'self'/, "script-src 'self' 'unsafe-eval'");
+}
+
 export function buildNextSecurityHeaders(options = {}) {
   const enforceCsp = options.enforceCsp === true;
+  const allowDevEval = options.allowDevEval === true;
   return [
     ...SECURITY_HEADERS.map((header) => ({ ...header })),
     {
       key: enforceCsp
         ? "Content-Security-Policy"
         : "Content-Security-Policy-Report-Only",
-      value: CONTENT_SECURITY_POLICY,
+      value: allowDevEval
+        ? withDevUnsafeEval(CONTENT_SECURITY_POLICY)
+        : CONTENT_SECURITY_POLICY,
     },
   ];
 }

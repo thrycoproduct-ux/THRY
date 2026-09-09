@@ -4,8 +4,9 @@ import dynamic from "next/dynamic";
 import { useEffect, useState } from "react";
 
 /**
- * Non-critical store chrome: load in the browser only.
- * Keeps Worker SSR cheaper without changing cart/floating behavior after hydrate.
+ * Non-critical store chrome (cart sheet, floating mail, welcome).
+ * In-app browser banner is mounted via InAppBrowserBannerGate from the
+ * server layout so Instagram first paint does not depend on hydration.
  */
 const CartSheet = dynamic(
   () => import("@/features/carts").then((mod) => mod.CartSheet),
@@ -28,19 +29,6 @@ const WelcomeOfferDialog = dynamic(
   { ssr: false },
 );
 
-const InAppBrowserBanner = dynamic(
-  () =>
-    import("@/components/layouts/InAppBrowserBanner").then(
-      (mod) => mod.InAppBrowserBanner,
-    ),
-  { ssr: false },
-);
-
-/**
- * Cart stub / welcome / floating actions wait for idle or first input so the
- * hero LCP is not competing for bandwidth. InAppBrowserBanner mounts immediately
- * (Instagram / WebView conversion).
- */
 export function StoreDeferredChrome() {
   const [ready, setReady] = useState(false);
 
@@ -79,16 +67,13 @@ export function StoreDeferredChrome() {
     };
   }, []);
 
+  if (!ready) return null;
+
   return (
     <>
-      <InAppBrowserBanner />
-      {ready ? (
-        <>
-          <CartSheet />
-          <StoreFloatingActions />
-          <WelcomeOfferDialog />
-        </>
-      ) : null}
+      <CartSheet />
+      <StoreFloatingActions />
+      <WelcomeOfferDialog />
     </>
   );
 }

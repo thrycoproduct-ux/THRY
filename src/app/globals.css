@@ -55,6 +55,8 @@
 
     --radius: 0.5rem;
     --mobile-nav-height: calc(3.5rem + env(safe-area-inset-bottom, 0px));
+    /* Height of a mounted fixed bottom dock (sticky ATC / cart checkout bar); set at runtime */
+    --bottom-dock-height: 0px;
     /* Fallbacks — StoreHeaderMetrics overrides from shop-board.ts at runtime */
     --announcement-bar-height: 2.35rem;
     --announcement-rail-height: 2.15rem;

@@ -39,7 +39,7 @@ export function StoreFloatingActions() {
       ) : null}
 
       <div
-        className="fixed right-4 z-[230] flex flex-col items-end gap-3 bottom-[calc(var(--mobile-nav-height)+1rem)] md:bottom-6"
+        className="fixed right-4 z-[230] flex flex-col items-end gap-3 bottom-[calc(var(--mobile-nav-height)+4.75rem)] md:bottom-6"
         aria-label="Quick actions"
       >
         <FloatingMailPicker

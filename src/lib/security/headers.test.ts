@@ -24,6 +24,23 @@ describe("security headers", () => {
     expect(byKey["Content-Security-Policy-Report-Only"]).toBeUndefined();
   });
 
+  it("never ships 'unsafe-eval' in production CSP, only when dev opts in", () => {
+    expect(CONTENT_SECURITY_POLICY).not.toContain("'unsafe-eval'");
+    const prod = buildNextSecurityHeaders({ enforceCsp: true });
+    expect(
+      prod.find((h) => h.key === "Content-Security-Policy")?.value,
+    ).not.toContain("'unsafe-eval'");
+
+    const dev = buildNextSecurityHeaders({
+      enforceCsp: true,
+      allowDevEval: true,
+    });
+    const devScriptSrc = dev
+      .find((h) => h.key === "Content-Security-Policy")
+      ?.value.match(/script-src ([^;]+);/)?.[1];
+    expect(devScriptSrc).toContain("'self' 'unsafe-eval'");
+  });
+
   it("allows Cashfree SDK and Supabase in the CSP allowlist", () => {
     expect(CONTENT_SECURITY_POLICY).toContain("https://sdk.cashfree.com");
     expect(CONTENT_SECURITY_POLICY).toContain("https://checkout.razorpay.com");
@@ -45,7 +62,8 @@ describe("security headers", () => {
 
   it("allows the Cloudflare Web Analytics beacon (script + RUM endpoint)", () => {
     const scriptSrc = CONTENT_SECURITY_POLICY.match(/script-src ([^;]+);/)?.[1];
-    const connectSrc = CONTENT_SECURITY_POLICY.match(/connect-src ([^;]+);/)?.[1];
+    const connectSrc =
+      CONTENT_SECURITY_POLICY.match(/connect-src ([^;]+);/)?.[1];
     expect(scriptSrc).toContain("https://static.cloudflareinsights.com");
     expect(connectSrc).toContain("https://cloudflareinsights.com");
   });
