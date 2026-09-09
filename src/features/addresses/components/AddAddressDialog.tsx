@@ -6,7 +6,13 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { AddAddressForm } from "./AddAddressForm";
+import {
+  ADDRESS_DIALOG_CONTENT_CLASS,
+  ADDRESS_DIALOG_HEADER_CLASS,
+  ADDRESS_DIALOG_SCROLL_CLASS,
+} from "./address-dialog-layout";
 import type { AddressFormValues } from "../validations/addressFormSchema";
 
 type Props = {
@@ -30,6 +36,7 @@ export function AddAddressDialog({
   checkoutQuantity = 1,
   title = "Add New Address",
 }: Props) {
+  useKeyboardInset(open);
   const handleSubmit = async (values: AddressFormValues) => {
     try {
       await onSubmit(values);
@@ -41,13 +48,13 @@ export function AddAddressDialog({
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="left-0 top-0 z-[190] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[min(90dvh,860px)] sm:w-[min(92vw,780px)] sm:max-w-[780px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border">
-        <DialogHeader className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 text-left backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6 sm:py-4">
+      <DialogContent className={ADDRESS_DIALOG_CONTENT_CLASS}>
+        <DialogHeader className={ADDRESS_DIALOG_HEADER_CLASS}>
           <DialogTitle className="text-lg font-semibold sm:text-xl">
             {title}
           </DialogTitle>
         </DialogHeader>
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-6 sm:py-4">
+        <div className={ADDRESS_DIALOG_SCROLL_CLASS}>
           <AddAddressForm
             onSubmit={handleSubmit}
             onCancel={() => onOpenChange(false)}

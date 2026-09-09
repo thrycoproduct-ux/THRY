@@ -17,8 +17,14 @@ import {
 } from "@/_actions/address";
 import type { SavedShippingAddress } from "../validations/addressFormSchema";
 import type { AddressFormValues } from "../validations/addressFormSchema";
+import { useKeyboardInset } from "@/hooks/useKeyboardInset";
 import { AddAddressForm } from "./AddAddressForm";
 import { AddressCard } from "./AddressCard";
+import {
+  ADDRESS_DIALOG_CONTENT_CLASS,
+  ADDRESS_DIALOG_HEADER_CLASS,
+  ADDRESS_DIALOG_SCROLL_CLASS,
+} from "./address-dialog-layout";
 import {
   isAddressCompleteForCheckout,
   pickDefaultAddressId,
@@ -207,6 +213,7 @@ export function CheckoutAddressDialog({
         : "Add delivery address";
 
   const busy = isSubmitting || checkoutLocked;
+  useKeyboardInset(open);
   const activeProgressMessage =
     progressMessage ??
     (isSubmitting ? "Processing your details…" : submitLabel);
@@ -221,15 +228,15 @@ export function CheckoutAddressDialog({
     >
       <DialogContent
         hideCloseButton={busy}
-        className="left-0 top-0 z-[190] flex h-[100dvh] max-h-[100dvh] w-screen max-w-none translate-x-0 translate-y-0 flex-col gap-0 overflow-hidden rounded-none border-0 p-0 sm:left-1/2 sm:top-1/2 sm:h-auto sm:max-h-[min(90dvh,860px)] sm:w-[min(92vw,780px)] sm:max-w-[780px] sm:-translate-x-1/2 sm:-translate-y-1/2 sm:rounded-xl sm:border"
+        className={ADDRESS_DIALOG_CONTENT_CLASS}
       >
-        <DialogHeader className="sticky top-0 z-10 border-b bg-background/95 px-4 py-3 text-left backdrop-blur supports-[backdrop-filter]:bg-background/80 sm:px-6 sm:py-4">
+        <DialogHeader className={ADDRESS_DIALOG_HEADER_CLASS}>
           <DialogTitle className="text-lg font-semibold sm:text-xl">
             {title}
           </DialogTitle>
         </DialogHeader>
 
-        <div className="min-h-0 flex-1 overflow-y-auto overscroll-contain px-4 py-3 sm:px-6 sm:py-4">
+        <div className={ADDRESS_DIALOG_SCROLL_CLASS}>
           {loadingAddresses ? (
             <div className="flex items-center justify-center py-16">
               <Spinner className="h-6 w-6 animate-spin" />
