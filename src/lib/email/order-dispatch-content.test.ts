@@ -1,3 +1,5 @@
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
+import { formatInr } from "@/lib/utils";
 import {
   buildOrderDispatchHtml,
   buildOrderDispatchPlainText,
@@ -35,6 +37,10 @@ describe("order dispatch email content", () => {
     trackingNumber: "DL123456789",
     trackingUrl: "https://www.delhivery.com/track/package/DL123456789",
     dispatchedAt: "2026-01-16T08:00:00.000Z",
+    paymentMeta: {
+      gstEnabled: true,
+      gstPercentage: 18,
+    },
   };
 
   it("builds a subject with order id", () => {
@@ -45,6 +51,10 @@ describe("order dispatch email content", () => {
 
   it("includes courier, tracking, items, and address in plain text", () => {
     const text = buildOrderDispatchPlainText(baseInput);
+    const inclusiveUnit = toGstInclusiveAmount(500, {
+      gstEnabled: true,
+      gstPercentage: 18,
+    });
 
     expect(text).toContain("Hi Sanjay");
     expect(text).toContain("Order #ord_dispatch1");
@@ -52,6 +62,7 @@ describe("order dispatch email content", () => {
     expect(text).toContain("Tracking number: DL123456789");
     expect(text).toContain("Track package:");
     expect(text).toContain("Mandala Kit (MK-001) × 2");
+    expect(text).toContain(formatInr(inclusiveUnit * 2));
     expect(text).toContain("12 MG Road");
     expect(text).toContain("PIN: 635126");
     expect(text).toContain(baseInput.orderUrl);

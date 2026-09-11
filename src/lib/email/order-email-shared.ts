@@ -1,4 +1,5 @@
 import { siteConfig } from "@/config/site";
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 import {
   resolveOrderLineImageAlt,
@@ -6,6 +7,7 @@ import {
   resolveOrderLineProductCode,
   resolveOrderLineProductName,
 } from "@/lib/orders/order-line-display";
+import { readPaymentMeta } from "@/lib/orders/payment-meta";
 import type { SelectOrders } from "@/lib/supabase/schema";
 import { formatInr, keytoUrl } from "@/lib/utils";
 
@@ -60,6 +62,27 @@ export function mapOrderLineRowToEmailItem(row: {
     imageAlt: resolveOrderLineImageAlt(row),
     productCode: resolveOrderLineProductCode(row),
   };
+}
+
+/**
+ * Cart-style GST-inclusive unit prices for customer emails.
+ * Order line `price` snapshots stay exclusive in the DB; display only.
+ */
+export function mapCustomerEmailLineItems(
+  lineItems: OrderEmailLineItem[],
+  paymentMeta: unknown,
+): OrderEmailLineItem[] {
+  const meta = readPaymentMeta(paymentMeta);
+  const gstEnabled = meta.gstEnabled === true;
+  const gstPercentage = Number(meta.gstPercentage ?? 0);
+  if (!gstEnabled || !Number.isFinite(gstPercentage) || gstPercentage <= 0) {
+    return lineItems;
+  }
+  const gstConfig = { gstEnabled, gstPercentage };
+  return lineItems.map((line) => ({
+    ...line,
+    unitPrice: toGstInclusiveAmount(line.unitPrice, gstConfig),
+  }));
 }
 
 export function formatOrderPaymentMethodLabel(

@@ -2,6 +2,7 @@ import {
   formatCartGstLabel,
   shouldShowCartDiscountRows,
 } from "@/features/carts/lib/cart-order-summary-display";
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
 import { readPaymentMeta } from "@/lib/orders/payment-meta";
 
 export type OrderPaymentBreakdownLine = {
@@ -40,6 +41,11 @@ function asNonNegative(value: unknown): number | null {
 /**
  * Build cart-like admin/customer order money rows from checkout payment_meta.
  * Total is always `orderAmount` — never invented from incomplete parts.
+ *
+ * Customer email (`includeGst: false`): omit GST line and, when GST was on at
+ * checkout, show subtotal/discount/courier as GST-inclusive amounts (same
+ * `toGstInclusiveAmount` as cart) so visible rows add up to Total.
+ * Admin default keeps exclusive amounts + a GST line.
  */
 export function buildOrderPaymentBreakdown(params: {
   paymentMeta: unknown;
@@ -78,6 +84,12 @@ export function buildOrderPaymentBreakdown(params: {
       ? meta.promoCode.trim()
       : null;
 
+  /** Cart-style inclusive display when hiding the GST line. */
+  const customerInclusive = !includeGst && gstEnabled && gstPercentage > 0;
+  const gstConfig = { gstEnabled, gstPercentage };
+  const displayMoney = (exclusive: number) =>
+    customerInclusive ? toGstInclusiveAmount(exclusive, gstConfig) : exclusive;
+
   const hasPricingMeta =
     subtotalFromMeta !== null ||
     courierCharge !== null ||
@@ -92,7 +104,7 @@ export function buildOrderPaymentBreakdown(params: {
       key: "subtotal",
       label: "Subtotal",
       valueKind: "money",
-      amount: subtotal,
+      amount: displayMoney(subtotal),
     });
   }
 
@@ -108,14 +120,14 @@ export function buildOrderPaymentBreakdown(params: {
       key: "discount",
       label: `Discount${pctLabel}${promoLabel}`,
       valueKind: "money",
-      amount: Math.abs(discountAmount),
+      amount: displayMoney(Math.abs(discountAmount)),
     });
     if (discountedSubtotal !== null) {
       lines.push({
         key: "discountedSubtotal",
         label: "Subtotal after discount",
         valueKind: "money",
-        amount: discountedSubtotal,
+        amount: displayMoney(discountedSubtotal),
       });
     }
   }
@@ -128,7 +140,7 @@ export function buildOrderPaymentBreakdown(params: {
       key: "courier",
       label: "Courier",
       valueKind: isFree ? "free" : "money",
-      amount: courierCharge ?? 0,
+      amount: isFree ? (courierCharge ?? 0) : displayMoney(courierCharge ?? 0),
     });
   }
 

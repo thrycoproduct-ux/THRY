@@ -1,3 +1,4 @@
+import { toGstInclusiveAmount } from "@/lib/courier/calculate";
 import { buildOrderPaymentBreakdown } from "./order-payment-breakdown";
 
 describe("buildOrderPaymentBreakdown", () => {
@@ -28,6 +29,7 @@ describe("buildOrderPaymentBreakdown", () => {
     ]);
     expect(result.lines.find((l) => l.key === "gst")?.label).toBe("GST (18%)");
     expect(result.lines.find((l) => l.key === "total")?.amount).toBe(4404);
+    expect(result.lines.find((l) => l.key === "subtotal")?.amount).toBe(3632);
   });
 
   it("shows discount rows only when a discount applies", () => {
@@ -95,7 +97,57 @@ describe("buildOrderPaymentBreakdown", () => {
     expect(result.lines.find((l) => l.key === "total")?.amount).toBe(999);
   });
 
-  it("omits GST line when includeGst is false", () => {
+  it("customer email: inclusive subtotal/courier, no GST line (screenshot case)", () => {
+    const gstConfig = { gstEnabled: true, gstPercentage: 18 };
+    const result = buildOrderPaymentBreakdown({
+      orderAmount: 624,
+      includeGst: false,
+      paymentMeta: {
+        subtotalAmount: 449,
+        courierCharge: 80,
+        courierRule: "qty1_base",
+        gstAmount: 95,
+        gstEnabled: true,
+        gstPercentage: 18,
+      },
+    });
+
+    expect(result.lines.map((l) => l.key)).toEqual([
+      "subtotal",
+      "courier",
+      "total",
+    ]);
+    expect(result.lines.find((l) => l.key === "subtotal")?.amount).toBe(
+      toGstInclusiveAmount(449, gstConfig),
+    );
+    expect(result.lines.find((l) => l.key === "courier")?.amount).toBe(
+      toGstInclusiveAmount(80, gstConfig),
+    );
+    expect(result.lines.find((l) => l.key === "total")?.amount).toBe(624);
+    expect(result.lines.some((l) => l.key === "gst")).toBe(false);
+  });
+
+  it("customer email: no inflation when GST was off at checkout", () => {
+    const result = buildOrderPaymentBreakdown({
+      orderAmount: 529,
+      includeGst: false,
+      paymentMeta: {
+        subtotalAmount: 449,
+        courierCharge: 80,
+        courierRule: "qty1_base",
+        gstAmount: 0,
+        gstEnabled: false,
+        gstPercentage: 18,
+      },
+    });
+
+    expect(result.lines.find((l) => l.key === "subtotal")?.amount).toBe(449);
+    expect(result.lines.find((l) => l.key === "courier")?.amount).toBe(80);
+    expect(result.lines.find((l) => l.key === "total")?.amount).toBe(529);
+  });
+
+  it("omits GST line when includeGst is false and still inflates when GST on", () => {
+    const gstConfig = { gstEnabled: true, gstPercentage: 18 };
     const result = buildOrderPaymentBreakdown({
       orderAmount: 4404,
       includeGst: false,
@@ -118,6 +170,12 @@ describe("buildOrderPaymentBreakdown", () => {
       "courier",
       "total",
     ]);
+    expect(result.lines.find((l) => l.key === "subtotal")?.amount).toBe(
+      toGstInclusiveAmount(3632, gstConfig),
+    );
+    expect(result.lines.find((l) => l.key === "courier")?.amount).toBe(
+      toGstInclusiveAmount(100, gstConfig),
+    );
     expect(result.lines.find((l) => l.key === "total")?.amount).toBe(4404);
   });
 });

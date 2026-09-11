@@ -51,6 +51,7 @@ export async function loadOrderDispatchInput(
     trackingNumber: dispatch.trackingNumber,
     trackingUrl: dispatch.trackingUrl,
     dispatchedAt: dispatch.dispatchedAt,
+    paymentMeta: base.paymentMeta,
   };
 }
 

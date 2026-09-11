@@ -8,6 +8,7 @@ import {
   buildLineItemsTableHtml,
   buildOrderMetaBlockHtml,
   escapeHtml,
+  mapCustomerEmailLineItems,
   type OrderEmailLineItem,
   type OrderEmailShippingAddress,
 } from "@/lib/email/order-email-shared";
@@ -26,16 +27,23 @@ export type OrderDispatchEmailInput = {
   trackingNumber: string | null;
   trackingUrl: string | null;
   dispatchedAt: string;
+  /** Checkout payment_meta — used only to GST-include line unit prices. */
+  paymentMeta?: unknown;
 };
 
 export function buildOrderDispatchSubject(orderId: string): string {
   return `Your order has shipped — #${orderId} · ${siteConfig.name}`;
 }
 
+function customerLineItems(input: OrderDispatchEmailInput) {
+  return mapCustomerEmailLineItems(input.lineItems, input.paymentMeta);
+}
+
 export function buildOrderDispatchPlainText(
   input: OrderDispatchEmailInput,
 ): string {
   const greeting = input.customerName?.trim() || "there";
+  const displayLines = customerLineItems(input);
   const addressLines = buildShippingAddressLines(
     input.shippingAddress
       ? {
@@ -62,7 +70,7 @@ export function buildOrderDispatchPlainText(
     input.customerPhone ? `Phone: ${input.customerPhone}` : null,
     "",
     "Items in this order",
-    ...buildLineItemsPlainText(input.lineItems),
+    ...buildLineItemsPlainText(displayLines),
     "",
     "Shipping address",
     ...addressLines,
@@ -85,6 +93,7 @@ export function buildOrderDispatchHtml(input: OrderDispatchEmailInput): string {
   const orderUrl = escapeHtml(input.orderUrl);
   const courierName = escapeHtml(input.courierName);
   const dispatchedAt = escapeHtml(formatOrderDateTimeIst(input.dispatchedAt));
+  const displayLines = customerLineItems(input);
 
   const trackingBlock = [
     input.trackingNumber
@@ -132,7 +141,7 @@ export function buildOrderDispatchHtml(input: OrderDispatchEmailInput): string {
       ${trackingBlock}
     </div>
     <h2 style="font-size:16px;margin:0 0 8px;">Items in this order</h2>
-    ${buildLineItemsTableHtml(input.lineItems)}
+    ${buildLineItemsTableHtml(displayLines)}
     <h2 style="font-size:16px;margin:0 0 8px;">Shipping address</h2>
     <div style="margin-bottom:20px;color:#333;line-height:1.5;">
       ${addressLines}

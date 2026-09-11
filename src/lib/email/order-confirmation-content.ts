@@ -8,6 +8,7 @@ import {
   buildLineItemsTableHtml,
   buildOrderMetaBlockHtml,
   escapeHtml,
+  mapCustomerEmailLineItems,
   type OrderEmailLineItem,
   type OrderEmailShippingAddress,
 } from "@/lib/email/order-email-shared";
@@ -48,6 +49,7 @@ export function buildOrderConfirmationSubject(orderId: string): string {
 }
 
 function buildBreakdownLines(input: OrderConfirmationEmailInput) {
+  // Pass exclusive unit prices — breakdown inflates rows when includeGst is false.
   return buildOrderPaymentBreakdown({
     paymentMeta: input.paymentMeta,
     orderAmount: input.orderAmount,
@@ -59,6 +61,10 @@ function buildBreakdownLines(input: OrderConfirmationEmailInput) {
   });
 }
 
+function customerLineItems(input: OrderConfirmationEmailInput) {
+  return mapCustomerEmailLineItems(input.lineItems, input.paymentMeta);
+}
+
 export function buildOrderConfirmationPlainText(
   input: OrderConfirmationEmailInput,
 ): string {
@@ -68,6 +74,7 @@ export function buildOrderConfirmationPlainText(
   const summaryLines = breakdown.lines.map(
     (line) => `${line.label}: ${formatBreakdownLineValue(line)}`,
   );
+  const displayLines = customerLineItems(input);
 
   const addressLines = buildShippingAddressLines(
     input.shippingAddress
@@ -93,7 +100,7 @@ export function buildOrderConfirmationPlainText(
     input.customerPhone ? `Phone: ${input.customerPhone}` : null,
     "",
     "Items",
-    ...buildLineItemsPlainText(input.lineItems),
+    ...buildLineItemsPlainText(displayLines),
     "",
     "Order summary",
     ...summaryLines,
@@ -120,6 +127,7 @@ export function buildOrderConfirmationHtml(
   const greeting = escapeHtml(input.customerName?.trim() || "there");
   const orderUrl = escapeHtml(input.orderUrl);
   const breakdown = buildBreakdownLines(input);
+  const displayLines = customerLineItems(input);
 
   const summaryRows = breakdown.lines
     .map((line) => {
@@ -164,7 +172,7 @@ export function buildOrderConfirmationHtml(
       customerPhone: input.customerPhone,
     })}
     <h2 style="font-size:16px;margin:0 0 8px;">Items</h2>
-    ${buildLineItemsTableHtml(input.lineItems)}
+    ${buildLineItemsTableHtml(displayLines)}
     <h2 style="font-size:16px;margin:0 0 8px;">Order summary</h2>
     <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="margin-bottom:20px;">
       ${summaryRows}
