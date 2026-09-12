@@ -186,9 +186,9 @@ describe("pincode-lookup helpers", () => {
 
     const seed = getLocalPincodeOverrides();
     expect(seed["560111"]?.state).toBe("Karnataka");
-    expect(
-      lookupPincodeInDirectoryMap("560111", seed)?.state,
-    ).toBe("Karnataka");
+    expect(lookupPincodeInDirectoryMap("560111", seed)?.state).toBe(
+      "Karnataka",
+    );
   });
 
   it("uses R2 when India Post misses (560111 → Karnataka)", async () => {

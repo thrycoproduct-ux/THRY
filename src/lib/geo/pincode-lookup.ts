@@ -229,7 +229,9 @@ export function lookupPincodeInDirectoryMap(
   return parsePincodeDirectoryEntry(pin, map[pin]);
 }
 
-function parseDirectoryMapPayload(payload: unknown): PincodeDirectoryMap | null {
+function parseDirectoryMapPayload(
+  payload: unknown,
+): PincodeDirectoryMap | null {
   if (!payload || typeof payload !== "object" || Array.isArray(payload)) {
     return null;
   }
@@ -366,9 +368,7 @@ export async function resolvePincode(
   const lookupR2 = options.lookupR2 ?? lookupPincodeFromR2;
 
   if (primary === "r2") {
-    return (
-      (await lookupR2(normalized)) ?? (await lookupIndiaPost(normalized))
-    );
+    return (await lookupR2(normalized)) ?? (await lookupIndiaPost(normalized));
   }
 
   return (await lookupIndiaPost(normalized)) ?? (await lookupR2(normalized));
