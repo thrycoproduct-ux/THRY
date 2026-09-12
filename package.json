@@ -24,6 +24,8 @@
     "auth:verify": "npm run validate:identity && node scripts/verify-auth.mjs",
     "pages:build": "cross-env SKIP_ENV_VALIDATION=true opennextjs-cloudflare build --config wrangler.jsonc && node scripts/cf-pages-postbuild.mjs",
     "cf-typegen": "wrangler types --env-interface CloudflareEnv cloudflare-env.d.ts",
+    "pincode:build-shards": "node scripts/build-pincode-r2-shards.mjs",
+    "pincode:upload-overrides": "node scripts/build-pincode-r2-shards.mjs --upload-overrides",
     "test": "jest",
     "format": "prettier --ignore-path .gitignore --write \"**/*.{ts,tsx,css,scss}\"",
     "coverage": "npm test --coverage --watchAll --collectCoverageFrom='src/components'",
