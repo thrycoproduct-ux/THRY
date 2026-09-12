@@ -1,11 +1,11 @@
 import { STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
+import { normalizePincode } from "@/lib/geo/pincode-lookup";
 import {
   isPincodeNotFoundError,
-  normalizePincode,
   PincodeNotFoundError,
   resolvePincode,
-} from "@/lib/geo/pincode-lookup";
+} from "@/lib/geo/pincode-resolve";
 import { NextRequest, NextResponse } from "next/server";
 
 export const dynamic = "force-dynamic";

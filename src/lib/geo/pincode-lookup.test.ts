@@ -1,5 +1,4 @@
 import {
-  clearPincodeR2MemoryCache,
   getLocalPincodeOverrides,
   lookupPincodeInDirectoryMap,
   mapIndiaPostStateToCatalog,
@@ -7,8 +6,11 @@ import {
   parseIndiaPostPincodeResponse,
   parsePincodeDirectoryEntry,
   pincodeShardObjectKey,
-  resolvePincode,
 } from "@/lib/geo/pincode-lookup";
+import {
+  clearPincodeR2MemoryCache,
+  resolvePincode,
+} from "@/lib/geo/pincode-resolve";
 
 describe("pincode-lookup helpers", () => {
   afterEach(() => {
