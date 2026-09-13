@@ -1,9 +1,11 @@
 import { DEFAULT_CART_VARIANT_KEY } from "./cart-line";
 import {
   areCartSelectionsComplete,
+  findIncompleteCheckoutProductIds,
   isBareDefaultVariantKey,
   partitionProductIdsByOptionsRequired,
   productRequiresOptions,
+  resolveCheckoutSizeConfigs,
   shouldBlockBareCartAdd,
   shouldPurgeBareCartLine,
   shouldPurgeStaleCartLineWhenAdding,
@@ -180,5 +182,84 @@ describe("cart-options-guard", () => {
       allowed: ["plain"],
       skipped: ["variant"],
     });
+  });
+
+  it("treats complete selections with null legacy size as complete", () => {
+    expect(
+      areCartSelectionsComplete({
+        sizeConfig: colourSizeConfig,
+        selections: { color: "RED", size: "M" },
+        size: null,
+      }),
+    ).toBe(true);
+
+    expect(
+      findIncompleteCheckoutProductIds({
+        order: {
+          "p1::color=RED|size=M": {
+            productId: "p1",
+            size: null,
+            selections: { color: "RED", size: "M" },
+          },
+        },
+        sizeConfigsByProductId: { p1: colourSizeConfig },
+      }),
+    ).toEqual([]);
+  });
+
+  it("flags incomplete checkout lines when options are required but empty", () => {
+    expect(
+      areCartSelectionsComplete({
+        sizeConfig: colourSizeConfig,
+        selections: null,
+        size: null,
+      }),
+    ).toBe(false);
+
+    expect(
+      findIncompleteCheckoutProductIds({
+        order: {
+          "p1::default": {
+            productId: "p1",
+            size: null,
+            selections: null,
+          },
+        },
+        sizeConfigsByProductId: { p1: colourSizeConfig },
+      }),
+    ).toEqual(["p1"]);
+  });
+
+  it("treats disabled options as complete for checkout", () => {
+    expect(
+      areCartSelectionsComplete({
+        sizeConfig: noOptionsConfig,
+        selections: null,
+        size: null,
+      }),
+    ).toBe(true);
+
+    expect(
+      findIncompleteCheckoutProductIds({
+        order: {
+          "p2::default": { productId: "p2", size: null },
+        },
+        sizeConfigsByProductId: { p2: noOptionsConfig },
+      }),
+    ).toEqual([]);
+  });
+
+  it("batch-resolves only missing checkout size configs", async () => {
+    const fetchConfigs = jest.fn(async () => ({
+      p2: colourSizeConfig,
+    }));
+    const merged = await resolveCheckoutSizeConfigs({
+      productIds: ["p1", "p2"],
+      knownConfigs: { p1: noOptionsConfig },
+      fetchConfigs,
+    });
+    expect(fetchConfigs).toHaveBeenCalledWith(["p2"]);
+    expect(merged.p1).toBe(noOptionsConfig);
+    expect(merged.p2).toBe(colourSizeConfig);
   });
 });

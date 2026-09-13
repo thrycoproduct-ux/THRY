@@ -27,10 +27,14 @@ import {
 import { useCheckoutProgress } from "@/features/checkout/useCheckoutProgress";
 import BulkOrderGuardDialog from "@/features/carts/components/BulkOrderGuardDialog";
 import { isBulkOrderQuantity } from "@/features/carts/constants/bulkOrder";
+import {
+  findIncompleteCheckoutProductIds,
+  resolveCheckoutSizeConfigs,
+  type CartSizeConfigPayload,
+} from "@/features/carts/cart-options-guard";
 import { useAuth } from "@/providers/AuthProvider";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
 import { useCheckoutChrome } from "@/providers/CheckoutChromeProvider";
-import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
 import { reportCheckoutFunnelEvent } from "@/lib/checkout/report-checkout-funnel-event.client";
 
 export const CART_DELIVERY_PINCODE_INPUT_ID = "cart-delivery-pincode";
@@ -40,6 +44,8 @@ type CheckoutButtonProps = React.ComponentProps<typeof Button> & {
   guest: boolean;
   promoCode?: string | null;
   missingSizeProductNames?: string[];
+  /** Size configs already loaded on the cart page (avoids size-only false blocks). */
+  sizeConfigsByProductId?: Record<string, CartSizeConfigPayload | undefined>;
   requireDeliveryStateSelection?: boolean;
   hasDeliveryStateSelected?: boolean;
   /** PIN / city / state already captured on the cart page for shipping. */
@@ -68,6 +74,7 @@ function CheckoutButton({
   guest,
   promoCode,
   missingSizeProductNames = [],
+  sizeConfigsByProductId,
   requireDeliveryStateSelection = false,
   hasDeliveryStateSelected = true,
   cartAddressDefaults,
@@ -196,40 +203,27 @@ function CheckoutButton({
             });
             return;
           }
-          const uncheckedIds = Object.entries(order)
-            .filter(
-              ([, item]) =>
-                !String(item.size ?? "")
-                  .trim()
-                  .toUpperCase(),
-            )
-            .map(([, item]) => item.productId)
+          // Align with cart-page completeness: selections + size, not size alone.
+          const productIds = Object.values(order)
+            .map((item) => item.productId)
             .filter((id): id is string => Boolean(id));
-          if (uncheckedIds.length > 0) {
-            const results = await Promise.all(
-              uncheckedIds.map(async (productId) => {
-                try {
-                  const res = await fetchWithTimeout(
-                    `/api/products/size-config?productId=${encodeURIComponent(productId)}`,
-                  );
-                  if (!res.ok) return { productId, required: false };
-                  const payload = (await res.json()) as { enabled?: boolean };
-                  return { productId, required: Boolean(payload.enabled) };
-                } catch {
-                  return { productId, required: false };
-                }
-              }),
-            );
-            const requiredMissing = results.find((result) => result.required);
-            if (requiredMissing) {
-              focusFirstIncompleteCartLine();
-              toast({
-                title: "Select option in cart",
-                description:
-                  "Please select the required option for all products before checkout.",
-              });
-              return;
-            }
+          const configs = await resolveCheckoutSizeConfigs({
+            productIds,
+            knownConfigs: sizeConfigsByProductId,
+          });
+          const incompleteIds = findIncompleteCheckoutProductIds({
+            order,
+            sizeConfigsByProductId: configs,
+          });
+          if (incompleteIds.length > 0) {
+            reportCheckoutFunnelEvent({ type: "checkout_size_blocked" });
+            focusFirstIncompleteCartLine();
+            toast({
+              title: "Select option in cart",
+              description:
+                "Please select the required option for all products before checkout.",
+            });
+            return;
           }
           if (hasBulkLineItem) {
             setBulkGuardOpen(true);

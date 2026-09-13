@@ -872,6 +872,10 @@ function UserCartSection({
         normalizeCartOptionSelections(nextSelections);
       const hasSelections = Object.keys(normalizedSelections).length > 0;
       const selections = hasSelections ? normalizedSelections : null;
+      // Keep legacy size column in sync for older checkout/readers.
+      const legacySize = selections
+        ? (Object.values(selections)[0] ?? null)
+        : null;
 
       const variantKey = buildCartVariantKey({
         productId,
@@ -891,7 +895,7 @@ function UserCartSection({
           .from("carts")
           .update({
             quantity: target.quantity + quantity,
-            size: null,
+            size: legacySize,
             selections,
             variant_key: variantKey,
           })
@@ -907,7 +911,7 @@ function UserCartSection({
         const { error: updErr } = await supabase
           .from("carts")
           .update({
-            size: null,
+            size: legacySize,
             selections,
             variant_key: variantKey,
           })
@@ -1027,6 +1031,7 @@ function UserCartSection({
       order={order}
       promoCode={appliedPromoCode}
       missingSizeProductNames={missingSizeProductNames}
+      sizeConfigsByProductId={sizeConfigsByProductId}
       requireDeliveryStateSelection={courierEnabled}
       hasDeliveryStateSelected={!courierEnabled || hasDeliveryStateSelected}
       cartAddressDefaults={cartAddressDefaults}

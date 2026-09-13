@@ -524,6 +524,7 @@ function GuestCartSection({
       order={cartItems}
       promoCode={appliedPromoCode}
       missingSizeProductNames={missingSizeProductNames}
+      sizeConfigsByProductId={sizeConfigsByProductId}
       requireDeliveryStateSelection={courierEnabled}
       hasDeliveryStateSelected={!courierEnabled || hasDeliveryStateSelected}
       cartAddressDefaults={cartAddressDefaults}

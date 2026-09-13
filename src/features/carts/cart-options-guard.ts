@@ -266,6 +266,71 @@ export async function fetchCartSizeConfigsByProductIds(
   return body && typeof body === "object" ? body : {};
 }
 
+/**
+ * True when every cart line has complete option selections (or options are not required).
+ * Uses legacy `size` and/or multi-group `selections` — empty size alone does not fail.
+ */
+export function findIncompleteCheckoutProductIds(args: {
+  order: Record<
+    string,
+    {
+      productId?: string;
+      size?: string | null;
+      selections?: OptionSelections | null;
+    }
+  >;
+  sizeConfigsByProductId?: Record<string, CartSizeConfigPayload | undefined>;
+}): string[] {
+  const incomplete: string[] = [];
+  for (const item of Object.values(args.order ?? {})) {
+    const productId = String(item?.productId ?? "").trim();
+    if (!productId) continue;
+    const sizeConfig = args.sizeConfigsByProductId?.[productId];
+    if (
+      !areCartSelectionsComplete({
+        sizeConfig,
+        selections: item.selections,
+        size: item.size,
+      })
+    ) {
+      incomplete.push(productId);
+    }
+  }
+  return incomplete;
+}
+
+/**
+ * Merge known cart-page configs with a batch fetch for any missing product IDs.
+ */
+export async function resolveCheckoutSizeConfigs(args: {
+  productIds: string[];
+  knownConfigs?: Record<string, CartSizeConfigPayload | undefined>;
+  fetchConfigs?: (
+    productIds: string[],
+  ) => Promise<Record<string, CartSizeConfigPayload>>;
+}): Promise<Record<string, CartSizeConfigPayload | undefined>> {
+  const known = args.knownConfigs ?? {};
+  const missing = [
+    ...new Set(
+      args.productIds
+        .map((id) => id.trim())
+        .filter(Boolean)
+        .filter((id) => known[id] === undefined),
+    ),
+  ];
+  const merged: Record<string, CartSizeConfigPayload | undefined> = {
+    ...known,
+  };
+  if (missing.length === 0) return merged;
+  const fetchConfigs =
+    args.fetchConfigs ?? fetchCartSizeConfigsByProductIds;
+  const fetched = await fetchConfigs(missing);
+  for (const id of missing) {
+    merged[id] = fetched[id];
+  }
+  return merged;
+}
+
 export function partitionProductIdsByOptionsRequired(
   productIds: string[],
   configs: Record<string, CartSizeConfigPayload | undefined>,
