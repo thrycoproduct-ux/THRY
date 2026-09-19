@@ -9,9 +9,16 @@ import { getURL, keytoUrl } from "@/lib/utils";
 /** Site-wide JPG/PNG fallback for Meta/Twitter link previews (not SVG). */
 export const SOCIAL_IMAGE_FALLBACK_PATH = "/images/og-default.jpg";
 
+/** Metadata aspect hint (Meta still accepts smaller crawlable images). */
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
-const SOCIAL_CDN_QUALITY = 80;
+/**
+ * Cloudflare Images free transforms 500 on larger/jpeg for some PNGs.
+ * Proven crawlable on media.thryco.com: w=400,q=75,f=webp.
+ */
+const SOCIAL_CDN_WIDTH = 400;
+const SOCIAL_CDN_QUALITY = 75;
+const SOCIAL_CDN_FORMAT = "webp" as const;
 
 export type SocialImageResolveDeps = {
   siteOrigin: string;
@@ -40,9 +47,9 @@ function isRejectedSocialImageUrl(url: string): boolean {
 
 function defaultBuildCdnSocialUrl(key: string): string {
   return cdnImageUrl(key, {
-    width: SOCIAL_IMAGE_WIDTH,
+    width: SOCIAL_CDN_WIDTH,
     quality: SOCIAL_CDN_QUALITY,
-    format: "jpeg",
+    format: SOCIAL_CDN_FORMAT,
   });
 }
 
@@ -54,7 +61,7 @@ export function absoluteSocialFallbackUrl(
 
 /**
  * Resolve a media key/URL into an absolute HTTPS image suitable for og:image.
- * Prefers first-party media CDN JPEG; rejects SVG, Next optimizer, and *.r2.dev.
+ * Prefers first-party media CDN WebP; rejects SVG, Next optimizer, and *.r2.dev.
  */
 export function resolveSocialImageUrl(
   keyOrUrl?: string | null,

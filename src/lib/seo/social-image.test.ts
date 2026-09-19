@@ -14,7 +14,7 @@ const deps: SocialImageResolveDeps = {
     return `https://cdn.example.com/${key}`;
   },
   buildCdnSocialUrl: (key: string) =>
-    `https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/${key}`,
+    `https://media.thryco.com/cdn/w=400,q=75,f=webp/${key}`,
 };
 
 describe("resolveSocialImageUrl", () => {
@@ -30,9 +30,9 @@ describe("resolveSocialImageUrl", () => {
     );
   });
 
-  it("returns media CDN JPEG URLs for uploads keys", () => {
+  it("returns media CDN WebP URLs for uploads keys", () => {
     expect(resolveSocialImageUrl("uploads/banner.png", deps)).toBe(
-      "https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/banner.png",
+      "https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/banner.png",
     );
   });
 
@@ -57,13 +57,13 @@ describe("resolveSocialImageUrl", () => {
     ).toBe(absoluteSocialFallbackUrl("https://thryco.com"));
   });
 
-  it("rewrites *.r2.dev uploads URLs to media CDN JPEG", () => {
+  it("rewrites *.r2.dev uploads URLs to media CDN WebP", () => {
     expect(
       resolveSocialImageUrl(
         "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png",
         deps,
       ),
-    ).toBe("https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/a.png");
+    ).toBe("https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/a.png");
   });
 
   it("never returns *.r2.dev when CDN rewrite is unavailable", () => {
@@ -80,13 +80,13 @@ describe("resolveSocialImageUrl", () => {
     ).toBe(absoluteSocialFallbackUrl("https://thryco.com"));
   });
 
-  it("keeps https media URLs on first-party hosts", () => {
+  it("rewrites first-party media CDN URLs to social WebP preset", () => {
     expect(
       resolveSocialImageUrl(
-        "https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/x.png",
+        "https://media.thryco.com/cdn/w=800,q=75,f=webp/uploads/x.png",
         deps,
       ),
-    ).toBe("https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/x.png");
+    ).toBe("https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/x.png");
   });
 });
 
@@ -95,7 +95,7 @@ describe("buildSocialImages", () => {
     const meta = buildSocialImages("uploads/banner.png", "Devin", deps);
     expect(meta.openGraph?.images).toEqual([
       {
-        url: "https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/banner.png",
+        url: "https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/banner.png",
         width: 1200,
         height: 630,
         alt: "Devin",
@@ -104,7 +104,7 @@ describe("buildSocialImages", () => {
     expect(meta.twitter).toEqual({
       card: "summary_large_image",
       images: [
-        "https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/banner.png",
+        "https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/banner.png",
       ],
     });
   });
