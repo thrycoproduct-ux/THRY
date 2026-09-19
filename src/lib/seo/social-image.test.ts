@@ -13,6 +13,8 @@ const deps: SocialImageResolveDeps = {
     if (key.startsWith("/")) return key;
     return `https://cdn.example.com/${key}`;
   },
+  buildCdnSocialUrl: (key: string) =>
+    `https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/${key}`,
 };
 
 describe("resolveSocialImageUrl", () => {
@@ -28,9 +30,9 @@ describe("resolveSocialImageUrl", () => {
     );
   });
 
-  it("returns absolute CDN URLs for media keys", () => {
+  it("returns media CDN JPEG URLs for uploads keys", () => {
     expect(resolveSocialImageUrl("uploads/banner.png", deps)).toBe(
-      "https://cdn.example.com/uploads/banner.png",
+      "https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/banner.png",
     );
   });
 
@@ -55,13 +57,36 @@ describe("resolveSocialImageUrl", () => {
     ).toBe(absoluteSocialFallbackUrl("https://thryco.com"));
   });
 
-  it("keeps https media URLs", () => {
+  it("rewrites *.r2.dev uploads URLs to media CDN JPEG", () => {
     expect(
       resolveSocialImageUrl(
         "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png",
         deps,
       ),
-    ).toBe("https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png");
+    ).toBe("https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/a.png");
+  });
+
+  it("never returns *.r2.dev when CDN rewrite is unavailable", () => {
+    const legacyDeps: SocialImageResolveDeps = {
+      ...deps,
+      buildCdnSocialUrl: () =>
+        "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png",
+    };
+    expect(
+      resolveSocialImageUrl(
+        "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/a.png",
+        legacyDeps,
+      ),
+    ).toBe(absoluteSocialFallbackUrl("https://thryco.com"));
+  });
+
+  it("keeps https media URLs on first-party hosts", () => {
+    expect(
+      resolveSocialImageUrl(
+        "https://media.thryco.com/cdn/w=400,q=75,f=webp/uploads/x.png",
+        deps,
+      ),
+    ).toBe("https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/x.png");
   });
 });
 
@@ -70,7 +95,7 @@ describe("buildSocialImages", () => {
     const meta = buildSocialImages("uploads/banner.png", "Devin", deps);
     expect(meta.openGraph?.images).toEqual([
       {
-        url: "https://cdn.example.com/uploads/banner.png",
+        url: "https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/banner.png",
         width: 1200,
         height: 630,
         alt: "Devin",
@@ -78,7 +103,9 @@ describe("buildSocialImages", () => {
     ]);
     expect(meta.twitter).toEqual({
       card: "summary_large_image",
-      images: ["https://cdn.example.com/uploads/banner.png"],
+      images: [
+        "https://media.thryco.com/cdn/w=1200,q=80,f=jpeg/uploads/banner.png",
+      ],
     });
   });
 });

@@ -1,4 +1,9 @@
 import type { Metadata } from "next";
+import {
+  cdnImageUrl,
+  extractMediaObjectKey,
+  getImageDeliveryMode,
+} from "@/lib/media/cdn-image";
 import { getURL, keytoUrl } from "@/lib/utils";
 
 /** Site-wide JPG/PNG fallback for Meta/Twitter link previews (not SVG). */
@@ -6,10 +11,13 @@ export const SOCIAL_IMAGE_FALLBACK_PATH = "/images/og-default.jpg";
 
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
+const SOCIAL_CDN_QUALITY = 80;
 
 export type SocialImageResolveDeps = {
   siteOrigin: string;
   resolveMediaUrl: (key: string) => string;
+  /** Override CDN social URL builder (tests). Defaults to jpeg 1200 via media CDN. */
+  buildCdnSocialUrl?: (key: string) => string;
 };
 
 function normalizeSiteOrigin(siteUrl: string): string {
@@ -21,7 +29,21 @@ function isRejectedSocialImageUrl(url: string): boolean {
   if (!path) return true;
   if (path.includes("/_next/image")) return true;
   if (path.endsWith(".svg")) return true;
+  try {
+    const host = new URL(url).hostname.toLowerCase();
+    if (host.endsWith(".r2.dev")) return true;
+  } catch {
+    // Relative paths are checked on path only above.
+  }
   return false;
+}
+
+function defaultBuildCdnSocialUrl(key: string): string {
+  return cdnImageUrl(key, {
+    width: SOCIAL_IMAGE_WIDTH,
+    quality: SOCIAL_CDN_QUALITY,
+    format: "jpeg",
+  });
 }
 
 export function absoluteSocialFallbackUrl(
@@ -32,7 +54,7 @@ export function absoluteSocialFallbackUrl(
 
 /**
  * Resolve a media key/URL into an absolute HTTPS image suitable for og:image.
- * Rejects SVG and Next image-optimizer URLs; falls back to the site OG JPG.
+ * Prefers first-party media CDN JPEG; rejects SVG, Next optimizer, and *.r2.dev.
  */
 export function resolveSocialImageUrl(
   keyOrUrl?: string | null,
@@ -40,15 +62,31 @@ export function resolveSocialImageUrl(
 ): string {
   const siteOrigin = normalizeSiteOrigin(deps?.siteOrigin ?? getURL());
   const resolveMediaUrl = deps?.resolveMediaUrl ?? keytoUrl;
+  const buildCdnSocialUrl = deps?.buildCdnSocialUrl ?? defaultBuildCdnSocialUrl;
   const fallback = absoluteSocialFallbackUrl(siteOrigin);
 
   if (!keyOrUrl?.trim()) return fallback;
 
-  const resolved = resolveMediaUrl(keyOrUrl.trim());
+  const input = keyOrUrl.trim();
+
+  // Prefer crawlable media.thryco.com/cdn JPEG for uploads keys (incl. from .r2.dev URLs).
+  const mediaKey = extractMediaObjectKey(input);
+  if (mediaKey?.startsWith("uploads/") && getImageDeliveryMode() !== "legacy") {
+    const cdnUrl = buildCdnSocialUrl(mediaKey);
+    if (
+      cdnUrl &&
+      (cdnUrl.startsWith("http://") || cdnUrl.startsWith("https://")) &&
+      !isRejectedSocialImageUrl(cdnUrl)
+    ) {
+      return cdnUrl;
+    }
+  }
+
+  const resolved = resolveMediaUrl(input);
   if (!resolved || isRejectedSocialImageUrl(resolved)) return fallback;
 
   if (resolved.startsWith("http://") || resolved.startsWith("https://")) {
-    return resolved;
+    return isRejectedSocialImageUrl(resolved) ? fallback : resolved;
   }
 
   if (resolved.startsWith("/")) {
