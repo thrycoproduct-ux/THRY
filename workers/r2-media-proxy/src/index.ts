@@ -283,9 +283,22 @@ async function handleCdnGet(
     await cache.put(request, response.clone());
     return response;
   } catch (error) {
+    // Images Free quota / transform errors: still show the photo from R2.
     const message = error instanceof Error ? error.message : "Transform failed";
-    console.error("[cdn] transform failed:", key, message);
-    return jsonResponse(request, { error: "Image transform failed." }, 502);
+    console.error("[cdn] transform failed, serving original:", key, message);
+    const original = await env.MEDIA_BUCKET.get(key);
+    if (!original?.body) {
+      return jsonResponse(request, { error: "Image transform failed." }, 502);
+    }
+    const headers = new Headers({
+      "Content-Type":
+        original.httpMetadata?.contentType || "application/octet-stream",
+      // Short TTL so we retry transforms after quota resets / plan upgrades.
+      "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
+      "X-THRY-CDN-Fallback": "original",
+      ...corsHeaders(request),
+    });
+    return new Response(original.body, { status: 200, headers });
   }
 }
 

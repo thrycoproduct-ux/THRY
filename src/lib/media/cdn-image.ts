@@ -9,31 +9,36 @@ export type CdnImageOptions = {
   format?: "webp" | "avif" | "jpeg";
 };
 
+/**
+ * Images Free allows ~5k unique transforms/month. Snap every storefront
+ * request to one proven working size so cards/PDP/hero reuse the same cache
+ * entry instead of burning quota on 128/800/1200 variants.
+ */
+export const CDN_SAFE_WIDTH = 400;
+export const CDN_SAFE_QUALITY = 75;
+export const CDN_SAFE_FORMAT = "webp" as const;
+
+const SAFE_PRESET = {
+  width: CDN_SAFE_WIDTH,
+  quality: CDN_SAFE_QUALITY,
+  format: CDN_SAFE_FORMAT,
+} as const;
+
 export const CDN_PRESETS = {
-  thumb: { width: 200, quality: 70, format: "webp" as const },
-  card: { width: 400, quality: 75, format: "webp" as const },
-  pdp: { width: 800, quality: 78, format: "webp" as const },
-  /** Mobile LCP hero — smaller than desktop `hero` so high-DPR phones do not pull 1200w. */
-  heroMobile: { width: 800, quality: 75, format: "webp" as const },
-  hero: { width: 1200, quality: 78, format: "webp" as const },
+  thumb: { ...SAFE_PRESET },
+  card: { ...SAFE_PRESET },
+  pdp: { ...SAFE_PRESET },
+  /** Mobile LCP hero — same safe width while Images Free is constrained. */
+  heroMobile: { ...SAFE_PRESET },
+  hero: { ...SAFE_PRESET },
 } as const;
 
 /**
  * Pick CDN quality/format for an optimizeWidth so preload URLs match
- * StorefrontImage (e.g. 1200 → hero q=78, not card q=75).
+ * StorefrontImage. Widths are snapped to CDN_SAFE_WIDTH on Free Images.
  */
-export function cdnPresetForWidth(width: number): CdnImageOptions {
-  const w = Math.round(width);
-  if (w >= CDN_PRESETS.hero.width) {
-    return { ...CDN_PRESETS.hero, width: w };
-  }
-  if (w >= CDN_PRESETS.pdp.width) {
-    return { ...CDN_PRESETS.pdp, width: w };
-  }
-  if (w >= CDN_PRESETS.card.width) {
-    return { ...CDN_PRESETS.card, width: w };
-  }
-  return { ...CDN_PRESETS.thumb, width: w };
+export function cdnPresetForWidth(_width: number): CdnImageOptions {
+  return { ...CDN_PRESETS.card };
 }
 
 const DEFAULT_MEDIA_ORIGIN = "https://media.thryco.com";
@@ -122,15 +127,12 @@ export function cdnImageUrl(
     return input.startsWith("http") || input.startsWith("/") ? input : FALLBACK;
   }
 
-  const width = Math.min(
-    1600,
-    Math.max(16, Math.round(options.width || CDN_PRESETS.card.width)),
-  );
+  // Always snap to the safe Free-tier size (ignore caller width).
   const quality = Math.min(
     100,
-    Math.max(20, Math.round(options.quality ?? CDN_PRESETS.card.quality)),
+    Math.max(20, Math.round(options.quality ?? CDN_SAFE_QUALITY)),
   );
-  const format = options.format ?? "webp";
-  const opts = `w=${width},q=${quality},f=${format}`;
+  const format = options.format ?? CDN_SAFE_FORMAT;
+  const opts = `w=${CDN_SAFE_WIDTH},q=${quality},f=${format}`;
   return `${mediaOrigin()}/cdn/${opts}/${key}`;
 }

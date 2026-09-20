@@ -3,6 +3,7 @@
  */
 import {
   CDN_PRESETS,
+  CDN_SAFE_WIDTH,
   cdnImageUrl,
   cdnPresetForWidth,
   extractMediaObjectKey,
@@ -48,40 +49,43 @@ describe("cdn-image", () => {
     );
   });
 
-  it("rewrites absolute r2 URLs", () => {
+  it("snaps absolute r2 URLs to the safe Free-tier width", () => {
     process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE = "cloudflare";
     const url = cdnImageUrl(
       "https://pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev/uploads/upload-abc.png",
       { width: 1200, quality: 78, format: "webp" },
     );
-    expect(url).toContain("/cdn/w=1200,q=78,f=webp/uploads/upload-abc.png");
+    expect(url).toContain(
+      `/cdn/w=${CDN_SAFE_WIDTH},q=78,f=webp/uploads/upload-abc.png`,
+    );
   });
 
-  it("maps optimizeWidth to the matching preset quality", () => {
+  it("maps any optimizeWidth to the safe card preset", () => {
     expect(cdnPresetForWidth(1200)).toEqual({
-      width: 1200,
-      quality: 78,
-      format: "webp",
-    });
-    expect(cdnPresetForWidth(400)).toEqual({
-      width: 400,
+      width: CDN_SAFE_WIDTH,
       quality: 75,
       format: "webp",
     });
-    expect(cdnPresetForWidth(200).quality).toBe(70);
+    expect(cdnPresetForWidth(400)).toEqual({
+      width: CDN_SAFE_WIDTH,
+      quality: 75,
+      format: "webp",
+    });
+    expect(cdnPresetForWidth(200)).toEqual({
+      width: CDN_SAFE_WIDTH,
+      quality: 75,
+      format: "webp",
+    });
   });
 
-  it("builds heroMobile LCP URLs at w=800,q=75", () => {
+  it("builds heroMobile LCP URLs at the safe Free-tier width", () => {
     process.env.NEXT_PUBLIC_IMAGE_DELIVERY_MODE = "cloudflare";
-    const url = cdnImageUrl(
-      "uploads/upload-hero.png",
-      CDN_PRESETS.heroMobile,
-    );
+    const url = cdnImageUrl("uploads/upload-hero.png", CDN_PRESETS.heroMobile);
     expect(url).toBe(
-      "https://media.thryco.com/cdn/w=800,q=75,f=webp/uploads/upload-hero.png",
+      `https://media.thryco.com/cdn/w=${CDN_SAFE_WIDTH},q=75,f=webp/uploads/upload-hero.png`,
     );
     expect(CDN_PRESETS.heroMobile).toEqual({
-      width: 800,
+      width: CDN_SAFE_WIDTH,
       quality: 75,
       format: "webp",
     });
