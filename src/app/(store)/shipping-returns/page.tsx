@@ -1,6 +1,9 @@
 import InfoPage from "@/components/layouts/InfoPage";
 import { resolveStorefrontContact } from "@/lib/integrations/settings";
-import { ORDER_SHIPPING } from "@/lib/storefront/order-shipping";
+import {
+  ORDER_RETURNS,
+  ORDER_SHIPPING,
+} from "@/lib/storefront/order-shipping";
 import { shopMailtoHref } from "@/lib/contact/links";
 import Link from "next/link";
 import { Metadata } from "next";
@@ -75,18 +78,13 @@ export default async function ShippingReturnsPage() {
 
       <section className="space-y-3">
         <h2 className="text-base font-semibold text-foreground">
-          Returns & exchanges
+          Returns & replacements
         </h2>
-        <p>
-          Returns or exchanges may be accepted within <strong>7 days</strong> of
-          delivery for unused items with original packaging intact.
-        </p>
+        <p>{ORDER_RETURNS.summary}</p>
         <ul className="list-disc space-y-1 pl-5">
-          <li>Please email us before sending any item back.</li>
-          <li>Customised, opened, or used craft kits cannot be returned.</li>
-          <li>
-            Shipping charges for returns may apply unless the item is faulty.
-          </li>
+          {ORDER_RETURNS.rules.map((rule) => (
+            <li key={rule}>{rule}</li>
+          ))}
         </ul>
       </section>
     </InfoPage>

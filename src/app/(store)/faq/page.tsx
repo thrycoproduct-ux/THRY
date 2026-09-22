@@ -1,5 +1,6 @@
 import InfoPage from "@/components/layouts/InfoPage";
 import { resolveStorefrontContact } from "@/lib/integrations/settings";
+import { ORDER_RETURNS } from "@/lib/storefront/order-shipping";
 import Link from "next/link";
 import { Metadata } from "next";
 import { siteConfig } from "@/config/site";
@@ -21,8 +22,8 @@ const faqs = [
     a: "After checkout you will receive confirmation. Log in and visit My Orders, or contact us with your order number for an update.",
   },
   {
-    q: "Can I visit your store?",
-    a: "Yes. We are in Balaji Nagar, Sipcot-1, Hosur. See our Contact page for the full address.",
+    q: "Can I visit your unit?",
+    a: "No. Our Hosur location is a manufacturing unit and is not open for customer visits. Please shop online or contact us by email.",
   },
   {
     q: "What do you sell?",
@@ -30,7 +31,7 @@ const faqs = [
   },
   {
     q: "How do returns work?",
-    a: "Unused items in original condition may be returned within 7 days. Please read our Shipping & Returns page and contact us before sending anything back.",
+    a: ORDER_RETURNS.faqAnswer,
   },
 ];
 

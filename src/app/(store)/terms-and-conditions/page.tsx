@@ -150,7 +150,8 @@ export default async function TermsAndConditionsPage() {
           >
             Shipping &amp; Returns
           </Link>{" "}
-          page, which forms part of these Terms.
+          page, which forms part of these Terms. For replacement of damaged or
+          wrong items, a complete unboxing video is required.
         </p>
       </section>
 

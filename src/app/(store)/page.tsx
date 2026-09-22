@@ -13,6 +13,7 @@ import { getDraftProductIdsSafe } from "@/lib/storefront/draft-product-ids";
 import { getLandingPageDataCached } from "@/lib/storefront/landing-data";
 import { getShopByPriceBucketsCached } from "@/lib/storefront/shop-by-price";
 import { getProductPackLabelsByIds } from "@/lib/products/pack.server";
+import { ORDER_RETURNS } from "@/lib/storefront/order-shipping";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { CDN_PRESETS, cdnImageUrl } from "@/lib/media/cdn-image";
@@ -180,8 +181,8 @@ function TrustFeatures() {
     },
     {
       Icon: Icons.tag,
-      title: "Easy Replacement",
-      description: "Simple returns on eligible items.",
+      title: ORDER_RETURNS.trustTitle,
+      description: ORDER_RETURNS.trustDescription,
       iconClass: "text-brand-rose",
     },
     {

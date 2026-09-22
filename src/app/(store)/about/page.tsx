@@ -21,10 +21,10 @@ export default function AboutPage() {
         tools, customised gifts, and home essentials.
       </p>
       <p>
-        Based in Hosur, Tamil Nadu. Visit us at {siteConfig.address}
+        Based in Hosur, Tamil Nadu
         {siteConfig.email ? (
           <>
-            , or email{" "}
+            . For orders and enquiries, email{" "}
             <a
               href={`mailto:${siteConfig.email}`}
               className="text-primary hover:underline"
@@ -33,7 +33,8 @@ export default function AboutPage() {
             </a>
           </>
         ) : null}
-        .
+        . Our location is a manufacturing unit and is not open for customer
+        visits.
       </p>
       <p>
         Browse our{" "}

@@ -87,7 +87,7 @@ export const SEO_PRIMARY_NAV = [
   {
     name: "Contact us",
     href: "/contact",
-    description: "Visit our Hosur store or message us for orders.",
+    description: "Email us for orders and enquiries.",
   },
   {
     name: "Terms & Conditions",

@@ -27,6 +27,7 @@ import {
   formatPackLabelFromSnapshot,
   getProductStorefrontSnapshotsByIds,
 } from "@/lib/storefront/product-storefront-snapshot";
+import { ORDER_RETURNS } from "@/lib/storefront/order-shipping";
 import {
   ProductDiscountBadge,
   ProductPriceDisplay,
@@ -269,10 +270,7 @@ async function ProductDetailPage({ params }: Props) {
             <AddToWishListButton productId={id} />
           </section>
 
-          <section
-            id="product-buy-box"
-            className="mb-8 scroll-mt-28 space-y-5"
-          >
+          <section id="product-buy-box" className="mb-8 scroll-mt-28 space-y-5">
             <Suspense>
               {hasConfiguredSizes ? (
                 <ProductBuyBox
@@ -320,9 +318,8 @@ async function ProductDetailPage({ params }: Props) {
                 <AccordionTrigger>Ship & Returns</AccordionTrigger>
                 <AccordionContent>
                   Shipping across Tamil Nadu and India. Free delivery on
-                  selected orders — email us for details. Returns or exchanges
-                  may be accepted within 7 days for unused items with packaging;
-                  please email before returning.
+                  selected orders — email us for details.{" "}
+                  {ORDER_RETURNS.short} Email us before returning.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

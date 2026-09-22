@@ -6,7 +6,7 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact | THRY",
-  description: "Contact THRY by email, or visit our store in Hosur, Tamil Nadu",
+  description: "Contact THRY by email for orders and enquiries — Hosur, Tamil Nadu",
 };
 
 export const revalidate = 60;
@@ -18,12 +18,16 @@ export default async function ContactPage() {
   return (
     <InfoPage
       heading="Contact Us"
-      description="Reach THRY by email, or visit our store in Hosur."
+      description="Reach THRY by email for orders and enquiries."
     >
       <section id="store" className="space-y-3">
         <h2 className="text-base font-semibold text-foreground">
-          Visit our store
+          Business address
         </h2>
+        <p className="text-muted-foreground">
+          This is our manufacturing unit address for correspondence. It is not
+          open for customer visits.
+        </p>
         <address className="not-italic space-y-0.5">
           {contact.addressLines.map((line) => (
             <p key={line}>{line}</p>
