@@ -318,8 +318,8 @@ async function ProductDetailPage({ params }: Props) {
                 <AccordionTrigger>Ship & Returns</AccordionTrigger>
                 <AccordionContent>
                   Shipping across Tamil Nadu and India. Free delivery on
-                  selected orders — email us for details.{" "}
-                  {ORDER_RETURNS.short} Email us before returning.
+                  selected orders — email us for details. {ORDER_RETURNS.short}{" "}
+                  Email us before returning.
                 </AccordionContent>
               </AccordionItem>
             </Accordion>

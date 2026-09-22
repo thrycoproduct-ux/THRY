@@ -1,9 +1,6 @@
 import InfoPage from "@/components/layouts/InfoPage";
 import { resolveStorefrontContact } from "@/lib/integrations/settings";
-import {
-  ORDER_RETURNS,
-  ORDER_SHIPPING,
-} from "@/lib/storefront/order-shipping";
+import { ORDER_RETURNS, ORDER_SHIPPING } from "@/lib/storefront/order-shipping";
 import { shopMailtoHref } from "@/lib/contact/links";
 import Link from "next/link";
 import { Metadata } from "next";

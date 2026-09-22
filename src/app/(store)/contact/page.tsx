@@ -6,7 +6,8 @@ import { Metadata } from "next";
 
 export const metadata: Metadata = {
   title: "Contact | THRY",
-  description: "Contact THRY by email for orders and enquiries — Hosur, Tamil Nadu",
+  description:
+    "Contact THRY by email for orders and enquiries — Hosur, Tamil Nadu",
 };
 
 export const revalidate = 60;
