@@ -24,8 +24,11 @@ import {
 } from "@/lib/storefront/search-params";
 import type { Metadata } from "next";
 import { Suspense } from "react";
+import { buildSocialImages } from "@/lib/seo/social-image";
 
 export const revalidate = 120;
+
+const shopSocial = buildSocialImages(null, "THRY");
 
 export const metadata: Metadata = {
   title: "Shop All Products",
@@ -39,6 +42,13 @@ export const metadata: Metadata = {
     description:
       "Browse all silk, cotton, wedding and festive craft supplies at THRY.",
     url: "/shop",
+    ...shopSocial.openGraph,
+  },
+  twitter: {
+    ...shopSocial.twitter,
+    title: "Shop All Products | THRY",
+    description:
+      "Browse all silk, cotton, wedding and festive craft supplies at THRY.",
   },
 };
 

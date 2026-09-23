@@ -13,12 +13,12 @@ export const SOCIAL_IMAGE_FALLBACK_PATH = "/images/og-default.jpg";
 const SOCIAL_IMAGE_WIDTH = 1200;
 const SOCIAL_IMAGE_HEIGHT = 630;
 /**
- * Cloudflare Images free transforms 500 on larger/jpeg for some PNGs.
- * Proven crawlable on media.thryco.com: w=400,q=75,f=webp.
+ * Cloudflare Images: keep social CDN transforms small and JPEG so Meta/Instagram
+ * crawlers accept the URL (WebP previews are unreliable).
  */
 const SOCIAL_CDN_WIDTH = 400;
 const SOCIAL_CDN_QUALITY = 75;
-const SOCIAL_CDN_FORMAT = "webp" as const;
+const SOCIAL_CDN_FORMAT = "jpeg" as const;
 
 export type SocialImageResolveDeps = {
   siteOrigin: string;
@@ -61,7 +61,7 @@ export function absoluteSocialFallbackUrl(
 
 /**
  * Resolve a media key/URL into an absolute HTTPS image suitable for og:image.
- * Prefers first-party media CDN WebP; rejects SVG, Next optimizer, and *.r2.dev.
+ * Prefers first-party media CDN JPEG; rejects SVG, Next optimizer, and *.r2.dev.
  */
 export function resolveSocialImageUrl(
   keyOrUrl?: string | null,

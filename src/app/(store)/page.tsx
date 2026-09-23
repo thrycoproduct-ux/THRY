@@ -17,6 +17,7 @@ import { ORDER_RETURNS } from "@/lib/storefront/order-shipping";
 import { siteConfig } from "@/config/site";
 import { cn } from "@/lib/utils";
 import { CDN_PRESETS, cdnImageUrl } from "@/lib/media/cdn-image";
+import { buildSocialImages } from "@/lib/seo/social-image";
 import type { Metadata } from "next";
 
 const HomePriceCarousel = dynamic(() =>
@@ -37,6 +38,8 @@ const HomeTestimonialsCarousel = dynamic(() =>
 
 export const revalidate = 120;
 
+const homeSocial = buildSocialImages(null, "THRY");
+
 export const metadata: Metadata = {
   title: "Creative 3D printed products",
   description:
@@ -49,6 +52,13 @@ export const metadata: Metadata = {
     description:
       "Shop creative 3D printed products at THRY — art & craft tools, gifts, statues and home essentials.",
     url: "/",
+    ...homeSocial.openGraph,
+  },
+  twitter: {
+    ...homeSocial.twitter,
+    title: "THRY | Creative 3D printed products",
+    description:
+      "Shop creative 3D printed products at THRY — art & craft tools, gifts, statues and home essentials.",
   },
 };
 
