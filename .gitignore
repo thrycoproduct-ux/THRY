@@ -66,3 +66,6 @@ wrangler.workers.new-account.jsonc
 scripts/.thry-r2-secrets.local.json
 scripts/setup-thry-r2-from-wrangler.mjs
 
+# Cursor MCP config may contain Upstash/Redis tokens
+.cursor/mcp.json
+

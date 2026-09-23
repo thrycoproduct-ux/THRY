@@ -14,6 +14,14 @@
     },
     "cloudflare-observability": {
       "url": "https://observability.mcp.cloudflare.com/mcp"
+    },
+    "upstash-redis": {
+      "command": "npx",
+      "args": ["-y", "@upstash/redis-mcp"],
+      "env": {
+        "UPSTASH_REDIS_REST_URL": "https://YOUR_DB.upstash.io",
+        "UPSTASH_REDIS_REST_TOKEN": "YOUR_REST_TOKEN"
+      }
     }
   }
 }
