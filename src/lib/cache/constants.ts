@@ -1,5 +1,5 @@
-/** Default ISR / Data Cache TTL for storefront reads (seconds). */
-export const STOREFRONT_REVALIDATE_SECONDS = 120;
+/** Default storefront Redis / Data Cache freshness (seconds). Admin invalidate still clears immediately. */
+export const STOREFRONT_REVALIDATE_SECONDS = 900;
 
 /** Longer TTL for mostly-static marketing pages. */
 export const STOREFRONT_STATIC_REVALIDATE_SECONDS = 3600;
