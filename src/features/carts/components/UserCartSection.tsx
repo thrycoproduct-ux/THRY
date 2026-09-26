@@ -1,7 +1,10 @@
 "use client";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { DocumentType } from "@/gql";
-import { FetchCartQuery } from "../queries/cart-page-queries";
+import {
+  FetchCartQuery,
+  FetchGuestCartQuery,
+} from "../queries/cart-page-queries";
 import {
   calculateCourierCharge,
   buildCheckoutMoneyTotals,
@@ -175,6 +178,36 @@ function UserCartSection({
     return [...new Set([...fromGraphql, ...fromDb])];
   }, [cart, dbCartRows]);
 
+  // After optimistic add, REST cart rows often land before GraphQL carts join
+  // catches up — hydrate product cards by id so the list is not blank while
+  // Free Shipping / Summary already show live pricing.
+  const graphqlProductIds = useMemo(() => {
+    const ids = new Set<string>();
+    for (const edge of cart) {
+      if (edge.node.product_id) ids.add(edge.node.product_id);
+    }
+    return ids;
+  }, [cart]);
+
+  const missingProductIds = useMemo(
+    () =>
+      [...new Set(dbCartRows.map((row) => row.product_id).filter(Boolean))].filter(
+        (id) => !graphqlProductIds.has(id),
+      ),
+    [dbCartRows, graphqlProductIds],
+  );
+
+  const [{ data: missingProductsData, fetching: missingProductsFetching }] =
+    useQuery({
+      query: FetchGuestCartQuery,
+      variables: {
+        cartItems: missingProductIds,
+        first: Math.max(missingProductIds.length, 1),
+      },
+      pause: missingProductIds.length === 0,
+      requestPolicy: "cache-and-network",
+    });
+
   /** Live GraphQL only — do not key off stale SSR `initialCart`. */
   const graphqlCartSignature = useMemo(
     () =>
@@ -187,6 +220,20 @@ function UserCartSection({
         .join("|"),
     [data],
   );
+
+  // Stale cache-first cart after "Added → View cart": force a network refresh
+  // once REST shows lines GraphQL does not.
+  const missingProductIdsKey = missingProductIds.slice().sort().join(",");
+  const refreshedForMissingKeyRef = useRef("");
+  useEffect(() => {
+    if (!missingProductIdsKey) {
+      refreshedForMissingKeyRef.current = "";
+      return;
+    }
+    if (refreshedForMissingKeyRef.current === missingProductIdsKey) return;
+    refreshedForMissingKeyRef.current = missingProductIdsKey;
+    reexecuteQuery({ requestPolicy: "network-only" });
+  }, [missingProductIdsKey, reexecuteQuery]);
 
   const loadDbCartRows = useCallback(async () => {
     const requestId = ++loadDbCartRowsRequestId.current;
@@ -268,8 +315,14 @@ function UserCartSection({
         map.set(edge.node.product_id, edge.node.product);
       }
     }
+    for (const edge of missingProductsData?.productsCollection?.edges ?? []) {
+      const node = edge.node;
+      if (node?.id && !map.has(node.id)) {
+        map.set(node.id, node);
+      }
+    }
     return map;
-  }, [cart]);
+  }, [cart, missingProductsData?.productsCollection?.edges]);
 
   const order: CartItems = useMemo(() => {
     const out: CartItems = {};
@@ -650,8 +703,21 @@ function UserCartSection({
     return dbCartRows.filter((row) => row.quantity > 0);
   }, [dbCartLoaded, dbCartRows]);
   const hasCartItems = visibleCartRows.length > 0;
+  const renderableCartRows = useMemo(
+    () => visibleCartRows.filter((row) => productById.has(row.product_id)),
+    [visibleCartRows, productById],
+  );
+  const productsHydrating =
+    hasCartItems &&
+    renderableCartRows.length === 0 &&
+    (missingProductsFetching ||
+      (missingProductIds.length > 0 && !missingProductsData));
 
   if (!dbCartLoaded) {
+    return <LoadingCartSection />;
+  }
+
+  if (productsHydrating) {
     return <LoadingCartSection />;
   }
 
@@ -874,7 +940,7 @@ function UserCartSection({
       const selections = hasSelections ? normalizedSelections : null;
       // Keep legacy size column in sync for older checkout/readers.
       const legacySize = selections
-        ? (Object.values(selections)[0] ?? null)
+        ? Object.values(selections)[0] ?? null
         : null;
 
       const variantKey = buildCartVariantKey({
@@ -1040,7 +1106,7 @@ function UserCartSection({
 
   return (
     <>
-      {hasCartItems ? (
+      {renderableCartRows.length > 0 ? (
         <section
           aria-label="Cart Section"
           className={cn(
@@ -1054,7 +1120,7 @@ function UserCartSection({
           />
 
           <CartItemsList>
-            {visibleCartRows.map((row) => {
+            {renderableCartRows.map((row) => {
               const product = productById.get(row.product_id);
               if (!product) return null;
               const sizeConfig = toSizeConfigFromCartPayload(
