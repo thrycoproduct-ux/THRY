@@ -21,6 +21,12 @@ import {
   SearchInCollectionQueryDocument,
   SearchQueryDocument,
 } from "./documents";
+import {
+  fetchD1Collections,
+  fetchD1FeaturedProducts,
+  isCatalogD1Enabled,
+} from "@/lib/catalog/d1-mirror";
+import { mapD1ProductsToCollection } from "@/lib/catalog/d1-product-card";
 
 function stableKey(parts: Record<string, unknown>) {
   return JSON.stringify(parts);
@@ -93,7 +99,7 @@ export async function fetchProductSearchCached(
   };
 }
 
-export async function fetchFeaturedProductsCached(variables: {
+async function fetchFeaturedProductsFromSupabase(variables: {
   first: number;
   after?: string | null;
 }) {
@@ -113,4 +119,38 @@ export async function fetchFeaturedProductsCached(variables: {
   );
 
   return filterDraftProductsFromCollection(productsCollection);
+}
+
+/**
+ * Featured listing: optional D1 mirror when CATALOG_READ=d1.
+ * Always falls back to Supabase+Redis on any D1 failure.
+ * Shop search / PDP / cart stay on Supabase.
+ */
+export async function fetchFeaturedProductsCached(variables: {
+  first: number;
+  after?: string | null;
+}) {
+  if (isCatalogD1Enabled() && !variables.after) {
+    try {
+      const [products, collections] = await Promise.all([
+        fetchD1FeaturedProducts(variables.first),
+        fetchD1Collections(),
+      ]);
+      if (products.length > 0) {
+        return mapD1ProductsToCollection(products, collections, {
+          hasNextPage: products.length >= variables.first,
+          endCursor: null,
+        }) as unknown as NonNullable<
+          Awaited<ReturnType<typeof fetchFeaturedProductsFromSupabase>>
+        >;
+      }
+    } catch (error) {
+      console.warn(
+        "[catalog-d1] featured fallback to supabase:",
+        error instanceof Error ? error.message : error,
+      );
+    }
+  }
+
+  return fetchFeaturedProductsFromSupabase(variables);
 }

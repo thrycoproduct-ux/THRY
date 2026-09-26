@@ -1,0 +1,18 @@
+{
+  "$schema": "../../node_modules/wrangler/config-schema.json",
+  "name": "thry-catalog",
+  "account_id": "77dfa9b757691b2321fe0630f01c8c6a",
+  "main": "src/index.ts",
+  "compatibility_date": "2026-08-14",
+  "workers_dev": true,
+  "observability": {
+    "enabled": true
+  },
+  "d1_databases": [
+    {
+      "binding": "DB",
+      "database_name": "thry-catalog",
+      "database_id": "85283c0d-4c77-4187-8d68-ff166a1a6d50"
+    }
+  ]
+}

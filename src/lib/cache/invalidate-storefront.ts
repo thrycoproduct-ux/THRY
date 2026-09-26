@@ -1,5 +1,6 @@
 import { revalidateTag } from "next/cache";
 import { ADMIN_PRODUCTS_LIST_TAG } from "@/lib/admin/getAdminProductsList";
+import { triggerCatalogMirrorSync } from "@/lib/catalog/d1-mirror";
 import { CACHE_TAGS } from "./constants";
 import { redisDelByPrefix } from "./redis";
 import { clearStorefrontMemoryCache } from "./storefront-cache";
@@ -63,6 +64,9 @@ export async function invalidateStorefrontCache() {
   } catch (error) {
     console.warn("[cache] memory clear failed:", error);
   }
+
+  // Best-effort Supabase→D1 catalog mirror (no-op until CATALOG_WORKER_URL is set)
+  triggerCatalogMirrorSync();
 }
 
 /**
@@ -90,4 +94,6 @@ export async function invalidateStorefrontCollectionsCache() {
   } catch (error) {
     console.warn("[cache] collection memory clear failed:", error);
   }
+
+  triggerCatalogMirrorSync();
 }
