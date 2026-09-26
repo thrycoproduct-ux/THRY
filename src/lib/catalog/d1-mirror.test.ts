@@ -1,4 +1,8 @@
-import { getCatalogReadSource, isCatalogD1Enabled } from "./d1-mirror";
+import {
+  getCatalogReadSource,
+  isCatalogD1Enabled,
+  mapStorefrontOrderByToD1Sort,
+} from "./d1-mirror";
 
 describe("catalog d1 mirror flag", () => {
   const original = process.env.CATALOG_READ;
@@ -21,5 +25,25 @@ describe("catalog d1 mirror flag", () => {
     process.env.CATALOG_READ = "d1";
     expect(getCatalogReadSource()).toBe("d1");
     expect(isCatalogD1Enabled()).toBe(true);
+  });
+});
+
+describe("mapStorefrontOrderByToD1Sort", () => {
+  it("maps price asc/desc and featured", () => {
+    expect(mapStorefrontOrderByToD1Sort([{ price: "AscNullsLast" }])).toBe(
+      "price_asc",
+    );
+    expect(mapStorefrontOrderByToD1Sort([{ price: "DescNullsLast" }])).toBe(
+      "price_desc",
+    );
+    expect(
+      mapStorefrontOrderByToD1Sort([
+        { featured: "DescNullsFirst" },
+        { created_at: "DescNullsLast" },
+      ]),
+    ).toBe("featured");
+    expect(mapStorefrontOrderByToD1Sort([{ name: "AscNullsLast" }])).toBe(
+      "name_asc",
+    );
   });
 });

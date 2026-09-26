@@ -64,15 +64,16 @@ describe("d1-product-card mapper", () => {
     expect(node.price).toBe("299");
   });
 
-  it("builds a productsCollection with empty pageInfo by default", () => {
+  it("builds a productsCollection with pagination cursors", () => {
     const collectionPayload = mapD1ProductsToCollection(
       [product],
       [collection],
+      { hasNextPage: true, endCursor: "12" },
     );
     expect(collectionPayload.edges).toHaveLength(1);
     expect(collectionPayload.pageInfo).toEqual({
-      hasNextPage: false,
-      endCursor: null,
+      hasNextPage: true,
+      endCursor: "12",
     });
   });
 

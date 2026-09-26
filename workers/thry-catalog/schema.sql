@@ -40,11 +40,20 @@ CREATE TABLE IF NOT EXISTS products (
   created_at TEXT,
   archived_at TEXT
 );
+CREATE TABLE IF NOT EXISTS product_medias (
+  id TEXT PRIMARY KEY NOT NULL,
+  product_id TEXT NOT NULL,
+  media_id TEXT NOT NULL,
+  media_key TEXT,
+  media_alt TEXT,
+  priority INTEGER
+);
 CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_products_collection ON products(collection_id);
 CREATE INDEX IF NOT EXISTS idx_products_featured ON products(featured);
 CREATE INDEX IF NOT EXISTS idx_products_draft ON products(is_draft);
 CREATE INDEX IF NOT EXISTS idx_collections_slug ON collections(slug);
+CREATE INDEX IF NOT EXISTS idx_product_medias_product ON product_medias(product_id);
 CREATE TABLE IF NOT EXISTS catalog_meta (
   key TEXT PRIMARY KEY NOT NULL,
   value TEXT NOT NULL

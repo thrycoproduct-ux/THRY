@@ -119,6 +119,30 @@ export type D1CollectionRow = {
   featured_image_alt: string | null;
 };
 
+export type D1GalleryImage = {
+  id: string;
+  key: string | null;
+  alt: string | null;
+  priority?: number | null;
+};
+
+export type D1ProductSearchParams = {
+  q?: string | null;
+  sort?: "newest" | "name_asc" | "price_asc" | "price_desc" | "featured";
+  priceMin?: number | null;
+  priceMax?: number | null;
+  collectionId?: string | null;
+  requireCollection?: boolean;
+  featured?: boolean;
+  limit: number;
+  offset: number;
+};
+
+export type D1ProductSearchResult = {
+  products: D1ProductRow[];
+  hasMore: boolean;
+};
+
 async function catalogGet<T>(path: string): Promise<T> {
   const base = catalogWorkerBaseUrl();
   if (!base) {
@@ -152,20 +176,54 @@ export async function fetchD1CollectionBySlug(
 
 export async function fetchD1ProductBySlug(
   slug: string,
-): Promise<D1ProductRow | null> {
-  const data = await catalogGet<{ product: D1ProductRow | null }>(
-    `/products?slug=${encodeURIComponent(slug)}`,
-  );
-  return data.product ?? null;
+): Promise<{ product: D1ProductRow | null; gallery: D1GalleryImage[] }> {
+  const data = await catalogGet<{
+    product: D1ProductRow | null;
+    gallery?: D1GalleryImage[];
+  }>(`/products?slug=${encodeURIComponent(slug)}`);
+  return {
+    product: data.product ?? null,
+    gallery: data.gallery ?? [],
+  };
 }
 
 export async function fetchD1FeaturedProducts(
   limit = 12,
 ): Promise<D1ProductRow[]> {
-  const data = await catalogGet<{ products: D1ProductRow[] }>(
+  const data = await catalogGet<{ products: D1ProductRow[]; hasMore?: boolean }>(
     `/products?featured=1&limit=${limit}`,
   );
   return data.products ?? [];
+}
+
+export async function fetchD1ProductSearch(
+  params: D1ProductSearchParams,
+): Promise<D1ProductSearchResult> {
+  const qs = new URLSearchParams();
+  qs.set("limit", String(params.limit));
+  qs.set("offset", String(params.offset));
+  if (params.q) qs.set("q", params.q);
+  if (params.sort) qs.set("sort", params.sort);
+  if (params.collectionId) qs.set("collection_id", params.collectionId);
+  if (params.requireCollection) qs.set("require_collection", "1");
+  if (params.featured) qs.set("featured", "1");
+  if (
+    params.priceMin != null &&
+    params.priceMax != null &&
+    Number.isFinite(params.priceMin) &&
+    Number.isFinite(params.priceMax)
+  ) {
+    qs.set("price_min", String(params.priceMin));
+    qs.set("price_max", String(params.priceMax));
+  }
+  const data = await catalogGet<{
+    products: D1ProductRow[];
+    hasMore?: boolean;
+  }>(`/products?${qs.toString()}`);
+  return {
+    products: data.products ?? [],
+    hasMore: Boolean(data.hasMore),
+  };
 }
 
 export async function fetchD1CatalogHealth(): Promise<{
@@ -173,4 +231,31 @@ export async function fetchD1CatalogHealth(): Promise<{
   meta: Record<string, string>;
 }> {
   return catalogGet("/health");
+}
+
+/** Map storefront orderBy / sort into Worker sort keys. */
+export function mapStorefrontOrderByToD1Sort(
+  orderBy: unknown,
+): D1ProductSearchParams["sort"] {
+  const rules = Array.isArray(orderBy) ? orderBy : orderBy ? [orderBy] : [];
+  const asRecord = rules as Array<Record<string, string | undefined>>;
+  if (
+    asRecord.some((o) => "featured" in o) &&
+    asRecord.some((o) => "created_at" in o)
+  ) {
+    return "featured";
+  }
+  if (asRecord.some((o) => "price" in o && String(o.price).includes("Asc"))) {
+    return "price_asc";
+  }
+  if (asRecord.some((o) => "price" in o && String(o.price).includes("Desc"))) {
+    return "price_desc";
+  }
+  if (asRecord.some((o) => "name" in o)) {
+    return "name_asc";
+  }
+  if (asRecord.some((o) => "created_at" in o)) {
+    return "newest";
+  }
+  return "newest";
 }

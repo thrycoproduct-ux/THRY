@@ -10,21 +10,24 @@ D1 catalog mirror for THRY. Supabase remains source of truth; this Worker syncs 
 ## Deploy
 
 ```bash
+npx esbuild workers/thry-catalog/src/index.ts --bundle --format=esm --outfile=workers/thry-catalog/dist-worker.js --platform=neutral --target=es2022
 npx wrangler deploy --config workers/thry-catalog/wrangler.jsonc
-npx wrangler secret bulk workers/thry-catalog/.secrets.local.json --config workers/thry-catalog/wrangler.jsonc
 ```
 
-## App env (Vercel / .env.local)
+## App env
 
 ```
-CATALOG_READ=supabase
-CATALOG_WORKER_URL=https://thry-catalog.<workers-subdomain>.workers.dev
+CATALOG_READ=d1
+CATALOG_WORKER_URL=https://thry-catalog.thrycoproduct.workers.dev
 CATALOG_SYNC_SECRET=<same as worker secret>
 ```
 
-Keep `CATALOG_READ=supabase` until mirror sync is validated. Admin invalidate calls `POST /sync` best-effort when URL+secret are set.
+`CATALOG_READ=d1` enables featured, shop search, and PDP shell reads from D1 (Supabase fallback). Cart/checkout stay on Supabase.
+
+## Products API
+
+`GET /products`: `slug` (+ gallery), `featured=1`, `q`, `sort` (newest|name_asc|price_asc|price_desc|featured), `price_min`/`price_max` (effective), `collection_id`, `require_collection=1`, `limit`/`offset` → `{ products, hasMore }`.
 
 ## Live
 
-- Worker: https://thry-catalog.thrycoproduct.workers.dev
-- D1: `thry-catalog` / `85283c0d-4c77-4187-8d68-ff166a1a6d50` (APAC)
+- https://thry-catalog.thrycoproduct.workers.dev
