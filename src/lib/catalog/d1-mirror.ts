@@ -69,13 +69,15 @@ export async function syncCatalogMirror(): Promise<CatalogSyncResult> {
 /** Fire-and-forget wrapper for invalidate paths. */
 export function triggerCatalogMirrorSync(): void {
   void syncCatalogMirror().then((result) => {
-    if (!result.ok) {
+    if (result.ok === false) {
       console.warn("[catalog-d1] sync failed:", result.error);
-    } else if (result.skipped) {
-      // Quiet skip when not configured yet
-    } else {
-      console.info("[catalog-d1] sync ok:", result.data);
+      return;
     }
+    if (result.skipped) {
+      // Quiet skip when not configured yet
+      return;
+    }
+    console.info("[catalog-d1] sync ok:", result.data);
   });
 }
 
