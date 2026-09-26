@@ -1,4 +1,6 @@
-import { CollectionCardFragment } from "@/features/collections";
+import "server-only";
+
+import { CollectionCardFragment } from "@/features/collections/components/CollectionsCard";
 import type { AllCollectionsQueryQuery } from "@/gql/graphql";
 import { gql } from "@/gql";
 import { CACHE_TAGS } from "@/lib/cache/constants";
@@ -9,8 +11,6 @@ import {
   isCatalogD1Enabled,
 } from "@/lib/catalog/d1-mirror";
 import { mapD1CollectionsToConnection } from "@/lib/catalog/d1-product-card";
-
-void CollectionCardFragment;
 
 const AllCollectionsQuery = gql(/* GraphQL */ `
   query AllCollectionsQuery {
@@ -66,3 +66,6 @@ export async function getAllCollectionsCached(): Promise<
 
   return fetchAllCollectionsFromSupabase();
 }
+
+// Keep fragment document referenced for gql registration.
+void CollectionCardFragment;

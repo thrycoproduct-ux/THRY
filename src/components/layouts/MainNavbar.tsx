@@ -1,4 +1,4 @@
-import { getMenuCollectionsCached } from "@/lib/storefront/menu-collections";
+import { getMenuCollectionsCached } from "@/lib/storefront/menu-collections.server";
 import { cn } from "@/lib/utils";
 import Link from "next/link";
 import { Suspense } from "react";
