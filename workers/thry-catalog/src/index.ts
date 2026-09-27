@@ -1,7 +1,8 @@
 /**
  * thry-catalog — D1 catalog mirror API (Supabase remains source of truth).
  *
- * POST /sync          Bearer CATALOG_SYNC_SECRET — full replace from Supabase
+ * POST /sync          Bearer CATALOG_SYNC_SECRET — upsert from Supabase, prune removed rows
+ * cron (30 min)       same sync, so a failed admin-triggered sync self-heals
  * GET  /health        public
  * GET  /collections   slug? | all
  * GET  /products      slug | featured | q | sort | price_min/max | collection_id |
@@ -24,7 +25,7 @@ type D1Database = {
 
 type D1PreparedStatement = {
   bind: (...values: unknown[]) => D1PreparedStatement;
-  run: () => Promise<{ success: boolean; meta?: unknown }>;
+  run: () => Promise<{ success: boolean; meta?: { changes?: number } }>;
   all: <T = Record<string, unknown>>() => Promise<{ results: T[] }>;
   first: <T = Record<string, unknown>>() => Promise<T | null>;
 };
@@ -118,7 +119,16 @@ END`;
 
 const EFFECTIVE_PRICE_ROUNDED_SQL = `ROUND(${EFFECTIVE_PRICE_SQL})`;
 
-async function ensureProductMediasTable(env: Env) {
+const SYNC_LEASE_MS = 120_000;
+/** Reads 503 past this age so the storefront falls back to Supabase. */
+const STALE_AFTER_MS = 3 * 60 * 60 * 1000;
+/** Refuse a sync that would drop more than half the mirrored products (unless forced). */
+const MIN_PRODUCT_RATIO = 0.5;
+const SHRINK_GUARD_MIN_EXISTING = 10;
+
+class SyncRefusedError extends Error {}
+
+async function ensureSchema(env: Env) {
   // D1 exec() accepts a single statement only — run separately.
   await env.DB.prepare(
     `CREATE TABLE IF NOT EXISTS product_medias (
@@ -133,30 +143,101 @@ async function ensureProductMediasTable(env: Env) {
   await env.DB.prepare(
     `CREATE INDEX IF NOT EXISTS idx_product_medias_product ON product_medias(product_id)`,
   ).run();
+  const cols = await env.DB.prepare("PRAGMA table_info(products)").all<{
+    name: string;
+  }>();
+  if (!(cols.results ?? []).some((c) => c.name === "name_rank")) {
+    await env.DB.prepare(
+      "ALTER TABLE products ADD COLUMN name_rank INTEGER",
+    ).run();
+  }
+  await env.DB.prepare(
+    "CREATE INDEX IF NOT EXISTS idx_products_name_rank ON products(name_rank)",
+  ).run();
 }
 
-async function syncFromSupabase(env: Env) {
-  await ensureProductMediasTable(env);
+function setMeta(env: Env, key: string, value: string): D1PreparedStatement {
+  return env.DB.prepare(
+    "INSERT OR REPLACE INTO catalog_meta (key, value) VALUES (?, ?)",
+  ).bind(key, value);
+}
+
+/** Token is "<expiryMs>:<uuid>"; SQLite CAST reads the numeric prefix. */
+async function acquireSyncLease(env: Env): Promise<string | null> {
+  const now = Date.now();
+  const token = `${now + SYNC_LEASE_MS}:${crypto.randomUUID()}`;
+  const res = await env.DB.prepare(
+    `INSERT INTO catalog_meta (key, value) VALUES ('sync_lease', ?1)
+     ON CONFLICT(key) DO UPDATE SET value = excluded.value
+     WHERE CAST(catalog_meta.value AS INTEGER) < ?2`,
+  )
+    .bind(token, now)
+    .run();
+  return (res.meta?.changes ?? 0) > 0 ? token : null;
+}
+
+async function releaseSyncLease(env: Env, token: string) {
+  await env.DB.prepare(
+    "DELETE FROM catalog_meta WHERE key = 'sync_lease' AND value = ?",
+  )
+    .bind(token)
+    .run();
+}
+
+function pruneMissing(
+  env: Env,
+  table: string,
+  ids: string[],
+): D1PreparedStatement {
+  return env.DB.prepare(
+    `DELETE FROM ${table} WHERE id NOT IN (SELECT value FROM json_each(?))`,
+  ).bind(JSON.stringify(ids));
+}
+
+async function syncFromSupabase(env: Env, opts: { force: boolean }) {
+  await ensureSchema(env);
 
   const collections = await fetchSupabaseJson<CollectionRow[]>(
     env,
     "collections?select=id,label,slug,title,description,order,featured_image_id,medias(key,alt)",
   );
+  // order matches the storefront's Postgres name sort; index becomes name_rank.
   const products = await fetchSupabaseJson<ProductRow[]>(
     env,
-    "products?select=id,name,slug,product_code,is_draft,description,featured,badge,rating,tags,price,discount_enabled,discount_percent,sold_as_pack,pack_size,stock,collection_id,featured_image_id,is_digital,created_at,archived_at,medias(key,alt)&archived_at=is.null",
+    "products?select=id,name,slug,product_code,is_draft,description,featured,badge,rating,tags,price,discount_enabled,discount_percent,sold_as_pack,pack_size,stock,collection_id,featured_image_id,is_digital,created_at,archived_at,medias(key,alt)&archived_at=is.null&order=name.asc,id.asc",
   );
   const productMedias = await fetchSupabaseJson<ProductMediaRow[]>(
     env,
     "product_medias?select=id,productId,mediaId,priority,medias(key,alt)",
   );
 
-  await env.DB.batch([
-    env.DB.prepare("DELETE FROM product_medias"),
-    env.DB.prepare("DELETE FROM products"),
-    env.DB.prepare("DELETE FROM collections"),
-    env.DB.prepare("DELETE FROM medias"),
-  ]);
+  const existing = await env.DB.prepare(
+    "SELECT (SELECT COUNT(*) FROM products) AS p, (SELECT COUNT(*) FROM collections) AS c",
+  ).first<{ p: number; c: number }>();
+  const existingProducts = Number(existing?.p ?? 0);
+  const existingCollections = Number(existing?.c ?? 0);
+
+  if (!Array.isArray(products) || products.length === 0) {
+    throw new SyncRefusedError("Supabase returned 0 products");
+  }
+  if (!Array.isArray(collections)) {
+    throw new SyncRefusedError("Supabase collections response invalid");
+  }
+  if (!opts.force) {
+    if (
+      existingProducts >= SHRINK_GUARD_MIN_EXISTING &&
+      products.length < existingProducts * MIN_PRODUCT_RATIO
+    ) {
+      throw new SyncRefusedError(
+        `product count would drop ${existingProducts} -> ${products.length}`,
+      );
+    }
+    if (existingCollections > 0 && collections.length === 0) {
+      throw new SyncRefusedError(
+        `collection count would drop ${existingCollections} -> 0`,
+      );
+    }
+  }
 
   const mediaStatements: D1PreparedStatement[] = [];
   const seenMedia = new Set<string>();
@@ -210,14 +291,14 @@ async function syncFromSupabase(env: Env) {
     await env.DB.batch(collectionStatements.slice(i, i + 40));
   }
 
-  const productStatements = products.map((p) =>
+  const productStatements = products.map((p, nameRank) =>
     env.DB.prepare(
       `INSERT OR REPLACE INTO products
       (id, name, slug, product_code, is_draft, description, featured, badge, rating, tags,
        price, discount_enabled, discount_percent, sold_as_pack, pack_size, stock,
        collection_id, featured_image_id, featured_image_key, featured_image_alt,
-       is_digital, created_at, archived_at)
-      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
+       is_digital, created_at, archived_at, name_rank)
+      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
     ).bind(
       p.id,
       p.name ?? "",
@@ -242,6 +323,7 @@ async function syncFromSupabase(env: Env) {
       p.is_digital ? 1 : 0,
       p.created_at,
       p.archived_at,
+      nameRank,
     ),
   );
   for (let i = 0; i < productStatements.length; i += 25) {
@@ -266,24 +348,38 @@ async function syncFromSupabase(env: Env) {
     await env.DB.batch(galleryStatements.slice(i, i + 40));
   }
 
-  const syncedAt = new Date().toISOString();
+  // Prune only after upserts so readers never see an empty or half-filled mirror.
   await env.DB.batch([
-    env.DB.prepare(
-      "INSERT OR REPLACE INTO catalog_meta (key, value) VALUES (?, ?)",
-    ).bind("synced_at", syncedAt),
-    env.DB.prepare(
-      "INSERT OR REPLACE INTO catalog_meta (key, value) VALUES (?, ?)",
-    ).bind("product_count", String(products.length)),
-    env.DB.prepare(
-      "INSERT OR REPLACE INTO catalog_meta (key, value) VALUES (?, ?)",
-    ).bind("collection_count", String(collections.length)),
-    env.DB.prepare(
-      "INSERT OR REPLACE INTO catalog_meta (key, value) VALUES (?, ?)",
-    ).bind("gallery_count", String(productMedias.length)),
+    pruneMissing(
+      env,
+      "product_medias",
+      productMedias.map((pm) => pm.id),
+    ),
+    pruneMissing(
+      env,
+      "products",
+      products.map((p) => p.id),
+    ),
+    pruneMissing(
+      env,
+      "collections",
+      collections.map((c) => c.id),
+    ),
+    pruneMissing(env, "medias", [...seenMedia]),
   ]);
 
+  const syncedAt = new Date().toISOString();
+  await env.DB.batch([
+    setMeta(env, "synced_at", syncedAt),
+    setMeta(env, "product_count", String(products.length)),
+    setMeta(env, "collection_count", String(collections.length)),
+    setMeta(env, "gallery_count", String(productMedias.length)),
+    env.DB.prepare("DELETE FROM catalog_meta WHERE key LIKE 'worker_b64_%'"),
+  ]);
+  mirrorSyncedAt = { value: Date.parse(syncedAt), checkedAt: Date.now() };
+
   return {
-    ok: true,
+    ok: true as const,
     syncedAt,
     products: products.length,
     collections: collections.length,
@@ -292,10 +388,75 @@ async function syncFromSupabase(env: Env) {
   };
 }
 
+type SyncSource = "admin" | "cron";
+
+/**
+ * Serialised sync. A request arriving mid-sync marks sync_pending and the
+ * lease holder re-runs once, so admin edits made during a sync are not lost.
+ */
+async function runSync(env: Env, source: SyncSource, force = false) {
+  const token = await acquireSyncLease(env);
+  if (!token) {
+    await setMeta(env, "sync_pending", source).run();
+    return { ok: true as const, queued: true };
+  }
+  try {
+    let result: Awaited<ReturnType<typeof syncFromSupabase>>;
+    let rounds = 0;
+    for (;;) {
+      await env.DB.prepare(
+        "DELETE FROM catalog_meta WHERE key = 'sync_pending'",
+      ).run();
+      result = await syncFromSupabase(env, { force });
+      rounds += 1;
+      const pending = await env.DB.prepare(
+        "SELECT value FROM catalog_meta WHERE key = 'sync_pending'",
+      ).first();
+      if (!pending || rounds >= 2) break;
+    }
+    await env.DB.batch([
+      setMeta(env, "last_sync_source", source),
+      env.DB.prepare("DELETE FROM catalog_meta WHERE key = 'last_sync_error'"),
+    ]);
+    return { ...result, rounds };
+  } catch (error) {
+    const message = error instanceof Error ? error.message : String(error);
+    await setMeta(
+      env,
+      "last_sync_error",
+      `${new Date().toISOString()} ${source}: ${message}`.slice(0, 500),
+    )
+      .run()
+      .catch(() => undefined);
+    throw error;
+  } finally {
+    await releaseSyncLease(env, token).catch(() => undefined);
+  }
+}
+
+let mirrorSyncedAt: { value: number; checkedAt: number } | null = null;
+
+async function mirrorAgeMs(env: Env): Promise<number> {
+  const now = Date.now();
+  if (!mirrorSyncedAt || now - mirrorSyncedAt.checkedAt > 60_000) {
+    const row = await env.DB.prepare(
+      "SELECT value FROM catalog_meta WHERE key = 'synced_at'",
+    ).first<{ value: string }>();
+    mirrorSyncedAt = {
+      value: row ? Date.parse(row.value) : NaN,
+      checkedAt: now,
+    };
+  }
+  return Number.isFinite(mirrorSyncedAt.value)
+    ? now - mirrorSyncedAt.value
+    : Number.POSITIVE_INFINITY;
+}
+
 function resolveSort(sort: string | null): string {
   switch ((sort || "").toLowerCase()) {
     case "name_asc":
-      return "name ASC COLLATE NOCASE";
+      // name_rank is Supabase's own name order; LOWER() covers rows synced before it existed.
+      return "name_rank ASC NULLS LAST, LOWER(name) ASC";
     case "price_asc":
       return `${EFFECTIVE_PRICE_SQL} ASC`;
     case "price_desc":
@@ -326,8 +487,29 @@ export default {
 
       if (path === "/sync" && request.method === "POST") {
         if (!requireSyncAuth(request, env)) return unauthorized();
-        const result = await syncFromSupabase(env);
-        return json(result);
+        try {
+          const result = await runSync(
+            env,
+            "admin",
+            url.searchParams.get("force") === "1",
+          );
+          return json(result);
+        } catch (error) {
+          if (error instanceof SyncRefusedError) {
+            return json({ ok: false, refused: error.message }, 409);
+          }
+          throw error;
+        }
+      }
+
+      if (
+        (path === "/collections" || path === "/products") &&
+        request.method === "GET"
+      ) {
+        const age = await mirrorAgeMs(env);
+        if (age > STALE_AFTER_MS) {
+          return json({ error: "stale_mirror", ageMs: age }, 503);
+        }
       }
 
       if (path === "/collections" && request.method === "GET") {
@@ -443,5 +625,17 @@ export default {
       const message = error instanceof Error ? error.message : String(error);
       return json({ error: message }, 500);
     }
+  },
+
+  async scheduled(
+    _event: unknown,
+    env: Env,
+    ctx: { waitUntil: (promise: Promise<unknown>) => void },
+  ): Promise<void> {
+    ctx.waitUntil(
+      runSync(env, "cron").catch((error) => {
+        console.error("[thry-catalog] cron sync failed:", error);
+      }),
+    );
   },
 };

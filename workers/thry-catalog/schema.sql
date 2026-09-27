@@ -38,7 +38,8 @@ CREATE TABLE IF NOT EXISTS products (
   featured_image_alt TEXT,
   is_digital INTEGER NOT NULL DEFAULT 0,
   created_at TEXT,
-  archived_at TEXT
+  archived_at TEXT,
+  name_rank INTEGER
 );
 CREATE TABLE IF NOT EXISTS product_medias (
   id TEXT PRIMARY KEY NOT NULL,
@@ -52,6 +53,7 @@ CREATE INDEX IF NOT EXISTS idx_products_slug ON products(slug);
 CREATE INDEX IF NOT EXISTS idx_products_collection ON products(collection_id);
 CREATE INDEX IF NOT EXISTS idx_products_featured ON products(featured);
 CREATE INDEX IF NOT EXISTS idx_products_draft ON products(is_draft);
+CREATE INDEX IF NOT EXISTS idx_products_name_rank ON products(name_rank);
 CREATE INDEX IF NOT EXISTS idx_collections_slug ON collections(slug);
 CREATE INDEX IF NOT EXISTS idx_product_medias_product ON product_medias(product_id);
 CREATE TABLE IF NOT EXISTS catalog_meta (
