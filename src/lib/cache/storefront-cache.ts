@@ -1,6 +1,6 @@
 import { isControlFlowError, withRetry } from "@/lib/resilience";
 import { STOREFRONT_REVALIDATE_SECONDS } from "./constants";
-import { redisGet, redisSet } from "./redis";
+import { redisDel, redisDelByPrefix, redisGetChecked, redisSet } from "./redis";
 
 type CacheOptions = {
   revalidate?: number;
@@ -18,7 +18,11 @@ type CacheEnvelope<T> = {
   freshUntil: number;
 };
 
-type MemoryEntry = { envelope: CacheEnvelope<unknown>; expiresAt: number };
+type MemoryEntry = {
+  envelope: CacheEnvelope<unknown>;
+  expiresAt: number;
+  storedAt: number;
+};
 
 /**
  * Suffix (not prefix) so `redisDelByPrefix("sf:…")` invalidation keeps working.
@@ -32,6 +36,16 @@ const MAX_MEMORY_ENTRIES = 256;
 const STALE_MULTIPLIER = 20;
 const MIN_STALE_SECONDS = 900;
 const MAX_STALE_SECONDS = 86_400;
+/**
+ * An isolate-local copy is trusted without re-checking shared caches only this
+ * long, so an admin invalidation on one instance reaches every instance.
+ */
+const MEMORY_TRUST_MS = 30_000;
+/**
+ * Bound while Redis is unreachable on Workers, where a miss goes straight to
+ * the origin. Elsewhere a miss falls through to the tag-aware Data Cache.
+ */
+const DEGRADED_WORKER_MEMORY_TRUST_MS = 120_000;
 const memoryCache = new Map<string, MemoryEntry>();
 
 function isCloudflareWorkerRuntime() {
@@ -58,14 +72,19 @@ function isEnvelope<T>(value: unknown): value is CacheEnvelope<T> {
   );
 }
 
-function memoryGet<T>(key: string): CacheEnvelope<T> | null {
+function memoryGet<T>(
+  key: string,
+): { envelope: CacheEnvelope<T>; storedAt: number } | null {
   const entry = memoryCache.get(key);
   if (!entry) return null;
   if (Date.now() > entry.expiresAt) {
     memoryCache.delete(key);
     return null;
   }
-  return entry.envelope as CacheEnvelope<T>;
+  return {
+    envelope: entry.envelope as CacheEnvelope<T>,
+    storedAt: entry.storedAt,
+  };
 }
 
 function memorySet<T>(
@@ -81,6 +100,7 @@ function memorySet<T>(
   memoryCache.set(key, {
     envelope: envelope as CacheEnvelope<unknown>,
     expiresAt: Date.now() + Math.max(30, ttlSeconds) * 1000,
+    storedAt: Date.now(),
   });
 }
 
@@ -97,29 +117,80 @@ export function clearStorefrontMemoryCache(prefix?: string): void {
   }
 }
 
+/**
+ * Removes exact keys and key prefixes from Redis and this isolate's memory.
+ * Other isolates drop their copies within MEMORY_TRUST_MS.
+ */
+export async function clearStorefrontCacheEntries(params: {
+  keys?: readonly string[];
+  prefixes?: readonly string[];
+}): Promise<void> {
+  const keys = [...new Set(params.keys ?? [])];
+  const prefixes = [...new Set(params.prefixes ?? [])];
+
+  for (const key of keys) memoryCache.delete(key);
+  for (const prefix of prefixes) clearStorefrontMemoryCache(prefix);
+
+  await Promise.all([
+    redisDel(keys.map((key) => key + REDIS_KEY_SUFFIX)),
+    ...prefixes.map((prefix) => redisDelByPrefix(prefix)),
+  ]);
+}
+
+type ReadResult<T> = {
+  envelope: CacheEnvelope<T> | null;
+  /** False when only an unverified isolate copy was found; reload to pick up invalidations. */
+  trusted: boolean;
+  /** True when Redis confirmed the entry just now, so the memory copy may restart its trust window. */
+  verified: boolean;
+};
+
 /** Reads the newest envelope available, preferring shared Redis over the isolate. */
 async function readEnvelope<T>(
   key: string,
   revalidate: number,
-): Promise<CacheEnvelope<T> | null> {
-  const local = memoryGet<T>(key);
-  // A fresh isolate-local copy is authoritative enough; skip the Redis round trip.
-  if (local && local.freshUntil > Date.now()) return local;
+): Promise<ReadResult<T>> {
+  const hit = memoryGet<T>(key);
+  const local = hit?.envelope ?? null;
+  const localAge = hit ? Date.now() - hit.storedAt : Number.POSITIVE_INFINITY;
+  if (local && local.freshUntil > Date.now() && localAge < MEMORY_TRUST_MS) {
+    return { envelope: local, trusted: true, verified: false };
+  }
 
-  const remote = await redisGet<unknown>(key + REDIS_KEY_SUFFIX);
+  const read = await redisGetChecked<unknown>(key + REDIS_KEY_SUFFIX);
 
-  if (remote === null || remote === undefined) return local;
+  // Redis unavailable: it cannot report invalidations, so trust the local copy
+  // for a bounded time.
+  if (!read.ok) {
+    const trustMs = isCloudflareWorkerRuntime()
+      ? DEGRADED_WORKER_MEMORY_TRUST_MS
+      : MEMORY_TRUST_MS;
+    return { envelope: local, trusted: localAge < trustMs, verified: false };
+  }
+
+  const remote = read.value;
+  // Missing from Redis means invalidated or evicted: reload, keeping the local
+  // copy only as a stale-if-error fallback.
+  if (remote === null || remote === undefined) {
+    return { envelope: local, trusted: false, verified: false };
+  }
 
   if (isEnvelope<T>(remote)) {
-    if (local && local.freshUntil > remote.freshUntil) return local;
-    return remote;
+    if (local && local.freshUntil > remote.freshUntil) {
+      return { envelope: local, trusted: true, verified: true };
+    }
+    return { envelope: remote, trusted: true, verified: true };
   }
 
   // Unexpected shape (hand-written key, partial rollout): treat as one fresh cycle.
   return {
-    __swr: 1,
-    value: remote as T,
-    freshUntil: Date.now() + revalidate * 1000,
+    envelope: {
+      __swr: 1,
+      value: remote as T,
+      freshUntil: Date.now() + revalidate * 1000,
+    },
+    trusted: true,
+    verified: true,
   };
 }
 
@@ -140,9 +211,13 @@ export async function withStorefrontCache<T>(
   const revalidate = options.revalidate ?? STOREFRONT_REVALIDATE_SECONDS;
   const staleTtl = staleTtlSeconds(revalidate);
 
-  const cached = await readEnvelope<T>(key, revalidate);
-  if (cached && cached.freshUntil > Date.now()) {
-    memorySet(key, cached, staleTtl);
+  const {
+    envelope: cached,
+    trusted,
+    verified,
+  } = await readEnvelope<T>(key, revalidate);
+  if (trusted && cached && cached.freshUntil > Date.now()) {
+    if (verified) memorySet(key, cached, staleTtl);
     return cached.value;
   }
 

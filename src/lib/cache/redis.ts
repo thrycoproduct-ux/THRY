@@ -92,21 +92,43 @@ export function isRedisCacheEnabled() {
   return getConfig() !== null;
 }
 
+function parseRedisValue<T>(raw: unknown): T | null {
+  if (raw === null || raw === undefined) return null;
+  if (typeof raw !== "string") return raw as T;
+
+  try {
+    return JSON.parse(raw) as T;
+  } catch {
+    // Value predates JSON serialization; return it as-is.
+    return raw as unknown as T;
+  }
+}
+
 export async function redisGet<T>(key: string): Promise<T | null> {
   try {
-    const raw = await redisCommand(["GET", key]);
-    if (raw === null || raw === undefined) return null;
-    if (typeof raw !== "string") return raw as T;
-
-    try {
-      return JSON.parse(raw) as T;
-    } catch {
-      // Value predates JSON serialization; return it as-is.
-      return raw as unknown as T;
-    }
+    return parseRedisValue<T>(await redisCommand(["GET", key]));
   } catch (error) {
     console.warn("[cache] Redis GET failed:", error);
     return null;
+  }
+}
+
+/**
+ * Like redisGet, but tells "key missing" apart from "Redis unavailable"
+ * (not configured, quota exceeded, timeout).
+ */
+export async function redisGetChecked<T>(
+  key: string,
+): Promise<{ ok: true; value: T | null } | { ok: false }> {
+  if (!getConfig()) return { ok: false };
+  try {
+    return {
+      ok: true,
+      value: parseRedisValue<T>(await redisCommand(["GET", key])),
+    };
+  } catch (error) {
+    console.warn("[cache] Redis GET failed:", error);
+    return { ok: false };
   }
 }
 
@@ -125,6 +147,15 @@ export async function redisSet<T>(
     ]);
   } catch (error) {
     console.warn("[cache] Redis SET failed:", error);
+  }
+}
+
+export async function redisDel(keys: readonly string[]): Promise<void> {
+  if (keys.length === 0) return;
+  try {
+    await redisCommand(["DEL", ...keys]);
+  } catch (error) {
+    console.warn("[cache] Redis DEL failed:", error);
   }
 }
 

@@ -3,7 +3,7 @@ import {
   createDraftProductsFromMedia,
   type BulkDraftSharedData,
 } from "@/_actions/products";
-import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
+import { invalidateProductCaches } from "@/lib/cache/invalidate-storefront";
 import { parseBulkSharedInput } from "@/lib/admin/normalize-bulk-product-shared";
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
 import { processUploadedImage } from "@/lib/image/processUpload";
@@ -190,7 +190,9 @@ export async function POST(request: NextRequest) {
         shared,
       );
 
-      await invalidateStorefrontCache();
+      await invalidateProductCaches({
+        productIds: createdProducts.map((row) => row.id),
+      });
 
       if (uploadErrors.length > 0) {
         return NextResponse.json(

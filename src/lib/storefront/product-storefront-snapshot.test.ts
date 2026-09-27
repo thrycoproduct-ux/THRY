@@ -1,6 +1,9 @@
 jest.mock("../cache/redis", () => ({
   redisGet: jest.fn(async () => null),
+  redisGetChecked: jest.fn(async () => ({ ok: true, value: null })),
   redisSet: jest.fn(async () => undefined),
+  redisDel: jest.fn(async () => undefined),
+  redisDelByPrefix: jest.fn(async () => undefined),
 }));
 
 jest.mock("next/cache", () => ({

@@ -8,7 +8,10 @@ import {
   publicValidationPayload,
 } from "@/lib/api/public-error";
 import { getSessionUser, isAdminUser } from "@/lib/auth/admin";
-import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
+import {
+  invalidateProductCaches,
+  loadProductCacheIdentities,
+} from "@/lib/cache/invalidate-storefront";
 import db from "@/lib/supabase/db";
 import { mapProductSaveError } from "@/lib/supabase/pooler-errors";
 import { products, type InsertProducts } from "@/lib/supabase/schema";
@@ -39,7 +42,9 @@ async function ensureAdmin() {
   return user;
 }
 
-function softRevalidateCatalog() {
+async function softRevalidateCatalog(
+  params: Parameters<typeof invalidateProductCaches>[0],
+) {
   try {
     revalidatePath("/admin/products");
     revalidatePath("/shop");
@@ -47,17 +52,30 @@ function softRevalidateCatalog() {
   } catch (error) {
     console.error("[products/manage] revalidatePath failed:", error);
   }
-  void invalidateStorefrontCache().catch((error) => {
-    console.error("[products/manage] invalidateStorefrontCache failed:", error);
-  });
+  try {
+    await invalidateProductCaches(params);
+  } catch (error) {
+    console.error("[products/manage] invalidateProductCaches failed:", error);
+  }
 }
 
-async function revalidateProductPages() {
+async function loadPreviousIdentities(productIds: string[]) {
+  try {
+    return await loadProductCacheIdentities(productIds);
+  } catch (error) {
+    console.warn("[products/manage] previous identity lookup failed:", error);
+    return [];
+  }
+}
+
+async function revalidateProductPages(
+  params: Parameters<typeof invalidateProductCaches>[0],
+) {
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath("/featured");
   revalidatePath("/collections");
-  await invalidateStorefrontCache();
+  await invalidateProductCaches(params);
 }
 
 function adminSaveErrorMessage(error: unknown) {
@@ -80,8 +98,9 @@ export async function DELETE(request: NextRequest) {
     );
   }
 
+  const previous = await loadPreviousIdentities(parsed.data.ids);
   const outcome = await deleteOrArchiveProducts(parsed.data.ids);
-  await revalidateProductPages();
+  await revalidateProductPages({ productIds: parsed.data.ids, previous });
 
   return NextResponse.json(outcome);
 }
@@ -138,7 +157,7 @@ export async function PATCH(request: NextRequest) {
   revalidatePath("/admin/products");
   revalidatePath("/shop");
   revalidatePath("/cart");
-  await invalidateStorefrontCache();
+  await invalidateProductCaches({ productIds: [updated.id] });
 
   return NextResponse.json({ ok: true, product: updated });
 }
@@ -167,7 +186,7 @@ export async function POST(request: NextRequest) {
       parsed.data.product as InsertProducts,
       { imageMediaIds: parsed.data.imageMediaIds },
     );
-    softRevalidateCatalog();
+    await softRevalidateCatalog({ productIds: [String(saved.id)] });
     return NextResponse.json({ ok: true, product: saved });
   } catch (error) {
     logServerError("products/manage POST", error);
@@ -198,13 +217,15 @@ export async function PUT(request: NextRequest) {
     );
   }
 
+  const productId = parsed.data.productId;
   try {
+    const previous = await loadPreviousIdentities([productId]);
     const saved = await updateProductRecord(
-      parsed.data.productId,
+      productId,
       parsed.data.product as InsertProducts,
       { imageMediaIds: parsed.data.imageMediaIds },
     );
-    softRevalidateCatalog();
+    await softRevalidateCatalog({ productIds: [productId], previous });
     return NextResponse.json({ ok: true, product: saved });
   } catch (error) {
     logServerError("products/manage PUT", error);

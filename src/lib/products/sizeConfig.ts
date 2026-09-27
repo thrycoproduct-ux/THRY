@@ -1,5 +1,5 @@
-import { CACHE_TAGS } from "@/lib/cache/constants";
-import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
+import { CACHE_TAGS, productSizeCacheTag } from "@/lib/cache/constants";
+import { invalidateProductCaches } from "@/lib/cache/invalidate-storefront";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
 import db from "@/lib/supabase/db";
 import { apiSettings } from "@/lib/supabase/schema";
@@ -39,7 +39,7 @@ export async function getProductSizeConfig(
   return withStorefrontCache(
     `sf:size:${productId}`,
     () => loadProductSizeConfig(productId),
-    { tags: [CACHE_TAGS.sizeConfig] },
+    { tags: [CACHE_TAGS.sizeConfig, productSizeCacheTag(productId)] },
   );
 }
 
@@ -71,7 +71,7 @@ export async function getProductSizeConfigsByProductIds(productIds: string[]) {
       const map = await loadProductSizeConfigsByProductIds(unique);
       return Object.fromEntries(map.entries());
     },
-    { tags: [CACHE_TAGS.sizeConfig] },
+    { tags: [CACHE_TAGS.sizeConfig, CACHE_TAGS.sizeBatch] },
   );
 
   return new Map(Object.entries(serialized));
@@ -142,5 +142,8 @@ export async function upsertProductSizeConfig(params: {
     }
   }
 
-  await invalidateStorefrontCache();
+  await invalidateProductCaches({
+    productIds: [params.productId],
+    lists: false,
+  });
 }

@@ -1,4 +1,4 @@
-import { invalidateStorefrontCache } from "@/lib/cache/invalidate-storefront";
+import { invalidateProductCaches } from "@/lib/cache/invalidate-storefront";
 import { withRetry } from "@/lib/resilience";
 import { mergePaymentMeta, readPaymentMeta } from "@/lib/orders/payment-meta";
 import {
@@ -539,7 +539,9 @@ export async function confirmStockReservation(
     })
     .where(eq(orders.id, orderId));
 
-  await invalidateStorefrontCache();
+  await invalidateProductCaches({
+    productIds: readReservationLines(meta).map((line) => line.productId),
+  });
   return { confirmed: true };
 }
 
@@ -550,6 +552,7 @@ export async function releaseStockReservation(
 ): Promise<{ released: boolean; skippedReason?: string }> {
   let released = false;
   let skippedReason: string | undefined;
+  let releasedProductIds: string[] = [];
 
   await runSessionTransaction(async (tx) => {
     const locked = await tx.execute(
@@ -626,6 +629,7 @@ export async function releaseStockReservation(
         .where(eq(orders.id, orderId));
 
       released = true;
+      releasedProductIds = sortedLines.map((line) => line.productId);
       return;
     }
 
@@ -678,10 +682,11 @@ export async function releaseStockReservation(
       .where(eq(orders.id, orderId));
 
     released = true;
+    releasedProductIds = sortedOrphanLines.map((line) => line.productId);
   }, "stock:release");
 
-  if (released) {
-    await invalidateStorefrontCache();
+  if (released && releasedProductIds.length > 0) {
+    await invalidateProductCaches({ productIds: releasedProductIds });
   }
 
   return {

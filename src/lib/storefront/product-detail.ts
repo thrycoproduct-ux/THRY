@@ -1,6 +1,6 @@
 import type { ProductDetailPageData } from "@/lib/storefront/product-detail-page.types";
 import { cache } from "react";
-import { CACHE_TAGS } from "@/lib/cache/constants";
+import { CACHE_TAGS, productDetailCacheTag } from "@/lib/cache/constants";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
 import {
   filterDraftEdges,
@@ -20,7 +20,10 @@ async function isProductSlugPublishedCached(slug: string): Promise<boolean> {
   return withStorefrontCache(
     `sf:published:${slug}`,
     () => isProductSlugPublished(slug),
-    { revalidate: 60, tags: [CACHE_TAGS.products, CACHE_TAGS.drafts] },
+    {
+      revalidate: 60,
+      tags: [CACHE_TAGS.productDetails, productDetailCacheTag(slug)],
+    },
   );
 }
 
@@ -74,7 +77,9 @@ export async function getProductDetailCached(productSlug: string) {
       }
       return loaded;
     },
-    { tags: [CACHE_TAGS.products, CACHE_TAGS.drafts] },
+    {
+      tags: [CACHE_TAGS.productDetails, productDetailCacheTag(productSlug)],
+    },
   );
 
   if (!data?.recommendations?.edges?.length) return data;
