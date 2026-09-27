@@ -1,21 +1,18 @@
 import { z } from "zod";
 import { INDIAN_STATES } from "../constants/indianStates";
 
-/** Empty or a valid email — optional on address forms. */
-const optionalEmailField = z
+const emailField = z
   .string()
   .trim()
-  .refine(
-    (value) => value === "" || z.string().email().safeParse(value).success,
-    "Enter a valid email address",
-  );
+  .min(1, "Enter your email")
+  .email("Enter a valid email address");
 
 export const addressFormSchema = z.object({
   fullName: z
     .string()
     .min(2, "Enter your full name")
     .max(120, "Name is too long"),
-  email: optionalEmailField,
+  email: emailField,
   mobile: z
     .string()
     .regex(/^[6-9]\d{9}$/, "Enter a valid 10-digit mobile number"),

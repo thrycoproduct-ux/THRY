@@ -65,10 +65,8 @@ const shippingSchema = z.object({
   email: z
     .string()
     .trim()
-    .refine(
-      (value) => value === "" || z.string().email().safeParse(value).success,
-      "Enter a valid email address",
-    ),
+    .min(1, "Enter your email")
+    .email("Enter a valid email address"),
   mobile: z.string().min(10),
   state: z.string().min(1),
 });

@@ -152,19 +152,24 @@ export function AddAddressForm({
    * the keyboard has settled.
    */
   const focusScrollTimer = useRef<number | null>(null);
-  const handleFocusCapture = useCallback((event: FocusEvent<HTMLFormElement>) => {
-    const target = event.target;
-    if (!(target instanceof HTMLInputElement)) return;
-    if (!isMobileFormViewport()) return;
-    if (focusScrollTimer.current) window.clearTimeout(focusScrollTimer.current);
-    focusScrollTimer.current = window.setTimeout(() => {
-      if (document.activeElement !== target) return;
-      target.scrollIntoView({ block: "center", behavior: "smooth" });
-    }, KEYBOARD_SETTLE_MS);
-  }, []);
+  const handleFocusCapture = useCallback(
+    (event: FocusEvent<HTMLFormElement>) => {
+      const target = event.target;
+      if (!(target instanceof HTMLInputElement)) return;
+      if (!isMobileFormViewport()) return;
+      if (focusScrollTimer.current)
+        window.clearTimeout(focusScrollTimer.current);
+      focusScrollTimer.current = window.setTimeout(() => {
+        if (document.activeElement !== target) return;
+        target.scrollIntoView({ block: "center", behavior: "smooth" });
+      }, KEYBOARD_SETTLE_MS);
+    },
+    [],
+  );
   useEffect(
     () => () => {
-      if (focusScrollTimer.current) window.clearTimeout(focusScrollTimer.current);
+      if (focusScrollTimer.current)
+        window.clearTimeout(focusScrollTimer.current);
     },
     [],
   );
@@ -234,7 +239,7 @@ export function AddAddressForm({
               <FormControl>
                 <Input
                   type="email"
-                  placeholder="Enter email (optional)"
+                  placeholder="Enter email"
                   autoComplete="email"
                   enterKeyHint="next"
                   {...field}
