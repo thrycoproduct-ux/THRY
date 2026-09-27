@@ -40,6 +40,7 @@ const PAID_PAGE_PARAM = "paidPage";
 const PENDING_PAGE_PARAM = "pendingPage";
 const PAGE_SIZE_PARAM = "pageSize";
 const STATUS_PARAM = "status";
+const SEARCH_PARAM = "q";
 
 type AdminOrdersPageProps = {
   searchParams: Promise<{
@@ -87,6 +88,10 @@ async function OrdersPageContent({
   const segment = parseOrdersSegment(searchParams[STATUS_PARAM]);
   const paidPage = parseAdminOrdersPage(searchParams[PAID_PAGE_PARAM]);
   const pendingPage = parseAdminOrdersPage(searchParams[PENDING_PAGE_PARAM]);
+  const rawQuery = searchParams[SEARCH_PARAM];
+  const query = String(
+    (Array.isArray(rawQuery) ? rawQuery[0] : rawQuery) ?? "",
+  ).trim();
 
   const emptyList = {
     rows: [] as Awaited<ReturnType<typeof getAdminOrdersList>>["rows"],
@@ -106,12 +111,13 @@ async function OrdersPageContent({
     // queries pipeline on that socket and hang until the request dies —
     // which previously looked like an endless skeleton, then this alert.
     const result = await withDbAsync(async () => {
-      const nextCounts = await getAdminOrdersCounts();
+      const nextCounts = await getAdminOrdersCounts(query);
       if (segment === "paid") {
         const nextPaid = await getAdminOrdersList({
           segment: "paid",
           page: paidPage,
           pageSize,
+          query,
         });
         return { counts: nextCounts, paid: nextPaid, unpaid: emptyList };
       }
@@ -120,6 +126,7 @@ async function OrdersPageContent({
         segment: "pending",
         page: pendingPage,
         pageSize,
+        query,
       });
       return { counts: nextCounts, paid: emptyList, unpaid: nextUnpaid };
     });
@@ -162,6 +169,7 @@ async function OrdersPageContent({
         unpaidPageParam={PENDING_PAGE_PARAM}
         pageSizeParam={PAGE_SIZE_PARAM}
         resetPageParams={resetPageParams}
+        appliedQuery={query}
       />
     </div>
   );

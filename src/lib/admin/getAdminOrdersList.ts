@@ -15,7 +15,8 @@ import {
   products,
 } from "@/lib/supabase/schema";
 import { keytoUrl } from "@/lib/utils";
-import { desc, eq, inArray, sql, type SQL } from "drizzle-orm";
+import { and, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import { buildAdminOrderSearchTerms } from "@/lib/admin/admin-order-search";
 import {
   clampAdminOrdersPageSize,
   type AdminOrdersSegment,
@@ -66,6 +67,8 @@ export type AdminOrdersListParams = {
   segment: AdminOrdersSegment;
   page?: number;
   pageSize?: number;
+  /** Order id or internal ref (partial, THRY prefix optional). */
+  query?: string;
 };
 
 export type AdminOrdersListResult = {
@@ -92,6 +95,15 @@ function buildSegmentWhereClause(segment: AdminOrdersSegment): SQL {
   return sql`${orderStatus} <> 'cancelled' and (${orderStatus} = 'pending' or ${paymentStatus} in ('unpaid', 'pending', 'failed'))`;
 }
 
+function buildSearchWhereClause(query: string | undefined): SQL | undefined {
+  const terms = buildAdminOrderSearchTerms(query);
+  if (!terms) return undefined;
+  const idMatch = ilike(orders.id, terms.idPattern);
+  return terms.refPattern
+    ? or(idMatch, ilike(orders.internal_ref, terms.refPattern))
+    : idMatch;
+}
+
 async function countOrders(where: SQL): Promise<number> {
   const rows = await db
     .select({ count: sql<number>`count(*)::int` })
@@ -101,7 +113,7 @@ async function countOrders(where: SQL): Promise<number> {
 }
 
 /** Counts for the summary cards — one aggregate round-trip, no row payloads. */
-export async function getAdminOrdersCounts(): Promise<{
+export async function getAdminOrdersCounts(query?: string): Promise<{
   paid: number;
   pending: number;
 }> {
@@ -112,7 +124,8 @@ export async function getAdminOrdersCounts(): Promise<{
       paid: sql<number>`count(*) filter (where ${paymentStatus} in ('paid', 'success', 'captured'))::int`,
       pending: sql<number>`count(*) filter (where ${orderStatus} <> 'cancelled' and (${orderStatus} = 'pending' or ${paymentStatus} in ('unpaid', 'pending', 'failed')))::int`,
     })
-    .from(orders);
+    .from(orders)
+    .where(buildSearchWhereClause(query));
   return {
     paid: Number(rows[0]?.paid ?? 0),
     pending: Number(rows[0]?.pending ?? 0),
@@ -191,7 +204,9 @@ export async function getAdminOrdersList(
 ): Promise<AdminOrdersListResult> {
   const pageSize = clampAdminOrdersPageSize(params.pageSize);
   const requestedPage = Math.max(1, Math.round(params.page ?? 1));
-  const where = buildSegmentWhereClause(params.segment);
+  const segmentWhere = buildSegmentWhereClause(params.segment);
+  const where =
+    and(segmentWhere, buildSearchWhereClause(params.query)) ?? segmentWhere;
 
   const totalCount = await countOrders(where);
   const totalPages = Math.max(1, Math.ceil(totalCount / pageSize));

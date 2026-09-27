@@ -5,6 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { FileDown, Loader2 } from "lucide-react";
 
+import { AdminTableSearch } from "@/components/admin/AdminTableSearch";
 import AdminOrdersList from "@/features/orders/components/admin/AdminOrdersList";
 import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
 import { clampAdminOrdersPageSize } from "@/lib/admin/admin-orders-pagination";
@@ -31,6 +32,7 @@ type Props = {
   unpaidPageParam: string;
   pageSizeParam: string;
   resetPageParams: string[];
+  appliedQuery: string;
 };
 
 const ORDERS_PATH = "/admin/orders";
@@ -46,11 +48,17 @@ export function parseOrdersSegment(
   return raw === "unpaid" || raw === "pending" ? "unpaid" : "paid";
 }
 
-export function segmentHref(nextSegment: OrdersSegment, pageSize: number) {
+export function segmentHref(
+  nextSegment: OrdersSegment,
+  pageSize: number,
+  query = "",
+) {
   const params = new URLSearchParams();
   params.set("status", nextSegment);
-  // Keep shared page size; reset per-segment pages by omitting them.
+  // Keep shared page size and search; reset per-segment pages by omitting them.
   if (pageSize > 0) params.set("pageSize", String(pageSize));
+  const q = query.trim();
+  if (q) params.set("q", q);
   return `${ORDERS_PATH}?${params.toString()}`;
 }
 
@@ -63,6 +71,7 @@ export function AdminOrdersSegmentTabs({
   unpaidPageParam,
   pageSizeParam,
   resetPageParams,
+  appliedQuery,
 }: Props) {
   const router = useRouter();
   const { toast } = useToast();
@@ -71,6 +80,12 @@ export function AdminOrdersSegmentTabs({
     React.useState<OrdersSegment | null>(null);
   const [downloadingBulkPdf, setDownloadingBulkPdf] = React.useState(false);
   const [navError, setNavError] = React.useState<string | null>(null);
+  const [draftQuery, setDraftQuery] = React.useState(appliedQuery);
+  const [isSearchPending, startSearchTransition] = React.useTransition();
+
+  React.useEffect(() => {
+    setDraftQuery(appliedQuery);
+  }, [appliedQuery]);
 
   // Server `segment` prop is source of truth — do not use useSearchParams()
   // (it suspends without Suspense and kept /admin/orders on loading.tsx forever).
@@ -99,7 +114,7 @@ export function AdminOrdersSegmentTabs({
   }, [pendingSegment]);
 
   const displaySegment = pendingSegment ?? segment;
-  const isLoading = pendingSegment != null || isNavPending;
+  const isLoading = pendingSegment != null || isNavPending || isSearchPending;
   const staleList = segment === "unpaid" ? unpaid : paid;
   const active = segment === "unpaid" ? unpaid : paid;
   const listSource = isLoading ? staleList : active;
@@ -110,12 +125,13 @@ export function AdminOrdersSegmentTabs({
       if (next === segment && pendingSegment == null && !isNavPending) return;
       setNavError(null);
       setPendingSegment(next);
-      const href = segmentHref(next, pageSize);
+      const href = segmentHref(next, pageSize, appliedQuery);
       startNavTransition(() => {
         router.push(href, { scroll: false });
       });
     },
     [
+      appliedQuery,
       isNavPending,
       pageSize,
       pendingSegment,
@@ -130,9 +146,36 @@ export function AdminOrdersSegmentTabs({
     const target = pendingSegment ?? segment;
     setPendingSegment(target);
     startNavTransition(() => {
-      router.push(segmentHref(target, pageSize), { scroll: false });
+      router.push(segmentHref(target, pageSize, appliedQuery), {
+        scroll: false,
+      });
     });
-  }, [pageSize, pendingSegment, router, segment, startNavTransition]);
+  }, [
+    appliedQuery,
+    pageSize,
+    pendingSegment,
+    router,
+    segment,
+    startNavTransition,
+  ]);
+
+  const applySearch = React.useCallback(
+    (value?: string) => {
+      const next = (value ?? draftQuery).trim();
+      setDraftQuery(next);
+      startSearchTransition(() => {
+        router.push(segmentHref(segment, pageSize, next), { scroll: false });
+      });
+    },
+    [draftQuery, pageSize, router, segment, startSearchTransition],
+  );
+
+  const clearSearch = React.useCallback(() => {
+    setDraftQuery("");
+    startSearchTransition(() => {
+      router.push(segmentHref(segment, pageSize), { scroll: false });
+    });
+  }, [pageSize, router, segment, startSearchTransition]);
 
   const downloadBulkPdf = React.useCallback(async () => {
     if (downloadingBulkPdf || paid.rows.length === 0) return;
@@ -163,7 +206,7 @@ export function AdminOrdersSegmentTabs({
         aria-label="Order payment status"
       >
         <Link
-          href={segmentHref("paid", pageSize)}
+          href={segmentHref("paid", pageSize, appliedQuery)}
           replace
           scroll={false}
           prefetch
@@ -201,7 +244,7 @@ export function AdminOrdersSegmentTabs({
         </Link>
 
         <Link
-          href={segmentHref("unpaid", pageSize)}
+          href={segmentHref("unpaid", pageSize, appliedQuery)}
           replace
           scroll={false}
           prefetch
@@ -238,6 +281,20 @@ export function AdminOrdersSegmentTabs({
           </p>
         </Link>
       </div>
+
+      <AdminTableSearch
+        entityLabel="orders"
+        placeholder="Order ID or ref (THRY26090153)"
+        emptyResultHint="try the other tab or a shorter ID"
+        layout="compact"
+        appliedQuery={appliedQuery}
+        draftQuery={draftQuery}
+        onDraftQueryChange={setDraftQuery}
+        onApplySearch={applySearch}
+        onClearSearch={clearSearch}
+        filteredCount={active.totalCount}
+        totalCount={counts.paid + counts.pending}
+      />
 
       <div className="flex flex-wrap items-center justify-between gap-2">
         <p className="flex items-center gap-2 text-sm text-muted-foreground">
@@ -300,7 +357,6 @@ export function AdminOrdersSegmentTabs({
         </div>
       ) : null}
 
-
       <div
         className={cn(isLoading && "pointer-events-none opacity-60")}
         aria-busy={isLoading}
@@ -317,9 +373,11 @@ export function AdminOrdersSegmentTabs({
           resetPageParams={resetPageParams}
           enablePdf={segment === "paid" && !isLoading}
           emptyMessage={
-            segment === "unpaid"
-              ? "No unpaid orders right now."
-              : "No paid orders yet."
+            appliedQuery
+              ? `No ${segment === "unpaid" ? "unpaid" : "paid"} orders match "${appliedQuery}".`
+              : segment === "unpaid"
+                ? "No unpaid orders right now."
+                : "No paid orders yet."
           }
         />
       </div>
