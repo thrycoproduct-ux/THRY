@@ -19,6 +19,7 @@ import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
 import { AdminOrderLinePackingMeta } from "@/features/orders/components/admin/AdminOrderLinePackingMeta";
 import { AdminCheckoutOutcomeBadge } from "@/features/orders/components/admin/AdminCheckoutOutcomeBadge";
 import { downloadAdminOrderPackingSlipPdf } from "@/lib/pdf/download-packing-slip.client";
+import { displayInternalOrderRef } from "@/lib/orders/internal-order-ref";
 import { cn, formatPrice } from "@/lib/utils";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 
@@ -132,7 +133,20 @@ const AdminOrderRow = React.memo(function AdminOrderRow({
           className="min-w-0 flex-1 space-y-3 outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2 rounded-md"
         >
           <div className="flex flex-wrap items-center gap-2">
-            <p className="font-semibold">#{order.id}</p>
+            {order.internalRef ? (
+              <p className="font-semibold tabular-nums">
+                Ref #{displayInternalOrderRef(order.internalRef)}
+              </p>
+            ) : null}
+            <p
+              className={
+                order.internalRef
+                  ? "text-xs text-muted-foreground"
+                  : "font-semibold"
+              }
+            >
+              #{order.id}
+            </p>
             <Badge variant="outline" className="capitalize">
               {order.orderStatus ?? "pending"}
             </Badge>
@@ -296,7 +310,10 @@ export function AdminOrdersList({
   const rangeEnd = Math.min(start + orders.length, totalCount);
 
   return (
-    <div className={cn("space-y-3", isPaging && "opacity-70")} aria-busy={isPaging}>
+    <div
+      className={cn("space-y-3", isPaging && "opacity-70")}
+      aria-busy={isPaging}
+    >
       {orders.map((order) => (
         <AdminOrderRow key={order.id} order={order} enablePdf={enablePdf} />
       ))}

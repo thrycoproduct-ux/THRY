@@ -4,6 +4,7 @@ import {
   buildPackingSlipRecipientLines,
   buildPackingSlipShopFooter,
   formatPackingSlipDate,
+  formatPackingSlipInternalRef,
   formatPackingSlipOrderHeading,
   formatPackingSlipQuantity,
   resolvePackingSlipShopAddressLines,
@@ -163,6 +164,20 @@ function drawHeader(doc: Doc, order: PackingSlipOrder, y: number): number {
   doc.setFont("helvetica", "normal");
   doc.setFontSize(10);
   const rightX = A4_W - MARGIN;
+  const internalLine = formatPackingSlipInternalRef(order.internalRef);
+  if (internalLine) {
+    doc.setFont("helvetica", "bold");
+    doc.text(internalLine, rightX, y, { align: "right" });
+    doc.setFont("helvetica", "normal");
+    doc.text(formatPackingSlipOrderHeading(order.id), rightX, y + 5, {
+      align: "right",
+    });
+    doc.text(formatPackingSlipDate(order.createdAt), rightX, y + 11, {
+      align: "right",
+    });
+    return y + 22;
+  }
+
   doc.text(formatPackingSlipOrderHeading(order.id), rightX, y, {
     align: "right",
   });

@@ -393,6 +393,8 @@ export const orders = pgTable(
       mode: "string",
     }),
     payment_meta: jsonRecordNullable("payment_meta"),
+    /** Human invoice-style ref YYMM#### — assigned on first paid transition. */
+    internal_ref: text("internal_ref"),
     createdAt: timestamp("created_at", {
       withTimezone: true,
     })

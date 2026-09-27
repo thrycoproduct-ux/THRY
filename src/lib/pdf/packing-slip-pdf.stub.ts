@@ -8,6 +8,7 @@ export type PackingSlipItem = {
 
 export type PackingSlipOrder = {
   id: string;
+  internalRef?: string | null;
   createdAt: string;
   customerName: string | null;
   customerMobile: string | null;

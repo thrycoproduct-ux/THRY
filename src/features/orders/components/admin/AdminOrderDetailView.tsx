@@ -28,6 +28,7 @@ import {
 import { useToast } from "@/components/ui/use-toast";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
 import { downloadAdminOrderPackingSlipPdf } from "@/lib/pdf/download-packing-slip.client";
+import { displayInternalOrderRef } from "@/lib/orders/internal-order-ref";
 import { formatPrice } from "@/lib/utils";
 import type { OrderPaymentBreakdown } from "@/lib/orders/order-payment-breakdown";
 import { parseTrackingNumberFromBarcodeText } from "@/lib/dispatch/barcode-parsing";
@@ -71,6 +72,7 @@ type OrderItemView = {
 type Props = {
   order: {
     id: string;
+    internalRef: string | null;
     createdAt: string;
     amount: number;
     currency: string;
@@ -363,6 +365,7 @@ export function AdminOrderDetailView({
     try {
       await downloadAdminOrderPackingSlipPdf({
         id: order.id,
+        internalRef: order.internalRef,
         createdAt: order.createdAt,
         customerName: order.customerName,
         customerMobile: order.customerMobile,
@@ -1054,6 +1057,14 @@ export function AdminOrderDetailView({
                 <span className="text-muted-foreground">Order ID:</span>{" "}
                 {order.id}
               </p>
+              {order.internalRef ? (
+                <p>
+                  <span className="text-muted-foreground">Internal Ref:</span>{" "}
+                  <span className="font-semibold tabular-nums">
+                    {displayInternalOrderRef(order.internalRef)}
+                  </span>
+                </p>
+              ) : null}
               <p>
                 <span className="text-muted-foreground">Placed:</span>{" "}
                 {formatOrderDateTimeIst(order.createdAt)}

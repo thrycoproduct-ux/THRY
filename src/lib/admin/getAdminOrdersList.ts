@@ -42,6 +42,7 @@ export type AdminOrderLineView = {
 
 export type AdminOrderListView = {
   id: string;
+  internalRef: string | null;
   createdAt: string;
   amount: number;
   orderStatus: string | null;
@@ -200,6 +201,7 @@ export async function getAdminOrdersList(
   const orderRows = await db
     .select({
       id: orders.id,
+      internalRef: orders.internal_ref,
       createdAt: orders.createdAt,
       amount: orders.amount,
       orderStatus: orders.order_status,
@@ -243,6 +245,7 @@ export async function getAdminOrdersList(
 
     return {
       id: row.id,
+      internalRef: row.internalRef ?? null,
       createdAt: new Date(row.createdAt).toISOString(),
       amount: Number(row.amount),
       orderStatus: row.orderStatus,

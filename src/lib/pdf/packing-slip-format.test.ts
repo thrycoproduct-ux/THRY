@@ -2,6 +2,7 @@ import {
   PACKING_SLIP_BRAND,
   PACKING_SLIP_THANKS,
   formatPackingSlipDate,
+  formatPackingSlipInternalRef,
   formatPackingSlipOrderHeading,
   formatPackingSlipQuantity,
   buildPackingSlipRecipientLines,
@@ -13,6 +14,11 @@ describe("packing slip format (THRY CO. reference)", () => {
   it("prints quantity as 1 of 1", () => {
     expect(formatPackingSlipQuantity(1)).toBe("1 of 1");
     expect(formatPackingSlipQuantity(3)).toBe("3 of 3");
+  });
+
+  it("prints the internal ref line with the THRY prefix", () => {
+    expect(formatPackingSlipInternalRef("26090001")).toBe("Ref #THRY26090001");
+    expect(formatPackingSlipInternalRef(null)).toBeNull();
   });
 
   it("prints Order # heading", () => {

@@ -3,6 +3,7 @@ import type { AdminOrderListView } from "@/lib/admin/getAdminOrdersList";
 type PdfOrderInput = Pick<
   AdminOrderListView,
   | "id"
+  | "internalRef"
   | "createdAt"
   | "customerName"
   | "customerMobile"

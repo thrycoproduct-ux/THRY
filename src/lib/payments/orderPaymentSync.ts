@@ -15,6 +15,7 @@ import {
 } from "@/lib/payments/razorpay";
 import { paiseToRupees } from "@/lib/payments/razorpay-standards";
 import { fulfillPaidOrderInventory } from "@/lib/orders/inventory-fulfillment";
+import { assignInternalOrderRefIfNeeded } from "@/lib/orders/assign-internal-order-ref";
 import { appendCheckoutTelemetryEvent } from "@/lib/checkout/checkout-telemetry";
 import { mergePaymentMeta, readPaymentMeta } from "@/lib/orders/payment-meta";
 import { detectPaidAmountMismatch } from "@/lib/payments/amount-check";
@@ -33,6 +34,7 @@ type SyncInput =
 /**
  * All post-payment side effects, each individually idempotent (guarded by
  * flags on the order row / payment_meta):
+ * - Internal ref (THRY…)    -> orders.internal_ref
  * - WhatsApp confirmations  -> whatsapp_notified / whatsapp_seller_notified
  * - Cart clear              -> plain DELETE, naturally idempotent
  * - Inventory fulfillment   -> payment_meta.inventoryFulfilled
@@ -46,6 +48,13 @@ type SyncInput =
  */
 async function runPaidOrderSideEffects(order: SelectOrders) {
   const failures: string[] = [];
+
+  try {
+    await assignInternalOrderRefIfNeeded(order.id);
+  } catch (error) {
+    console.error("[payments] internal ref assign failed:", error);
+    failures.push("internal_ref");
+  }
 
   try {
     const wa = await notifyOrderWhatsAppTargets(order);
@@ -475,9 +484,7 @@ export async function syncRazorpayOrderPayment(
   const isFailed = paymentStatus === "failed";
   const razorpayFailureReason = isFailed
     ? String(
-        rzpPayment?.error_description ??
-          rzpPayment?.error?.description ??
-          "",
+        rzpPayment?.error_description ?? rzpPayment?.error?.description ?? "",
       ).trim() || null
     : null;
   const razorpayFailureCode = isFailed

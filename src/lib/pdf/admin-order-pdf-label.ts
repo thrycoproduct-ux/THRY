@@ -5,6 +5,7 @@ export function adminOrderToPackingSlip(
   order: Pick<
     AdminOrderListView,
     | "id"
+    | "internalRef"
     | "createdAt"
     | "customerName"
     | "customerMobile"
@@ -14,6 +15,7 @@ export function adminOrderToPackingSlip(
 ): PackingSlipOrder {
   return {
     id: order.id,
+    internalRef: order.internalRef ?? null,
     createdAt: order.createdAt,
     customerName: order.customerName,
     customerMobile: order.customerMobile,
