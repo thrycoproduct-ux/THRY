@@ -13,10 +13,16 @@ import {
 import db from "@/lib/supabase/db";
 import { orders } from "@/lib/supabase/schema";
 import { syncRazorpayOrderPayment } from "@/lib/payments/orderPaymentSync";
+import { isRazorpayRecoveryDue } from "@/lib/payments/razorpay-recovery-schedule";
 import { readPaymentMeta } from "@/lib/orders/payment-meta";
+
+/** Unpaid orders loaded per run before the age-based due filter (cheap DB read). */
+const RECOVERY_CANDIDATE_POOL = 500;
 
 export type RecoverUnpaidRazorpayResult = {
   scanned: number;
+  /** Candidates skipped this run because their age-based re-check is not due yet. */
+  notDue: number;
   syncedPaid: number;
   stillUnpaid: number;
   errors: Array<{ orderId: string; message: string }>;
@@ -34,16 +40,18 @@ export async function recoverUnpaidRazorpayOrders(options?: {
   lookbackDays?: number;
   limit?: number;
   orderIds?: string[];
+  nowMs?: number;
 }): Promise<RecoverUnpaidRazorpayResult> {
   const lookbackDays = Math.max(1, Math.min(options?.lookbackDays ?? 14, 60));
   const limit = Math.max(1, Math.min(options?.limit ?? 40, 100));
-  const since = new Date(Date.now() - lookbackDays * 24 * 60 * 60 * 1000);
+  const nowMs = options?.nowMs ?? Date.now();
+  const since = new Date(nowMs - lookbackDays * 24 * 60 * 60 * 1000);
 
   const specificIds = (options?.orderIds ?? [])
     .map((id) => String(id ?? "").trim())
     .filter(Boolean);
 
-  const candidates =
+  const pool =
     specificIds.length > 0
       ? await db.query.orders.findMany({
           where: and(
@@ -68,11 +76,24 @@ export async function recoverUnpaidRazorpayOrders(options?: {
             ),
           ),
           orderBy: [desc(orders.createdAt)],
-          limit,
+          limit: RECOVERY_CANDIDATE_POOL,
         });
+
+  const due =
+    specificIds.length > 0
+      ? pool
+      : pool.filter((order) =>
+          isRazorpayRecoveryDue({
+            orderId: order.id,
+            createdAt: order.createdAt,
+            nowMs,
+          }),
+        );
+  const candidates = due.slice(0, limit);
 
   const result: RecoverUnpaidRazorpayResult = {
     scanned: candidates.length,
+    notDue: pool.length - due.length,
     syncedPaid: 0,
     stillUnpaid: 0,
     errors: [],
@@ -140,6 +161,8 @@ export async function repairPaidRazorpaySideEffects(options?: {
         like(orders.payment_reference, "order_%"),
       ),
       sql`coalesce((${orders.payment_meta}->>'emailNotified')::text, 'false') <> 'true'`,
+      // Confirmation email is sent only to orders.email; without it this repair can never finish.
+      sql`coalesce(trim(${orders.email}), '') <> ''`,
     ),
     orderBy: [desc(orders.createdAt)],
     limit,

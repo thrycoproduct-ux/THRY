@@ -15,3 +15,24 @@ export function mergePaymentMeta(
 ): Record<string, unknown> {
   return { ...readPaymentMeta(existing), ...patch };
 }
+
+function stableJson(value: unknown): string {
+  return JSON.stringify(value, (_key, nested: unknown) => {
+    if (!nested || typeof nested !== "object" || Array.isArray(nested)) {
+      return nested;
+    }
+    return Object.fromEntries(
+      Object.entries(nested as Record<string, unknown>).sort(([a], [b]) =>
+        a < b ? -1 : a > b ? 1 : 0,
+      ),
+    );
+  });
+}
+
+/** JSON-equality (key order ignored, undefined dropped) — matches what jsonb would store. */
+export function isSamePaymentMeta(
+  a: Record<string, unknown>,
+  b: Record<string, unknown>,
+): boolean {
+  return stableJson(a) === stableJson(b);
+}

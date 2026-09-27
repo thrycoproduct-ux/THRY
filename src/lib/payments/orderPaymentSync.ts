@@ -17,7 +17,11 @@ import { paiseToRupees } from "@/lib/payments/razorpay-standards";
 import { fulfillPaidOrderInventory } from "@/lib/orders/inventory-fulfillment";
 import { assignInternalOrderRefIfNeeded } from "@/lib/orders/assign-internal-order-ref";
 import { appendCheckoutTelemetryEvent } from "@/lib/checkout/checkout-telemetry";
-import { mergePaymentMeta, readPaymentMeta } from "@/lib/orders/payment-meta";
+import {
+  isSamePaymentMeta,
+  mergePaymentMeta,
+  readPaymentMeta,
+} from "@/lib/orders/payment-meta";
 import { detectPaidAmountMismatch } from "@/lib/payments/amount-check";
 import {
   canReleaseOrphanUnpaidHold,
@@ -510,34 +514,59 @@ export async function syncRazorpayOrderPayment(
     }
   }
 
+  const nextFields = {
+    order_status: isPaid ? "PREPARING" : isFailed ? "canceled" : "pending",
+    payment_status: isPaid ? ("paid" as const) : ("unpaid" as const),
+    payment_method: "razorpay",
+    payment_provider: "razorpay",
+    payment_reference: razorpayOrderId,
+  };
+  const nextMeta = mergePaymentMeta(existingMeta, {
+    razorpayOrderId,
+    razorpayPaymentId: resolvedPaymentId || null,
+    razorpayOrderStatus: orderStatus,
+    razorpayPaymentStatus: paymentStatus || null,
+    razorpayMethod: rzpPayment?.method ?? null,
+    ...(razorpayFailureReason
+      ? { razorpayFailureReason, razorpayFailureCode }
+      : {}),
+    ...(amountMismatch && !existingMeta.amountMismatch
+      ? {
+          amountMismatch: {
+            expected: amountCheck.expected,
+            gatewayReported: amountCheck.actual,
+            detectedAt: new Date().toISOString(),
+          },
+        }
+      : {}),
+  });
+
+  // Recovery polls re-check abandoned orders repeatedly; skip the write (and
+  // repeat failure telemetry) when Razorpay reports nothing new. Legacy
+  // string-encoded payment_meta still gets one normalizing write.
+  const unchanged =
+    !isPaid &&
+    currentOrder.payment_meta !== null &&
+    typeof currentOrder.payment_meta === "object" &&
+    currentOrder.order_status === nextFields.order_status &&
+    currentOrder.payment_status === nextFields.payment_status &&
+    currentOrder.payment_method === nextFields.payment_method &&
+    currentOrder.payment_provider === nextFields.payment_provider &&
+    currentOrder.payment_reference === nextFields.payment_reference &&
+    isSamePaymentMeta(existingMeta, nextMeta);
+
+  if (unchanged) {
+    await maybeReleaseExpiredReservation(currentOrder.id);
+    return {
+      orderId: currentOrder.id,
+      state: orderStatus || paymentStatus,
+      isPaid: false,
+    };
+  }
+
   const [updated] = await db
     .update(orders)
-    .set({
-      order_status: isPaid ? "PREPARING" : isFailed ? "canceled" : "pending",
-      payment_status: isPaid ? "paid" : "unpaid",
-      payment_method: "razorpay",
-      payment_provider: "razorpay",
-      payment_reference: razorpayOrderId,
-      payment_meta: mergePaymentMeta(existingMeta, {
-        razorpayOrderId,
-        razorpayPaymentId: resolvedPaymentId || null,
-        razorpayOrderStatus: orderStatus,
-        razorpayPaymentStatus: paymentStatus || null,
-        razorpayMethod: rzpPayment?.method ?? null,
-        ...(razorpayFailureReason
-          ? { razorpayFailureReason, razorpayFailureCode }
-          : {}),
-        ...(amountMismatch
-          ? {
-              amountMismatch: {
-                expected: amountCheck.expected,
-                gatewayReported: amountCheck.actual,
-                detectedAt: new Date().toISOString(),
-              },
-            }
-          : {}),
-      }),
-    })
+    .set({ ...nextFields, payment_meta: nextMeta })
     .where(
       and(eq(orders.id, currentOrder.id), ne(orders.payment_status, "paid")),
     )

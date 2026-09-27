@@ -1,4 +1,8 @@
-import { mergePaymentMeta, readPaymentMeta } from "./payment-meta";
+import {
+  isSamePaymentMeta,
+  mergePaymentMeta,
+  readPaymentMeta,
+} from "./payment-meta";
 
 describe("payment meta helpers", () => {
   it("merges without dropping existing reservation fields", () => {
@@ -66,5 +70,54 @@ describe("payment meta helpers", () => {
     expect(merged.stockReservationLines).toEqual([
       { productId: "p1", quantity: 1 },
     ]);
+  });
+
+  describe("isSamePaymentMeta", () => {
+    const existing = {
+      razorpayOrderId: "order_1",
+      razorpayPaymentStatus: null,
+      stockReservationLines: [{ productId: "p1", quantity: 1 }],
+      linePricing: { p1: { unitPrice: 300, mrp: 400 } },
+    };
+
+    it("is true when a re-merge changes nothing", () => {
+      const merged = mergePaymentMeta(existing, {
+        razorpayOrderId: "order_1",
+        razorpayPaymentStatus: null,
+      });
+      expect(isSamePaymentMeta(existing, merged)).toBe(true);
+    });
+
+    it("ignores key order, including nested objects", () => {
+      expect(
+        isSamePaymentMeta(existing, {
+          linePricing: { p1: { mrp: 400, unitPrice: 300 } },
+          stockReservationLines: [{ quantity: 1, productId: "p1" }],
+          razorpayPaymentStatus: null,
+          razorpayOrderId: "order_1",
+        }),
+      ).toBe(true);
+    });
+
+    it("detects a new key, even when null", () => {
+      expect(
+        isSamePaymentMeta(existing, { ...existing, razorpayMethod: null }),
+      ).toBe(false);
+    });
+
+    it("detects a changed value", () => {
+      expect(
+        isSamePaymentMeta(existing, {
+          ...existing,
+          razorpayPaymentStatus: "failed",
+        }),
+      ).toBe(false);
+    });
+
+    it("keeps array order significant", () => {
+      expect(isSamePaymentMeta({ lines: [1, 2] }, { lines: [2, 1] })).toBe(
+        false,
+      );
+    });
   });
 });
