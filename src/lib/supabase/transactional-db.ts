@@ -9,10 +9,11 @@ export type TransactionalDatabase = PostgresJsDatabase<typeof schema>;
 
 const connectionString = resolveSessionDatabaseUrl(env.DATABASE_URL);
 
+// No `max_pipeline: 0`: postgres.js cannot BEGIN with it (every transaction
+// fails with "setting 'onclose'" / "reading 'queue'").
 const SESSION_CLIENT_OPTIONS = {
   prepare: false,
   max: 1,
-  max_pipeline: 0,
   idle_timeout: 5,
   connect_timeout: 10,
   max_lifetime: 20,
