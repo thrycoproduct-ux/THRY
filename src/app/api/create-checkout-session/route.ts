@@ -401,6 +401,7 @@ export async function POST(request: Request) {
     );
 
     const basePaymentMeta = {
+      stockDeductOnPayment: !reserveStock,
       subtotalAmount,
       discountAmount,
       discountPercentage,

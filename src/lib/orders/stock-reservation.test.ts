@@ -9,9 +9,31 @@ import {
 } from "./stock-reservation-helpers";
 
 describe("stock reservation helpers", () => {
-  it("reserves stock only for production checkout", () => {
-    expect(shouldReserveStockAtCheckout("production")).toBe(true);
+  it("never holds stock at checkout (deducted on payment)", () => {
+    expect(shouldReserveStockAtCheckout("production")).toBe(false);
     expect(shouldReserveStockAtCheckout("sandbox")).toBe(false);
+  });
+
+  it("never restocks orders that deduct on payment", () => {
+    const now = Date.parse("2026-07-07T12:00:00.000Z");
+    const meta = {
+      paymentEnvironment: "production",
+      stockDeductOnPayment: true,
+    };
+    for (const reason of [
+      "checkout_failed",
+      "payment_failed",
+      "reservation_expired",
+    ]) {
+      expect(
+        canReleaseOrphanUnpaidHold(
+          meta,
+          "2026-07-07T10:00:00.000Z",
+          reason,
+          now,
+        ),
+      ).toBe(false);
+    }
   });
 
   it("builds a reservation expiry in the future", () => {

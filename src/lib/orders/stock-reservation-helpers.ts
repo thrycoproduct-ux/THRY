@@ -17,10 +17,11 @@ export type StockReservationLine = {
   selections?: Record<string, string>;
 };
 
+/** Stock is deducted only when payment succeeds; checkout never holds it. */
 export function shouldReserveStockAtCheckout(
-  paymentEnvironment: "sandbox" | "production",
+  _paymentEnvironment: "sandbox" | "production",
 ): boolean {
-  return paymentEnvironment === "production";
+  return false;
 }
 
 export function buildReservationExpiryIso(
@@ -107,6 +108,8 @@ export function canReleaseOrphanUnpaidHold(
   if (meta.stockReleased === true) return false;
   if (meta.inventoryFulfilled === true) return false;
   if (meta.stockReservationConsumed === true) return false;
+  // Never held stock, so there is nothing to give back.
+  if (meta.stockDeductOnPayment === true) return false;
   if (String(meta.paymentEnvironment ?? "").trim() !== "production") {
     return false;
   }
