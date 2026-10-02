@@ -70,6 +70,7 @@ import {
   normalizeCartOptionSelections,
 } from "../cart-line";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
+import { productIdsFromKey, productIdsKey } from "../lib/product-ids-key";
 import { dbCartRowsToCartItems } from "../cart-storage-sync";
 import { clearAuthCartForUser, deleteAuthCartRow } from "../cart-db-delete";
 import { markAuthCartCleared } from "../cart-cleared-marker";
@@ -191,9 +192,9 @@ function UserCartSection({
 
   const missingProductIds = useMemo(
     () =>
-      [...new Set(dbCartRows.map((row) => row.product_id).filter(Boolean))].filter(
-        (id) => !graphqlProductIds.has(id),
-      ),
+      [
+        ...new Set(dbCartRows.map((row) => row.product_id).filter(Boolean)),
+      ].filter((id) => !graphqlProductIds.has(id)),
     [dbCartRows, graphqlProductIds],
   );
 
@@ -578,25 +579,28 @@ function UserCartSection({
     setPromoInput(claimed);
   }, [activeOfferCodes, appliedPromoCode, welcomeEligible]);
 
+  const cartProductIdsKey = productIdsKey(cartProductIds);
+
   useEffect(() => {
     let active = true;
-    const productIds = cartProductIds;
+    const productIds = productIdsFromKey(cartProductIdsKey);
     if (productIds.length === 0) {
       setSizeConfigsByProductId({});
       return;
     }
 
-    const currentKey = productIds.slice().sort().join(",");
-    if (skippedSizePrefetchRef.current && currentKey === prefetchedIdsKey) {
+    if (
+      skippedSizePrefetchRef.current &&
+      cartProductIdsKey === prefetchedIdsKey
+    ) {
       skippedSizePrefetchRef.current = false;
       return;
     }
 
     const loadSizeConfigs = async () => {
       try {
-        const sortedIds = [...productIds].sort();
         const res = await fetchWithTimeout(
-          `/api/products/size-config?productIds=${encodeURIComponent(sortedIds.join(","))}`,
+          `/api/products/size-config?productIds=${encodeURIComponent(cartProductIdsKey)}`,
         );
         if (!active) return;
         if (!res.ok) {
@@ -627,7 +631,7 @@ function UserCartSection({
     return () => {
       active = false;
     };
-  }, [cartProductIds, prefetchedIdsKey]);
+  }, [cartProductIdsKey, prefetchedIdsKey]);
 
   // Remove legacy bare/default lines for products that require options.
   useEffect(() => {

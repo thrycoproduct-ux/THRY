@@ -34,6 +34,7 @@ import useCartStore, {
 } from "../useCartStore";
 import { shouldPurgeBareCartLine } from "../cart-options-guard";
 import { guestCartProductIds } from "@/lib/storefront/guest-cart-cookie";
+import { productIdsFromKey, productIdsKey } from "../lib/product-ids-key";
 import { readClientCartCookie } from "../read-client-cart-cookie";
 import { cartHasLines } from "../guest-cart-merge";
 import { useBulkOrderGuardConfig } from "@/providers/BulkOrderGuardProvider";
@@ -339,24 +340,28 @@ function GuestCartSection({
       );
   }, [cartItems, productsById]);
 
+  const cartProductIdsKey = productIdsKey(cartProductIds);
+
   useEffect(() => {
     let active = true;
-    if (cartProductIds.length === 0) {
+    const ids = productIdsFromKey(cartProductIdsKey);
+    if (ids.length === 0) {
       setSizeConfigsByProductId({});
       return;
     }
 
-    const currentKey = cartProductIds.slice().sort().join(",");
-    if (skippedSizePrefetchRef.current && currentKey === prefetchedIdsKey) {
+    if (
+      skippedSizePrefetchRef.current &&
+      cartProductIdsKey === prefetchedIdsKey
+    ) {
       skippedSizePrefetchRef.current = false;
       return;
     }
 
     const loadSizeConfigs = async () => {
       try {
-        const sortedIds = [...cartProductIds].sort();
         const res = await fetchWithTimeout(
-          `/api/products/size-config?productIds=${encodeURIComponent(sortedIds.join(","))}`,
+          `/api/products/size-config?productIds=${encodeURIComponent(cartProductIdsKey)}`,
         );
         if (!active) return;
         if (!res.ok) {
@@ -364,7 +369,7 @@ function GuestCartSection({
           return;
         }
         const payload = (await res.json()) as Record<string, CartSizeConfig>;
-        const entries = cartProductIds.map(
+        const entries = ids.map(
           (productId) =>
             [
               productId,
@@ -387,7 +392,7 @@ function GuestCartSection({
     return () => {
       active = false;
     };
-  }, [cartProductIds]);
+  }, [cartProductIdsKey, prefetchedIdsKey]);
 
   // Remove legacy bare/default guest lines for products that require options.
   useEffect(() => {
