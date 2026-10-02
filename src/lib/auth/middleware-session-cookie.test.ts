@@ -1,5 +1,8 @@
 import type { NextRequest } from "next/server";
-import { classifyAuthCookieState } from "./middleware-session-cookie";
+import {
+  classifyAuthCookieState,
+  classifyAuthCookies,
+} from "./middleware-session-cookie";
 
 function makeRequest(cookies: Record<string, string>): NextRequest {
   return {
@@ -79,6 +82,43 @@ describe("classifyAuthCookieState", () => {
           }),
         }),
       ),
+    ).toBe("refreshable");
+  });
+});
+
+describe("classifyAuthCookies", () => {
+  it("returns absent for a signed-out visitor with only unrelated cookies", () => {
+    expect(classifyAuthCookies([{ name: "cart", value: "{}" }])).toBe("absent");
+  });
+
+  it("returns invalid for an expired token without a refresh token", () => {
+    const token = makeJwt({
+      sub: "user-123",
+      exp: Math.floor(Date.now() / 1000) - 3600,
+    });
+    expect(
+      classifyAuthCookies([
+        {
+          name: "sb-test-auth-token",
+          value: encodeSession({ access_token: token }),
+        },
+      ]),
+    ).toBe("invalid");
+  });
+
+  it("reassembles chunked session cookies", () => {
+    const value = encodeSession({
+      access_token: makeJwt({
+        sub: "user-123",
+        exp: Math.floor(Date.now() / 1000) + 3600,
+      }),
+    });
+    const mid = Math.floor(value.length / 2);
+    expect(
+      classifyAuthCookies([
+        { name: "sb-test-auth-token.1", value: value.slice(mid) },
+        { name: "sb-test-auth-token.0", value: value.slice(0, mid) },
+      ]),
     ).toBe("refreshable");
   });
 });

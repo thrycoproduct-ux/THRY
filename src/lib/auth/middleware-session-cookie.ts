@@ -14,10 +14,6 @@ function isSupabaseAuthCookieName(cookie: { name: string }): boolean {
 
 type CookieLike = { name: string; value: string };
 
-function getSupabaseAuthCookieValue(request: NextRequest): string | null {
-  return readSupabaseAuthCookieValue(request.cookies.getAll());
-}
-
 function readSupabaseAuthCookieValue(all: CookieLike[]): string | null {
   const cookies = all.filter(isSupabaseAuthCookieName);
   if (cookies.length === 0) return null;
@@ -119,11 +115,15 @@ function isAccessTokenExpired(payload: Record<string, unknown>): boolean {
 
 /** Skip Supabase /auth/v1/user when the browser cookie cannot succeed. */
 export function classifyAuthCookieState(request: NextRequest): AuthCookieState {
-  if (!hasSupabaseAuthCookie(request)) {
+  return classifyAuthCookies(request.cookies.getAll());
+}
+
+export function classifyAuthCookies(all: CookieLike[]): AuthCookieState {
+  if (!all.some(isSupabaseAuthCookieName)) {
     return "absent";
   }
 
-  const raw = getSupabaseAuthCookieValue(request);
+  const raw = readSupabaseAuthCookieValue(all);
   if (!raw) return "invalid";
 
   const session = parseSupabaseSessionCookieValue(raw);
