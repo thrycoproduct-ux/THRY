@@ -12,8 +12,14 @@ function isSupabaseAuthCookieName(cookie: { name: string }): boolean {
   return cookie.name.startsWith("sb-") && cookie.name.includes("-auth-token");
 }
 
+type CookieLike = { name: string; value: string };
+
 function getSupabaseAuthCookieValue(request: NextRequest): string | null {
-  const cookies = request.cookies.getAll().filter(isSupabaseAuthCookieName);
+  return readSupabaseAuthCookieValue(request.cookies.getAll());
+}
+
+function readSupabaseAuthCookieValue(all: CookieLike[]): string | null {
+  const cookies = all.filter(isSupabaseAuthCookieName);
   if (cookies.length === 0) return null;
 
   const unchunked = cookies.find(
@@ -78,6 +84,26 @@ function decodeJwtPayload(token: string): Record<string, unknown> | null {
   } catch {
     return null;
   }
+}
+
+/** Access token + cached user from the Supabase session cookie (unverified). */
+export function readSupabaseSessionCookie(all: CookieLike[]): {
+  accessToken: string;
+  user: Record<string, unknown> | null;
+} | null {
+  const raw = readSupabaseAuthCookieValue(all);
+  if (!raw) return null;
+  const session = parseSupabaseSessionCookieValue(raw);
+  const accessToken = session?.access_token;
+  if (typeof accessToken !== "string" || accessToken.length === 0) return null;
+  const user = session?.user;
+  return {
+    accessToken,
+    user:
+      user && typeof user === "object"
+        ? (user as Record<string, unknown>)
+        : null,
+  };
 }
 
 function hasUsableRefreshToken(session: Record<string, unknown>): boolean {

@@ -1,3 +1,4 @@
+import { getLocallyVerifiedUser } from "@/lib/auth/local-jwt";
 import createServerClient from "@/lib/supabase/server";
 import { createServiceRoleClient } from "@/lib/supabase/service";
 import type { User } from "@supabase/supabase-js";
@@ -16,6 +17,9 @@ function isDynamicServerUsageError(err: unknown): boolean {
 export const getSessionUser = cache(async (): Promise<User | null> => {
   try {
     const cookieStore = await cookies();
+    const localUser = await getLocallyVerifiedUser(cookieStore.getAll());
+    if (localUser) return localUser;
+
     const supabase = createServerClient({ cookieStore });
     const { data, error } = await supabase.auth.getUser();
     if (error) {
