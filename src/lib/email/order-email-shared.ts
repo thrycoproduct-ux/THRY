@@ -7,6 +7,7 @@ import {
   resolveOrderLineProductCode,
   resolveOrderLineProductName,
 } from "@/lib/orders/order-line-display";
+import { displayInternalOrderRef } from "@/lib/orders/internal-order-ref";
 import { readPaymentMeta } from "@/lib/orders/payment-meta";
 import type { SelectOrders } from "@/lib/supabase/schema";
 import { formatInr, keytoUrl } from "@/lib/utils";
@@ -145,16 +146,42 @@ export function buildEmailLayoutHtml(params: {
 </html>`;
 }
 
+/** Customer-facing order number: THRY ref when assigned, else `#<orderId>`. */
+export function formatEmailOrderNumber(
+  orderId: string,
+  internalRef?: string | null,
+): string {
+  return displayInternalOrderRef(internalRef) ?? `#${orderId}`;
+}
+
+/** Plain-text order number lines (THRY ref first, long id second). */
+export function buildOrderNumberPlainTextLines(
+  orderId: string,
+  internalRef?: string | null,
+): string[] {
+  const ref = displayInternalOrderRef(internalRef);
+  return ref
+    ? [`Order No: ${ref}`, `Order ID: #${orderId}`]
+    : [`Order #${orderId}`];
+}
+
 export function buildOrderMetaBlockHtml(params: {
   orderId: string;
+  internalRef?: string | null;
   placedAt: string | Date;
   paymentMethod?: string | null;
   customerPhone?: string | null;
 }): string {
-  const lines = [
-    `<strong>Order #${escapeHtml(params.orderId)}</strong>`,
+  const ref = displayInternalOrderRef(params.internalRef);
+  const lines = ref
+    ? [
+        `<strong style="font-size:16px;">Order No: ${escapeHtml(ref)}</strong>`,
+        `<span style="color:#555;">Order ID: #${escapeHtml(params.orderId)}</span>`,
+      ]
+    : [`<strong>Order #${escapeHtml(params.orderId)}</strong>`];
+  lines.push(
     `<span style="color:#555;">Placed ${escapeHtml(formatOrderDateTimeIst(params.placedAt))}</span>`,
-  ];
+  );
   if (params.paymentMethod) {
     lines.push(
       `<span style="color:#555;">Payment: ${escapeHtml(params.paymentMethod)}</span>`,

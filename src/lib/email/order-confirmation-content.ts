@@ -7,7 +7,9 @@ import {
   buildLineItemsPlainText,
   buildLineItemsTableHtml,
   buildOrderMetaBlockHtml,
+  buildOrderNumberPlainTextLines,
   escapeHtml,
+  formatEmailOrderNumber,
   mapCustomerEmailLineItems,
   type OrderEmailLineItem,
   type OrderEmailShippingAddress,
@@ -23,6 +25,7 @@ export type OrderConfirmationLineItem = OrderEmailLineItem;
 
 export type OrderConfirmationEmailInput = {
   orderId: string;
+  internalRef?: string | null;
   customerName: string | null;
   customerEmail: string;
   orderAmount: number;
@@ -44,8 +47,11 @@ export function formatBreakdownLineValue(
   return formatInr(line.amount);
 }
 
-export function buildOrderConfirmationSubject(orderId: string): string {
-  return `Order confirmed — #${orderId} · ${siteConfig.name}`;
+export function buildOrderConfirmationSubject(
+  orderId: string,
+  internalRef?: string | null,
+): string {
+  return `Order confirmed — ${formatEmailOrderNumber(orderId, internalRef)} · ${siteConfig.name}`;
 }
 
 function buildBreakdownLines(input: OrderConfirmationEmailInput) {
@@ -94,7 +100,7 @@ export function buildOrderConfirmationPlainText(
     "",
     `Thanks for your order at ${siteConfig.name}!`,
     "",
-    `Order #${input.orderId}`,
+    ...buildOrderNumberPlainTextLines(input.orderId, input.internalRef),
     `Placed: ${placedAt}`,
     input.paymentMethod ? `Payment: ${input.paymentMethod}` : null,
     input.customerPhone ? `Phone: ${input.customerPhone}` : null,
@@ -167,6 +173,7 @@ export function buildOrderConfirmationHtml(
     <p style="margin:0 0 16px;">Thanks for shopping with us. Your payment was received and your order is being prepared.</p>
     ${buildOrderMetaBlockHtml({
       orderId: input.orderId,
+      internalRef: input.internalRef,
       placedAt: input.createdAt,
       paymentMethod: input.paymentMethod,
       customerPhone: input.customerPhone,
@@ -189,7 +196,7 @@ export function buildOrderConfirmationHtml(
   `;
 
   return buildEmailLayoutHtml({
-    preheader: `Your THRY order #${input.orderId} is confirmed.`,
+    preheader: `Your THRY order ${formatEmailOrderNumber(input.orderId, input.internalRef)} is confirmed.`,
     bodyHtml,
   });
 }

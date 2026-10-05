@@ -40,6 +40,7 @@ export async function loadOrderDispatchInput(
 
   return {
     orderId: base.orderId,
+    internalRef: base.internalRef,
     customerName: base.customerName,
     customerEmail: base.customerEmail,
     createdAt: base.createdAt,
@@ -85,7 +86,7 @@ export async function notifyOrderDispatchEmail(
     const response = await resend.emails.send({
       from: config.fromEmail,
       to: input.customerEmail,
-      subject: buildOrderDispatchSubject(input.orderId),
+      subject: buildOrderDispatchSubject(input.orderId, input.internalRef),
       html: buildOrderDispatchHtml(input),
       text: buildOrderDispatchPlainText(input),
       replyTo: siteConfig.email,

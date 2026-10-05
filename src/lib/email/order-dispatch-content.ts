@@ -7,7 +7,9 @@ import {
   buildLineItemsPlainText,
   buildLineItemsTableHtml,
   buildOrderMetaBlockHtml,
+  buildOrderNumberPlainTextLines,
   escapeHtml,
+  formatEmailOrderNumber,
   mapCustomerEmailLineItems,
   type OrderEmailLineItem,
   type OrderEmailShippingAddress,
@@ -16,6 +18,7 @@ import { buildShippingAddressLines } from "@/lib/orders/shipping-address-text";
 
 export type OrderDispatchEmailInput = {
   orderId: string;
+  internalRef?: string | null;
   customerName: string | null;
   customerEmail: string;
   createdAt: string | Date;
@@ -31,8 +34,11 @@ export type OrderDispatchEmailInput = {
   paymentMeta?: unknown;
 };
 
-export function buildOrderDispatchSubject(orderId: string): string {
-  return `Your order has shipped — #${orderId} · ${siteConfig.name}`;
+export function buildOrderDispatchSubject(
+  orderId: string,
+  internalRef?: string | null,
+): string {
+  return `Your order has shipped — ${formatEmailOrderNumber(orderId, internalRef)} · ${siteConfig.name}`;
 }
 
 function customerLineItems(input: OrderDispatchEmailInput) {
@@ -62,7 +68,7 @@ export function buildOrderDispatchPlainText(
     "",
     `Good news — your THRY order has been dispatched.`,
     "",
-    `Order #${input.orderId}`,
+    ...buildOrderNumberPlainTextLines(input.orderId, input.internalRef),
     `Dispatched: ${formatOrderDateTimeIst(input.dispatchedAt)}`,
     `Courier: ${input.courierName}`,
     input.trackingNumber ? `Tracking number: ${input.trackingNumber}` : null,
@@ -132,6 +138,7 @@ export function buildOrderDispatchHtml(input: OrderDispatchEmailInput): string {
     <p style="margin:0 0 16px;">Your order is on its way. We have handed it over to the courier below.</p>
     ${buildOrderMetaBlockHtml({
       orderId: input.orderId,
+      internalRef: input.internalRef,
       placedAt: input.createdAt,
       customerPhone: input.customerPhone,
     })}
@@ -154,7 +161,7 @@ export function buildOrderDispatchHtml(input: OrderDispatchEmailInput): string {
   `;
 
   return buildEmailLayoutHtml({
-    preheader: `Your THRY order #${input.orderId} has been dispatched.`,
+    preheader: `Your THRY order ${formatEmailOrderNumber(input.orderId, input.internalRef)} has been dispatched.`,
     bodyHtml,
   });
 }

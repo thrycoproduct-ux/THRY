@@ -53,6 +53,29 @@ describe("order confirmation email content", () => {
     );
   });
 
+  it("uses the THRY internal ref as the order number when assigned", () => {
+    expect(buildOrderConfirmationSubject("ord_test123", "26100041")).toBe(
+      "Order confirmed — THRY26100041 · THRY",
+    );
+    const input = { ...baseInput, internalRef: "26100041" };
+    const text = buildOrderConfirmationPlainText(input);
+    expect(text).toContain("Order No: THRY26100041");
+    expect(text).toContain("Order ID: #ord_test123");
+    const html = buildOrderConfirmationHtml(input);
+    expect(html).toContain("Order No: THRY26100041");
+    expect(html).toContain("Order ID: #ord_test123");
+    expect(html).toContain("Your THRY order THRY26100041 is confirmed.");
+  });
+
+  it("falls back to the order id when no internal ref exists", () => {
+    const text = buildOrderConfirmationPlainText({
+      ...baseInput,
+      internalRef: null,
+    });
+    expect(text).toContain("Order #ord_test123");
+    expect(text).not.toContain("Order No:");
+  });
+
   it("formats breakdown values", () => {
     expect(
       formatBreakdownLineValue({

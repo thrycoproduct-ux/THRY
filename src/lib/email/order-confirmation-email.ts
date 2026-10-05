@@ -48,6 +48,7 @@ export async function loadOrderConfirmationInput(
 
   const orderRows = await db
     .select({
+      internalRef: orders.internal_ref,
       addressLine1: address.line1,
       addressLine2: address.line2,
       addressCity: address.city,
@@ -74,6 +75,7 @@ export async function loadOrderConfirmationInput(
 
   return {
     orderId: order.id,
+    internalRef: addressRow?.internalRef ?? order.internal_ref ?? null,
     customerName: order.name,
     customerEmail: email,
     orderAmount: Number(order.amount),
@@ -125,7 +127,7 @@ export async function notifyOrderConfirmationEmail(
     const response = await resend.emails.send({
       from: config.fromEmail,
       to: input.customerEmail,
-      subject: buildOrderConfirmationSubject(input.orderId),
+      subject: buildOrderConfirmationSubject(input.orderId, input.internalRef),
       html: buildOrderConfirmationHtml(input),
       text: buildOrderConfirmationPlainText(input),
       replyTo: siteConfig.email,

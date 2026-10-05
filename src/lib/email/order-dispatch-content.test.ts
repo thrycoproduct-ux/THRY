@@ -49,6 +49,19 @@ describe("order dispatch email content", () => {
     );
   });
 
+  it("uses the THRY internal ref as the order number when assigned", () => {
+    expect(buildOrderDispatchSubject("ord_dispatch1", "26100041")).toBe(
+      "Your order has shipped — THRY26100041 · THRY",
+    );
+    const input = { ...baseInput, internalRef: "26100041" };
+    const text = buildOrderDispatchPlainText(input);
+    expect(text).toContain("Order No: THRY26100041");
+    expect(text).toContain("Order ID: #ord_dispatch1");
+    const html = buildOrderDispatchHtml(input);
+    expect(html).toContain("Order No: THRY26100041");
+    expect(html).toContain("Order ID: #ord_dispatch1");
+  });
+
   it("includes courier, tracking, items, and address in plain text", () => {
     const text = buildOrderDispatchPlainText(baseInput);
     const inclusiveUnit = toGstInclusiveAmount(500, {
