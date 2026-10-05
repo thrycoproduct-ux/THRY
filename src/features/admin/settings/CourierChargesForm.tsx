@@ -11,6 +11,14 @@ import {
   LoadingButtonLabel,
 } from "@/components/admin/AdminLoadingState";
 import { fetchWithTimeout } from "@/lib/network/fetchWithTimeout";
+import {
+  DEFAULT_COURIER_WEIGHT_EXTRA_PER_KG,
+  DEFAULT_COURIER_WEIGHT_SLABS,
+  normalizeWeightSlabs,
+  parseCourierWeightSettings,
+  type CourierCalculationMode,
+  type CourierWeightSlab,
+} from "@/lib/courier/calculate";
 
 type ApiSettingRecord = {
   key: string;
@@ -33,7 +41,16 @@ type CourierFormState = {
   freeShippingMin: number;
   gstEnabled: boolean;
   gstPercentage: number;
+  calculationMode: CourierCalculationMode;
+  weightSlabs: CourierWeightSlab[];
+  weightExtraPerKg: number;
 };
+
+const SLAB_PRICE_FIELDS = [
+  { key: "tamilNadu", label: "Tamil Nadu ₹" },
+  { key: "southStates", label: "KA/AP/TS/KL ₹" },
+  { key: "restOfIndia", label: "Rest of India ₹" },
+] as const;
 
 const DEFAULT_VALUES: CourierFormState = {
   enabled: true,
@@ -46,6 +63,9 @@ const DEFAULT_VALUES: CourierFormState = {
   freeShippingMin: 999,
   gstEnabled: true,
   gstPercentage: 5,
+  calculationMode: "quantity",
+  weightSlabs: DEFAULT_COURIER_WEIGHT_SLABS,
+  weightExtraPerKg: DEFAULT_COURIER_WEIGHT_EXTRA_PER_KG,
 };
 
 function toAmount(value: unknown, fallback: number) {
@@ -114,6 +134,7 @@ export function CourierChargesForm() {
             value.gstPercentage,
             DEFAULT_VALUES.gstPercentage,
           ),
+          ...parseCourierWeightSettings(value),
         });
       } catch (error) {
         toast({
@@ -140,7 +161,71 @@ export function CourierChargesForm() {
     setForm((prev) => ({ ...prev, [key]: Math.max(0, Math.round(value)) }));
   };
 
+  const updateSlab = (
+    index: number,
+    key: keyof CourierWeightSlab,
+    raw: string,
+  ) => {
+    const value = Number(raw);
+    if (raw !== "" && !Number.isFinite(value)) return;
+    setForm((prev) => ({
+      ...prev,
+      weightSlabs: prev.weightSlabs.map((slab, i) =>
+        i === index
+          ? {
+              ...slab,
+              [key]:
+                key === "upToKg"
+                  ? Math.max(0, value)
+                  : Math.max(0, Math.round(value)),
+            }
+          : slab,
+      ),
+    }));
+  };
+
+  const addSlab = () => {
+    setForm((prev) => {
+      const last = prev.weightSlabs[prev.weightSlabs.length - 1];
+      return {
+        ...prev,
+        weightSlabs: [
+          ...prev.weightSlabs,
+          last
+            ? { ...last, upToKg: Math.floor(last.upToKg) + 1 }
+            : DEFAULT_COURIER_WEIGHT_SLABS[0],
+        ],
+      };
+    });
+  };
+
+  const removeSlab = (index: number) => {
+    setForm((prev) => ({
+      ...prev,
+      weightSlabs: prev.weightSlabs.filter((_, i) => i !== index),
+    }));
+  };
+
   const onSave = async () => {
+    const weightMode = form.calculationMode === "weight";
+    if (weightMode) {
+      const upTos = form.weightSlabs.map((slab) => slab.upToKg);
+      if (
+        upTos.length === 0 ||
+        upTos.some((kg) => !(kg > 0)) ||
+        new Set(upTos).size !== upTos.length
+      ) {
+        toast({
+          title: "Check weight conditions",
+          description:
+            "Add at least one condition. Each 'up to kg' must be above 0 and unique.",
+          variant: "destructive",
+        });
+        return;
+      }
+    }
+    const weightSlabs = normalizeWeightSlabs(form.weightSlabs);
+    setForm((prev) => ({ ...prev, weightSlabs }));
     setIsSaving(true);
     try {
       const response = await fetchWithTimeout("/api/admin/integrations", {
@@ -159,6 +244,9 @@ export function CourierChargesForm() {
             freeShippingMin: form.freeShippingMin,
             gstEnabled: form.gstEnabled,
             gstPercentage: toPercentage(form.gstPercentage, 5),
+            calculationMode: form.calculationMode,
+            weightSlabs,
+            weightExtraPerKg: form.weightExtraPerKg,
           },
         }),
       });
@@ -203,7 +291,125 @@ export function CourierChargesForm() {
           Enable state-wise courier calculation
         </label>
 
-        <div className="grid gap-4 md:grid-cols-2">
+        <div className="flex flex-wrap gap-4 text-sm">
+          {(
+            [
+              { mode: "quantity", label: "Quantity-wise (by number of items)" },
+              { mode: "weight", label: "Weight-wise (by total kg)" },
+            ] as const
+          ).map((option) => (
+            <label key={option.mode} className="flex items-center gap-2">
+              <input
+                type="radio"
+                name="courier-calculation-mode"
+                checked={form.calculationMode === option.mode}
+                onChange={() =>
+                  setForm((prev) => ({
+                    ...prev,
+                    calculationMode: option.mode,
+                  }))
+                }
+              />
+              {option.label}
+            </label>
+          ))}
+        </div>
+
+        {form.calculationMode === "weight" ? (
+          <div className="space-y-3 rounded-md border border-border p-3">
+            <p className="text-sm font-medium">Weight conditions</p>
+            <div className="space-y-2">
+              {form.weightSlabs.map((slab, index) => {
+                const from =
+                  index === 0 ? 0 : form.weightSlabs[index - 1].upToKg;
+                return (
+                  <div
+                    key={index}
+                    className="grid grid-cols-2 items-end gap-2 md:grid-cols-[1.2fr_1fr_1fr_1fr_auto]"
+                  >
+                    <div className="space-y-1">
+                      <Label htmlFor={`slab-kg-${index}`}>
+                        {index === 0
+                          ? "Up to (kg)"
+                          : `Above ${from} kg, up to (kg)`}
+                      </Label>
+                      <div className="flex items-center gap-1">
+                        <Input
+                          id={`slab-kg-${index}`}
+                          type="number"
+                          min={0}
+                          step={0.1}
+                          value={slab.upToKg}
+                          onChange={(event) =>
+                            updateSlab(index, "upToKg", event.target.value)
+                          }
+                        />
+                        <span className="text-sm text-muted-foreground">
+                          kg
+                        </span>
+                      </div>
+                    </div>
+                    {SLAB_PRICE_FIELDS.map((field) => (
+                      <div key={field.key} className="space-y-1">
+                        <Label htmlFor={`slab-${field.key}-${index}`}>
+                          {field.label}
+                        </Label>
+                        <Input
+                          id={`slab-${field.key}-${index}`}
+                          type="number"
+                          min={0}
+                          value={slab[field.key]}
+                          onChange={(event) =>
+                            updateSlab(index, field.key, event.target.value)
+                          }
+                        />
+                      </div>
+                    ))}
+                    <Button
+                      type="button"
+                      variant="outline"
+                      size="sm"
+                      disabled={form.weightSlabs.length <= 1}
+                      onClick={() => removeSlab(index)}
+                    >
+                      Remove
+                    </Button>
+                  </div>
+                );
+              })}
+            </div>
+            <Button type="button" variant="outline" size="sm" onClick={addSlab}>
+              Add condition
+            </Button>
+            <div className="space-y-2">
+              <Label htmlFor="weight-extra-per-kg">
+                Above last condition: extra ₹ per additional kg
+              </Label>
+              <Input
+                id="weight-extra-per-kg"
+                type="number"
+                min={0}
+                value={form.weightExtraPerKg}
+                onChange={(event) =>
+                  setAmount("weightExtraPerKg", event.target.value)
+                }
+              />
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Order weight = each product&apos;s weight × quantity (digital
+              items excluded). Products without a weight count as 0.5 kg.
+              Conditions are sorted by kg when saved.
+            </p>
+          </div>
+        ) : null}
+
+        <div
+          className={
+            form.calculationMode === "weight"
+              ? "hidden"
+              : "grid gap-4 md:grid-cols-2"
+          }
+        >
           <div className="space-y-2">
             <Label htmlFor="tn-base">Tamil Nadu (qty 1)</Label>
             <Input
@@ -268,9 +474,11 @@ export function CourierChargesForm() {
           </div>
         </div>
 
-        <p className="text-xs text-muted-foreground">
-          Qty 2-4 uses base + add-on. Qty 5+ uses flat courier value.
-        </p>
+        {form.calculationMode === "quantity" ? (
+          <p className="text-xs text-muted-foreground">
+            Qty 2-4 uses base + add-on. Qty 5+ uses flat courier value.
+          </p>
+        ) : null}
 
         <div className="rounded-md border border-border p-3 space-y-3">
           <label className="flex items-center gap-2 text-sm">
@@ -300,7 +508,7 @@ export function CourierChargesForm() {
             />
             <p className="text-xs text-muted-foreground">
               When order value after discount reaches this amount, courier is
-              ₹0. Below it, state and quantity rates still apply.
+              ₹0. Below it, state and quantity/weight rates still apply.
             </p>
           </div>
         </div>

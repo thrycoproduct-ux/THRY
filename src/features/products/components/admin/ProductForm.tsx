@@ -267,8 +267,28 @@ const productFormSchema = createInsertSchema(products)
     soldAsPack: z.coerce.boolean().default(false),
     isDigital: z.coerce.boolean().default(false),
     packSize: z.union([z.coerce.number(), z.null()]).optional().nullable(),
+    weightKg: z.preprocess(
+      (value) => (value == null ? "" : String(value).trim()),
+      z.string(),
+    ),
   })
   .superRefine((data, ctx) => {
+    if (!data.isDigital) {
+      const weight = Number(data.weightKg);
+      if (!data.weightKg || !Number.isFinite(weight) || weight < 0.01) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Enter the weight of 1 product in kg (e.g. 0.5).",
+          path: ["weightKg"],
+        });
+      } else if (weight > 1000) {
+        ctx.addIssue({
+          code: z.ZodIssueCode.custom,
+          message: "Weight must be 1000 kg or less.",
+          path: ["weightKg"],
+        });
+      }
+    }
     if (!data.soldAsPack) return;
     const packSize = Number(data.packSize);
     if (
@@ -396,6 +416,8 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
       soldAsPack: product?.soldAsPack ?? false,
       isDigital: product?.isDigital ?? false,
       packSize: product?.packSize ?? null,
+      weightKg:
+        product?.weightKg != null ? String(Number(product.weightKg)) : "",
       stock: typeof product?.stock === "number" ? product.stock : 1,
       featuredImageId:
         product?.featuredImageId ??
@@ -1597,6 +1619,41 @@ function ProductFrom({ product, galleryMediaIds = [] }: ProductsFormProps) {
               </FormDescription>
               <FormMessage />
             </FormItem>
+          ) : null}
+
+          {!watch("isDigital") ? (
+            <FormField
+              control={control}
+              name="weightKg"
+              render={({ field }) => (
+                <FormItem>
+                  <FormLabel className="text-sm">
+                    Weight of 1 product (kg)*
+                  </FormLabel>
+                  <FormControl>
+                    <div className="flex items-center gap-2">
+                      <Input
+                        type="number"
+                        min={0.01}
+                        max={1000}
+                        step={0.01}
+                        placeholder="e.g. 0.5"
+                        name={field.name}
+                        ref={field.ref}
+                        onBlur={field.onBlur}
+                        value={field.value ?? ""}
+                        onChange={(event) => field.onChange(event.target.value)}
+                      />
+                      <span className="text-sm text-muted-foreground">kg</span>
+                    </div>
+                  </FormControl>
+                  <FormDescription>
+                    Used for weight-wise courier charges (weight × quantity).
+                  </FormDescription>
+                  <FormMessage />
+                </FormItem>
+              )}
+            />
           ) : null}
 
           <FormField

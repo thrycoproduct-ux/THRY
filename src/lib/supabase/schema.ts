@@ -301,6 +301,10 @@ export const products = pgTable(
     soldAsPack: boolean("sold_as_pack").notNull().default(false),
     /** Pieces per pack when soldAsPack; null/ignored when off. */
     packSize: integer("pack_size"),
+    /** Shipping weight of one unit (kg); drives weight-based courier. */
+    weightKg: decimal("weight_kg", { precision: 8, scale: 3 })
+      .notNull()
+      .default("0.5"),
     totalComments: integer("totalComments").default(0).notNull(),
     createdAt: timestamp("created_at", {
       withTimezone: true,

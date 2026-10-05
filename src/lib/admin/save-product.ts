@@ -64,6 +64,7 @@ function toWritableProductFields(
     discountPercent: normalized.discountPercent,
     soldAsPack: normalized.soldAsPack,
     packSize: normalized.packSize,
+    weightKg: normalized.weightKg,
     isDigital: Boolean(normalized.isDigital),
     digitalFileKey: normalized.digitalFileKey ?? null,
     digitalFileName: normalized.digitalFileName ?? null,

@@ -51,6 +51,7 @@ import {
   resolveOfferCodesConfig,
 } from "@/lib/integrations/settings";
 import { physicalQuantityForShipping } from "@/lib/products/digital-product";
+import { physicalWeightForShipping } from "@/lib/courier/calculate";
 import { eq, inArray } from "drizzle-orm";
 
 import { createRouteHandlerClient } from "@supabase/auth-helpers-nextjs";
@@ -345,9 +346,11 @@ export async function POST(request: Request) {
       0,
     );
     const physicalQuantity = physicalQuantityForShipping(productsQuantity);
+    const physicalWeightKg = physicalWeightForShipping(productsQuantity);
     const courierBreakdown = calculateCourierCharge({
       state: checkout.shipping.state,
       quantity: physicalQuantity,
+      weightKg: physicalWeightKg,
       orderAmount: discountedSubtotal,
       config: courierConfig,
     });
@@ -413,6 +416,9 @@ export async function POST(request: Request) {
       gstPercentage: courierConfig.gstPercentage,
       courierState: checkout.shipping.state,
       courierRule: courierBreakdown.ruleApplied,
+      ...(courierBreakdown.weightKg !== undefined
+        ? { courierWeightKg: courierBreakdown.weightKg }
+        : {}),
       totalQuantity,
       paymentEnvironment,
       linePricing,

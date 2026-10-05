@@ -7,6 +7,7 @@ import {
 } from "../queries/cart-page-queries";
 import {
   calculateCourierCharge,
+  physicalWeightForShipping,
   buildCheckoutMoneyTotals,
   toGstInclusiveAmount,
 } from "@/lib/courier/calculate";
@@ -409,6 +410,26 @@ function UserCartSection({
       return acc + cur.node.quantity;
     }, 0);
   }, [cart, dbCartLoaded, dbCartRows, livePricing]);
+  const physicalWeightKg = useMemo(() => {
+    const lines = dbCartLoaded
+      ? dbCartRows.map((row) => ({
+          productId: row.product_id,
+          quantity: row.quantity,
+        }))
+      : cart.map((cur) => ({
+          productId: cur.node.product?.id,
+          quantity: cur.node.quantity,
+        }));
+    return physicalWeightForShipping(
+      lines.map((line) => ({
+        quantity: line.quantity,
+        isDigital: line.productId
+          ? livePricing[line.productId]?.isDigital
+          : false,
+        weightKg: line.productId ? livePricing[line.productId]?.weightKg : null,
+      })),
+    );
+  }, [cart, dbCartLoaded, dbCartRows, livePricing]);
   const pincodeLookup = usePincodeLookup(deliveryPincode);
   const activeOfferCodes = useMemo(() => {
     const map = new Map<string, number>();
@@ -432,10 +453,17 @@ function UserCartSection({
     return calculateCourierCharge({
       state: deliveryState,
       quantity: physicalCount,
+      weightKg: physicalWeightKg,
       orderAmount: discountedSubtotal,
       config: courierConfig,
     });
-  }, [courierConfig, deliveryState, discountedSubtotal, physicalCount]);
+  }, [
+    courierConfig,
+    deliveryState,
+    discountedSubtotal,
+    physicalCount,
+    physicalWeightKg,
+  ]);
   const courierCharge = courierBreakdown?.charge ?? 0;
   const courierEnabled = courierConfig.enabled;
   const offerCodesEnabled = activeOfferCodes.size > 0;

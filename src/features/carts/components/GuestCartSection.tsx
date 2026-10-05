@@ -4,6 +4,7 @@ import { FetchGuestCartQuery } from "../queries/cart-page-queries";
 import type { CartSizeConfigPayload } from "@/lib/storefront/cart-server";
 import {
   calculateCourierCharge,
+  physicalWeightForShipping,
   buildCheckoutMoneyTotals,
   toGstInclusiveAmount,
 } from "@/lib/courier/calculate";
@@ -166,6 +167,21 @@ function GuestCartSection({
       return acc + Number(item.quantity ?? 0);
     }, 0);
   }, [cartItems, livePricing]);
+  const physicalWeightKg = useMemo(
+    () =>
+      physicalWeightForShipping(
+        Object.values(cartItems).map((item) => ({
+          quantity: Number(item.quantity ?? 0),
+          isDigital: item.productId
+            ? livePricing[item.productId]?.isDigital
+            : true,
+          weightKg: item.productId
+            ? livePricing[item.productId]?.weightKg
+            : null,
+        })),
+      ),
+    [cartItems, livePricing],
+  );
   const pincodeLookup = usePincodeLookup(deliveryPincode);
   const activeOfferCodes = useMemo(() => {
     const map = new Map<string, number>();
@@ -190,10 +206,17 @@ function GuestCartSection({
     return calculateCourierCharge({
       state: deliveryState,
       quantity: physicalCount,
+      weightKg: physicalWeightKg,
       orderAmount: discountedSubtotal,
       config: courierConfig,
     });
-  }, [courierConfig, deliveryState, discountedSubtotal, physicalCount]);
+  }, [
+    courierConfig,
+    deliveryState,
+    discountedSubtotal,
+    physicalCount,
+    physicalWeightKg,
+  ]);
   const courierCharge = courierBreakdown?.charge ?? 0;
   const courierEnabled = courierConfig.enabled;
   const offerCodesEnabled = activeOfferCodes.size > 0;
