@@ -13,6 +13,7 @@ export type UserOrderLineView = {
 
 export type UserOrderListView = {
   id: string;
+  internalRef: string | null;
   createdAt: string;
   amount: number;
   orderStatus: string | null;
@@ -31,6 +32,7 @@ export async function getUserOrdersList(
   const orderRows = await db
     .select({
       id: orders.id,
+      internalRef: orders.internal_ref,
       createdAt: orders.createdAt,
       amount: orders.amount,
       orderStatus: orders.order_status,
@@ -75,6 +77,7 @@ export async function getUserOrdersList(
 
   return orderRows.map((row) => ({
     id: row.id,
+    internalRef: row.internalRef ?? null,
     createdAt:
       row.createdAt instanceof Date
         ? row.createdAt.toISOString()

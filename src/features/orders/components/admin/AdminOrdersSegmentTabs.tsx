@@ -284,8 +284,8 @@ export function AdminOrdersSegmentTabs({
 
       <AdminTableSearch
         entityLabel="orders"
-        placeholder="Order ID or ref (THRY26090153)"
-        emptyResultHint="try the other tab or a shorter ID"
+        placeholder="Order ID, ref, name or mobile"
+        emptyResultHint="try the other tab or a shorter search"
         layout="compact"
         appliedQuery={appliedQuery}
         draftQuery={draftQuery}

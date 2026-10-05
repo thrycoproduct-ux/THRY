@@ -7,6 +7,7 @@ import { Badge } from "@/components/ui/badge";
 import { Button, buttonVariants } from "@/components/ui/button";
 import type { UserOrderListView } from "@/lib/orders/getUserOrdersList";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
+import { displayInternalOrderRef } from "@/lib/orders/internal-order-ref";
 import { cn, formatPrice, keytoUrl } from "@/lib/utils";
 
 type OrdersListProps = {
@@ -42,7 +43,16 @@ function OrdersList({ orders }: OrdersListProps) {
 
             <div>
               <p className="text-xs font-medium">Order</p>
-              <p className="text-sm">#{order.id}</p>
+              {order.internalRef ? (
+                <>
+                  <p className="text-sm font-semibold tabular-nums">
+                    {displayInternalOrderRef(order.internalRef)}
+                  </p>
+                  <p className="text-xs text-muted-foreground">#{order.id}</p>
+                </>
+              ) : (
+                <p className="text-sm">#{order.id}</p>
+              )}
             </div>
           </CardHeader>
 

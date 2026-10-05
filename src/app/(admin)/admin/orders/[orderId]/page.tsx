@@ -293,10 +293,20 @@ async function OrderDetailPage({ params }: AdminOrderDetailPageProps) {
     .where(eq(dispatchCouriers.isActive, true))
     .orderBy(asc(dispatchCouriers.name));
 
+  const internalRefLabel = displayInternalOrderRef(orderView.internalRef);
+
   return (
     <AdminShell
-      heading={`Order #${orderView.id}`}
-      description="Packing-ready order details with shipping address and quick copy for courier."
+      heading={
+        internalRefLabel
+          ? `Order ${internalRefLabel}`
+          : `Order #${orderView.id}`
+      }
+      description={
+        internalRefLabel
+          ? `Order #${orderView.id} · Packing-ready order details with shipping address and quick copy for courier.`
+          : "Packing-ready order details with shipping address and quick copy for courier."
+      }
       showBackButton
     >
       <AdminOrderDetailView

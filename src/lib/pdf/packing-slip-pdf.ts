@@ -167,14 +167,17 @@ function drawHeader(doc: Doc, order: PackingSlipOrder, y: number): number {
   const internalLine = formatPackingSlipInternalRef(order.internalRef);
   if (internalLine) {
     doc.setFont("helvetica", "bold");
+    doc.setFontSize(18);
     doc.text(internalLine, rightX, y, { align: "right" });
     doc.setFont("helvetica", "normal");
-    doc.text(formatPackingSlipOrderHeading(order.id), rightX, y + 5, {
+    doc.setFontSize(9);
+    doc.text(formatPackingSlipOrderHeading(order.id), rightX, y + 6, {
       align: "right",
     });
     doc.text(formatPackingSlipDate(order.createdAt), rightX, y + 11, {
       align: "right",
     });
+    doc.setFontSize(10);
     return y + 22;
   }
 

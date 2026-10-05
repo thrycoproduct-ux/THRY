@@ -32,6 +32,7 @@ import {
 } from "@/lib/supabase/schema";
 import { formatDate, formatPrice, keytoUrl } from "@/lib/utils";
 import { formatOrderDateTimeIst } from "@/lib/datetime/india";
+import { displayInternalOrderRef } from "@/lib/orders/internal-order-ref";
 import {
   resolveCourierChargesConfig,
   toGstInclusiveAmount,
@@ -84,6 +85,7 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
   const orderRows = await db
     .select({
       id: orders.id,
+      internalRef: orders.internal_ref,
       user_id: orders.user_id,
       createdAt: orders.createdAt,
       amount: orders.amount,
@@ -151,6 +153,7 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
     .leftJoin(medias, eq(products.featuredImageId, medias.id))
     .where(eq(orderLines.orderId, orderId));
 
+  const internalRefLabel = displayInternalOrderRef(order.internalRef);
   const stepIndex = currentStepIndex(order.orderStatus);
   const dispatchInfo = await getOrderDispatchInfo(orderId);
   const shippingLines = buildShippingAddress({
@@ -177,6 +180,14 @@ async function TrackOrderPage({ params, searchParams }: TrackOrderProps) {
                 {order.paymentStatus}
               </Badge>
             </div>
+            {internalRefLabel ? (
+              <p className="text-base">
+                <span className="text-muted-foreground">Order No:</span>{" "}
+                <span className="font-semibold tabular-nums text-foreground">
+                  {internalRefLabel}
+                </span>
+              </p>
+            ) : null}
             <p className="text-sm text-muted-foreground">
               Order ID:{" "}
               <span className="font-medium text-foreground">#{order.id}</span>

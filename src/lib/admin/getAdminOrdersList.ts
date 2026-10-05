@@ -15,7 +15,17 @@ import {
   products,
 } from "@/lib/supabase/schema";
 import { keytoUrl } from "@/lib/utils";
-import { and, desc, eq, ilike, inArray, or, sql, type SQL } from "drizzle-orm";
+import {
+  and,
+  desc,
+  eq,
+  ilike,
+  inArray,
+  like,
+  or,
+  sql,
+  type SQL,
+} from "drizzle-orm";
 import { buildAdminOrderSearchTerms } from "@/lib/admin/admin-order-search";
 import {
   clampAdminOrdersPageSize,
@@ -67,7 +77,7 @@ export type AdminOrdersListParams = {
   segment: AdminOrdersSegment;
   page?: number;
   pageSize?: number;
-  /** Order id or internal ref (partial, THRY prefix optional). */
+  /** Order id, internal ref (THRY prefix optional), customer name or mobile; partial matches. */
   query?: string;
 };
 
@@ -98,10 +108,17 @@ function buildSegmentWhereClause(segment: AdminOrdersSegment): SQL {
 function buildSearchWhereClause(query: string | undefined): SQL | undefined {
   const terms = buildAdminOrderSearchTerms(query);
   if (!terms) return undefined;
-  const idMatch = ilike(orders.id, terms.idPattern);
-  return terms.refPattern
-    ? or(idMatch, ilike(orders.internal_ref, terms.refPattern))
-    : idMatch;
+  const matches: SQL[] = [ilike(orders.id, terms.idPattern)];
+  if (terms.refPattern) {
+    matches.push(ilike(orders.internal_ref, terms.refPattern));
+  }
+  if (terms.namePattern) {
+    matches.push(ilike(orders.name, terms.namePattern));
+  }
+  if (terms.mobilePattern) {
+    matches.push(like(orders.customer_mobile, terms.mobilePattern));
+  }
+  return or(...matches);
 }
 
 async function countOrders(where: SQL): Promise<number> {

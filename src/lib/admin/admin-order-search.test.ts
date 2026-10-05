@@ -11,6 +11,8 @@ describe("buildAdminOrderSearchTerms", () => {
     expect(buildAdminOrderSearchTerms("THRY26090153")).toEqual({
       idPattern: "%THRY26090153%",
       refPattern: "%26090153%",
+      namePattern: null,
+      mobilePattern: null,
     });
   });
 
@@ -20,10 +22,12 @@ describe("buildAdminOrderSearchTerms", () => {
     );
   });
 
-  it("supports partial refs", () => {
+  it("supports partial refs, which may also be a mobile fragment", () => {
     expect(buildAdminOrderSearchTerms("0153")).toEqual({
       idPattern: "%0153%",
       refPattern: "%0153%",
+      namePattern: null,
+      mobilePattern: "%0153%",
     });
   });
 
@@ -31,6 +35,8 @@ describe("buildAdminOrderSearchTerms", () => {
     expect(buildAdminOrderSearchTerms("#ord_abc")).toEqual({
       idPattern: "%ord\\_abc%",
       refPattern: null,
+      namePattern: "%ord\\_abc%",
+      mobilePattern: null,
     });
   });
 
@@ -44,5 +50,28 @@ describe("buildAdminOrderSearchTerms", () => {
 
   it("escapes LIKE wildcards in order ids", () => {
     expect(buildAdminOrderSearchTerms("a%b")?.idPattern).toBe("%a\\%b%");
+  });
+
+  it("matches customer names, collapsing extra spaces", () => {
+    const terms = buildAdminOrderSearchTerms("  Joseph   George ");
+    expect(terms?.namePattern).toBe("%Joseph George%");
+    expect(terms?.mobilePattern).toBeNull();
+    expect(terms?.refPattern).toBeNull();
+  });
+
+  it("normalises pasted mobile numbers to the stored 10 digits", () => {
+    expect(buildAdminOrderSearchTerms("+91 85939 19294")?.mobilePattern).toBe(
+      "%8593919294%",
+    );
+    expect(buildAdminOrderSearchTerms("08593919294")?.mobilePattern).toBe(
+      "%8593919294%",
+    );
+    expect(buildAdminOrderSearchTerms("85939-19294")?.mobilePattern).toBe(
+      "%8593919294%",
+    );
+  });
+
+  it("ignores phone fragments shorter than 4 digits", () => {
+    expect(buildAdminOrderSearchTerms("859")?.mobilePattern).toBeNull();
   });
 });
