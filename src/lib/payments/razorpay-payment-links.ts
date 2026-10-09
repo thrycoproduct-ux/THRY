@@ -62,8 +62,7 @@ export async function createRazorpayPaymentLink(
     currency: "INR",
     accept_partial: false,
     reference_id: params.orderId.slice(0, 40),
-    description:
-      params.description || `Complete your ${siteConfig.name} order`,
+    description: params.description || `Complete your ${siteConfig.name} order`,
     expire_by: expireBy,
     customer: {
       name: String(params.customerName ?? "").trim() || undefined,
@@ -100,7 +99,9 @@ export async function createRazorpayPaymentLink(
     },
   );
 
-  const data = (await response.json().catch(() => ({}))) as PaymentLinkResponse & {
+  const data = (await response
+    .json()
+    .catch(() => ({}))) as PaymentLinkResponse & {
     error?: { description?: string };
   };
 

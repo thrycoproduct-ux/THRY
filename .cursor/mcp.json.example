@@ -22,6 +22,9 @@
         "UPSTASH_REDIS_REST_URL": "https://YOUR_DB.upstash.io",
         "UPSTASH_REDIS_REST_TOKEN": "YOUR_REST_TOKEN"
       }
+    },
+    "upstash": {
+      "url": "https://mcp.upstash.com/mcp?features=redis"
     }
   }
 }

@@ -322,8 +322,7 @@ export async function resolveCheckoutSizeConfigs(args: {
     ...known,
   };
   if (missing.length === 0) return merged;
-  const fetchConfigs =
-    args.fetchConfigs ?? fetchCartSizeConfigsByProductIds;
+  const fetchConfigs = args.fetchConfigs ?? fetchCartSizeConfigsByProductIds;
   const fetched = await fetchConfigs(missing);
   for (const id of missing) {
     merged[id] = fetched[id];

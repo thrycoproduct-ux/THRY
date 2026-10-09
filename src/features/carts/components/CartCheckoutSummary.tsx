@@ -43,7 +43,8 @@ export function CartCheckoutSummary({
   const mobileSticky = (
     <div
       ref={dockRef}
-      className="fixed inset-x-0 bottom-[var(--mobile-nav-height)] z-[180] border-t border-border bg-background/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden">
+      className="fixed inset-x-0 bottom-[var(--mobile-nav-height)] z-[180] border-t border-border bg-background/95 px-4 py-3 shadow-[0_-4px_16px_rgba(0,0,0,0.08)] backdrop-blur md:hidden"
+    >
       <div className="mx-auto flex max-w-lg items-center gap-3">
         <div className="min-w-0 flex-1">
           <p className="text-xs text-muted-foreground">{itemLabel}</p>

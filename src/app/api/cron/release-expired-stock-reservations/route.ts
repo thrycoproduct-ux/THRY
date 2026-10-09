@@ -21,10 +21,10 @@ export async function GET(request: NextRequest) {
   }
 
   try {
-    const result = await withRetry(
-      () => releaseExpiredStockReservations(),
-      { label: "cron:release-expired-stock", attempts: 3 },
-    );
+    const result = await withRetry(() => releaseExpiredStockReservations(), {
+      label: "cron:release-expired-stock",
+      attempts: 3,
+    });
     return NextResponse.json({ ok: true, ...result });
   } catch (error) {
     console.error("[cron] release-expired-stock-reservations failed:", error);

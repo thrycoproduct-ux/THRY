@@ -16,6 +16,7 @@ import { corsHeaders } from "./cors";
 type R2ObjectBody = {
   size: number;
   body: ReadableStream | null;
+  arrayBuffer: () => Promise<ArrayBuffer>;
   httpMetadata?: { contentType?: string };
 };
 
@@ -237,69 +238,90 @@ async function handleCdnGet(
   optionsRaw: string,
   keyRaw: string,
 ): Promise<Response> {
-  const opts = parseCdnOptions(optionsRaw);
-  if (!opts) return badRequest(request, "Invalid CDN options.");
+  const parsed = parseCdnOptions(optionsRaw);
+  if (!parsed) return badRequest(request, "Invalid CDN options.");
+
+  // Images Free: only ~5k unique transforms/month. Snap every /cdn request to
+  // the proven working size so PDP/thumb URLs reuse the same cached variant.
+  const opts: CdnOptions = {
+    ...parsed,
+    width: 400,
+    quality: 75,
+    format: "image/webp",
+  };
 
   const key = sanitizeKey(keyRaw);
   if (!key || !isPublicCdnKey(key)) {
     return badRequest(request, "Missing or invalid key.");
   }
 
-  if (!env.IMAGES) {
-    return jsonResponse(
-      request,
-      { error: "Images binding is not configured." },
-      503,
-    );
-  }
-
   const cache = caches.default;
+
+  // Prefer any previously cached successful transform for this exact URL,
+  // then the known-good 400w canonical URL (from before Images Free exhausted).
   const cacheHit = await cache.match(request);
-  if (cacheHit) return cacheHit;
+  if (cacheHit && cacheHit.ok) return cacheHit;
 
-  const obj = await env.MEDIA_BUCKET.get(key);
-  if (!obj?.body) {
-    return jsonResponse(request, { error: "Not found" }, 404);
-  }
-
-  try {
-    const transformed = await env.IMAGES.input(obj.body)
-      .transform({ width: opts.width, fit: "scale-down" })
-      .output({ format: opts.format, quality: opts.quality });
-
-    const imageResponse = transformed.response();
-    const headers = new Headers(imageResponse.headers);
-    headers.set(
-      "Cache-Control",
-      "public, max-age=31536000, stale-while-revalidate=86400, immutable",
-    );
+  const canonicalUrl = new URL(request.url);
+  const keyPath = key.split("/").map(encodeURIComponent).join("/");
+  canonicalUrl.pathname = `/cdn/w=400,q=75,f=webp/${keyPath}`;
+  const canonicalRequest = new Request(canonicalUrl.toString(), {
+    method: "GET",
+  });
+  const canonicalHit = await cache.match(canonicalRequest);
+  if (canonicalHit && canonicalHit.ok) {
+    const headers = new Headers(canonicalHit.headers);
+    headers.set("X-THRY-CDN-Canonical", "w=400");
     Object.entries(corsHeaders(request)).forEach(([k, v]) => headers.set(k, v));
-
-    const response = new Response(imageResponse.body, {
+    const reused = new Response(canonicalHit.body, {
       status: 200,
       headers,
     });
-    // Cache successful transforms at the edge.
-    await cache.put(request, response.clone());
-    return response;
-  } catch (error) {
-    // Images Free quota / transform errors: still show the photo from R2.
-    const message = error instanceof Error ? error.message : "Transform failed";
-    console.error("[cdn] transform failed, serving original:", key, message);
-    const original = await env.MEDIA_BUCKET.get(key);
-    if (!original?.body) {
-      return jsonResponse(request, { error: "Image transform failed." }, 502);
-    }
-    const headers = new Headers({
-      "Content-Type":
-        original.httpMetadata?.contentType || "application/octet-stream",
-      // Short TTL so we retry transforms after quota resets / plan upgrades.
-      "Cache-Control": "public, max-age=300, stale-while-revalidate=60",
-      "X-THRY-CDN-Fallback": "original",
-      ...corsHeaders(request),
-    });
-    return new Response(original.body, { status: 200, headers });
+    await cache.put(request, reused.clone());
+    return reused;
   }
+
+  const obj = await env.MEDIA_BUCKET.get(key);
+  if (!obj) {
+    return jsonResponse(request, { error: "Not found" }, 404);
+  }
+
+  const contentType =
+    obj.httpMetadata?.contentType || "application/octet-stream";
+
+  let originalBytes: ArrayBuffer;
+  try {
+    originalBytes = await obj.arrayBuffer();
+  } catch (error) {
+    const message =
+      error instanceof Error ? error.message : "Failed to read object";
+    console.error("[cdn] r2 read failed:", key, message);
+    return jsonResponse(request, { error: "Not found" }, 404);
+  }
+
+  if (!originalBytes.byteLength) {
+    return jsonResponse(request, { error: "Not found" }, 404);
+  }
+
+  // Images Free unique-transform quota is exhausted on this account. Calling
+  // the Images binding hard-fails the isolate (platform 500) — try/catch does
+  // not help. Serve R2 originals until Images Paid is enabled.
+  // Keep `opts` referenced so the snap stays in the bundle for when we re-enable.
+  void opts;
+  void env.IMAGES;
+
+  const headers = new Headers();
+  headers.set("Content-Type", contentType);
+  headers.set(
+    "Cache-Control",
+    "public, max-age=3600, stale-while-revalidate=86400",
+  );
+  headers.set("X-THRY-CDN-Fallback", "original");
+  Object.entries(corsHeaders(request)).forEach(([k, v]) => headers.set(k, v));
+
+  const response = new Response(originalBytes, { status: 200, headers });
+  await cache.put(request, response.clone());
+  return response;
 }
 
 export default {

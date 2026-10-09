@@ -4,6 +4,8 @@
   "name": "thry",
   "account_id": "77dfa9b757691b2321fe0630f01c8c6a",
   "main": ".open-next/worker.js",
+  // Parallel test host only; thryco.com stays on thry-shop-edge -> Vercel.
+  "routes": [{ "pattern": "cf.thryco.com", "custom_domain": true }],
   "minify": true,
   "compatibility_date": "2025-05-05",
   "compatibility_flags": ["nodejs_compat", "global_fetch_strictly_public"],

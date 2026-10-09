@@ -11,10 +11,13 @@ import { orders } from "@/lib/supabase/schema";
 import { eq } from "drizzle-orm";
 
 export async function POST(request: NextRequest) {
-  const rateLimit = await checkCheckoutRateLimit(getRequestIp(request.headers), {
-    limit: 30,
-    windowSec: 60,
-  });
+  const rateLimit = await checkCheckoutRateLimit(
+    getRequestIp(request.headers),
+    {
+      limit: 30,
+      windowSec: 60,
+    },
+  );
   if (rateLimit.limited) {
     return NextResponse.json(
       { ok: false, message: "Too many checkout updates. Please wait." },
@@ -36,7 +39,10 @@ export async function POST(request: NextRequest) {
     where: eq(orders.id, body.orderId),
   });
   if (!order) {
-    return NextResponse.json({ ok: false, message: "Order not found." }, { status: 404 });
+    return NextResponse.json(
+      { ok: false, message: "Order not found." },
+      { status: 404 },
+    );
   }
 
   const allowed = await canViewOrder(order, body.accessToken);

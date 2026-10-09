@@ -1,6 +1,9 @@
 import "server-only";
 
-import { CACHE_TAGS, STOREFRONT_REVALIDATE_SECONDS } from "@/lib/cache/constants";
+import {
+  CACHE_TAGS,
+  STOREFRONT_REVALIDATE_SECONDS,
+} from "@/lib/cache/constants";
 import { withStorefrontCache } from "@/lib/cache/storefront-cache";
 import { sanitizeDownloadFileName } from "@/lib/products/digital-product";
 import {
@@ -69,7 +72,9 @@ export function buildSnapshotRecord(
 export async function getProductStorefrontSnapshotsByIds(
   productIds: string[],
 ): Promise<Map<string, ProductStorefrontSnapshot>> {
-  const ids = [...new Set(productIds.map((id) => id.trim()).filter(Boolean))].sort();
+  const ids = [
+    ...new Set(productIds.map((id) => id.trim()).filter(Boolean)),
+  ].sort();
   if (ids.length === 0) return new Map();
 
   const cacheKey = `sf:snapshot:batch:${ids.join(",")}`;

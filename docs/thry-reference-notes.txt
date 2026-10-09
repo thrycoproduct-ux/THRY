@@ -1,0 +1,132 @@
+THRY — reference notes (for later lookup)
+Site: https://thryco.com
+Last updated: 2026-08-28
+
+================================================================================
+HOMEPAGE REQUEST COUNT (measured live on production)
+================================================================================
+Method: Fetched https://thryco.com/ HTML and counted scripts, styles, images.
+(Lighthouse could not run in dev environment; this is HTML-based measurement.)
+
+FIRST VISIT (cold cache) — one homepage open
+-------------------------------------------
+  HTML page ............................ 1
+  Next.js JS chunks .................... 47
+  CSS .................................. 2
+  Fonts ................................ 2
+  Product images (R2 CDN) .............. ~28
+  Cloudflare analytics beacon .......... 1
+  Clarity / Vercel (after page load) ... ~2-3
+
+  TOTAL network requests ............... ~110-115 per homepage open
+
+CLOUDFLARE EDGE (thryco.com only — via thry-shop-edge worker)
+-------------------------------------------
+  ~52 requests per homepage open
+  (page + JS + CSS + fonts)
+
+  R2 images (~28) hit image CDN directly — not counted in shop worker.
+
+RETURN VISIT (browser cache warm)
+-------------------------------------------
+  ~15-25 requests (most JS/CSS cached)
+
+WHY SO MANY?
+-------------------------------------------
+  Homepage loads 47 separate Next.js JS files (hero, carousels, cart,
+  checkout preload, layout chunks, etc.). Main driver of request count.
+
+================================================================================
+EDGE REQUESTS — OTHER PAGES (estimates, not live-measured)
+================================================================================
+  Simple page (About, Contact) .......... 15-25
+  Home / Shop listing ................... 25-40
+  Product page (PDP) .................... 35-55
+  Cart / Checkout ....................... 40-60+
+
+  Rule of thumb: ~30 Cloudflare edge requests per average page view.
+
+  Full shopping session (browse → cart → checkout): ~80-150+ edge requests.
+
+  Vercel middleware (not every static file): ~3-8 per page view.
+
+================================================================================
+CHECKOUT & UNPAID ORDERS (summary)
+================================================================================
+  Order is created BEFORE payment (unpaid) when customer clicks Continue to pay.
+
+  Unpaid list is mostly:
+    - Abandoned (opened Razorpay, did not pay) — majority
+    - Payment failed on bank/UPI — 7 orders in last 30 days (example period)
+    - Paid but stuck unpaid on THRY — 0 found in recent data
+
+  Webhook: https://thryco.com/api/razorpay/webhook — validated OK (200s).
+
+  Deployed f3f4490: checkout failure telemetry in admin + Microsoft Clarity.
+
+  Clarity project ID: y96ro8g9cl (production only).
+
+================================================================================
+INDUSTRY STANDARD — requests per e-commerce page (first visit)
+================================================================================
+  Lean / optimized ...................... 40-70
+  Typical modern store (Next.js) ........ 70-120
+  Heavy ................................. 120-200+
+  Very heavy ............................ 200+
+
+  THRY homepage (~110-115) = typical modern store, not lean.
+
+  More important than request count:
+    - Page weight aim < 2-3 MB first load
+    - LCP aim < 2.5s
+
+================================================================================
+EXTRA ON THRY — not required (optimize later)
+================================================================================
+Status: documented for future cleanup — no code changes yet.
+
+ON EVERY PAGE (including home)
+-------------------------------------------
+  - Urql / GraphQL client ............... cart badge, cart sheet, legacy queries
+  - Cart sheet + checkout code .......... loads even if cart never opened
+  - Welcome offer popup ................. marketing only
+  - Sentry + Clarity + Cloudflare beacon  analytics/monitoring (optional for UX)
+  - Admin JS chunk in storefront bundle . bundling leak — should NOT be on public pages
+
+HOMEPAGE ONLY (nice-to-have)
+-------------------------------------------
+  - Butterfly animation ................. decoration only (DeferredStoreButterflies)
+  - 4-5 carousels ....................... hero, categories, price, reels, testimonials
+  - ~28 product images at once .......... could lazy-load more
+  - Trust features section .............. marketing copy
+
+NOT ON HOME UNTIL USER ACTS
+-------------------------------------------
+  - Razorpay script ..................... cart / Buy Now / checkout only
+  - Collection load-more API ............ only if user scrolls categories
+
+BIGGEST FIXABLE WASTE (priority when optimizing)
+-------------------------------------------
+  1. 47 JS chunks on homepage — too many small bundles
+  2. GraphQL cart query on every page (logged-in users) — useCartCount
+  3. Cart + checkout + Razorpay preloaded before user needs it — StoreDeferredChrome
+  4. Admin layout chunk on public pages — investigate Next.js bundle split
+
+KEEP (not waste)
+-------------------------------------------
+  - Payment webhook, order creation, security headers
+  - Product images for visible content
+  - Core navbar, search, footer
+
+ESTIMATE: ~30-40% of homepage load is optional; core shop could run on ~half the JS.
+
+KEY FILES TO TOUCH LATER
+-------------------------------------------
+  src/providers/CustomProvider.tsx          UrqlProvider on all pages
+  src/components/layouts/StoreDeferredChrome.tsx  CartSheet, WelcomeOfferDialog
+  src/features/carts/hooks/useCartCount.ts  GraphQL on every page
+  src/features/carts/components/CheckoutButton.tsx  Razorpay preload
+  src/components/layouts/DeferredStoreButterflies.tsx  decoration
+  src/app/(store)/page.tsx                  multiple carousels
+
+================================================================================

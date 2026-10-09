@@ -19,7 +19,11 @@ export type OAuthCallbackInput = {
 
 export type OAuthCallbackResult =
   | { ok: true; session: Session }
-  | { ok: false; message: string; destination?: "/sign-in" | "/forgot-password" | "/error" };
+  | {
+      ok: false;
+      message: string;
+      destination?: "/sign-in" | "/forgot-password" | "/error";
+    };
 
 /**
  * Complete Google/email OAuth return without double-spending the PKCE code.

@@ -3,7 +3,11 @@
  * Keep cart/checkout on live Supabase.
  */
 
-import type { D1CollectionRow, D1GalleryImage, D1ProductRow } from "./d1-mirror";
+import type {
+  D1CollectionRow,
+  D1GalleryImage,
+  D1ProductRow,
+} from "./d1-mirror";
 import type { ProductDetailPageData } from "@/lib/storefront/product-detail-page.types";
 
 export type CatalogProductCardNode = {
@@ -105,7 +109,11 @@ function parseTags(tags: string | null | undefined): string[] {
   return [];
 }
 
-function mapMedia(id: string | null | undefined, key: string | null | undefined, alt: string | null | undefined) {
+function mapMedia(
+  id: string | null | undefined,
+  key: string | null | undefined,
+  alt: string | null | undefined,
+) {
   if (!id || !key) return null;
   return {
     __typename: "medias" as const,
@@ -118,7 +126,11 @@ function mapMedia(id: string | null | undefined, key: string | null | undefined,
 function mapBadge(
   badge: string | null,
 ): "new_product" | "best_sale" | "featured" | null {
-  if (badge === "new_product" || badge === "best_sale" || badge === "featured") {
+  if (
+    badge === "new_product" ||
+    badge === "best_sale" ||
+    badge === "featured"
+  ) {
     return badge;
   }
   return null;

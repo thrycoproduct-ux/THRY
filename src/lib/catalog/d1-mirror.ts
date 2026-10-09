@@ -190,9 +190,10 @@ export async function fetchD1ProductBySlug(
 export async function fetchD1FeaturedProducts(
   limit = 12,
 ): Promise<D1ProductRow[]> {
-  const data = await catalogGet<{ products: D1ProductRow[]; hasMore?: boolean }>(
-    `/products?featured=1&limit=${limit}`,
-  );
+  const data = await catalogGet<{
+    products: D1ProductRow[];
+    hasMore?: boolean;
+  }>(`/products?featured=1&limit=${limit}`);
   return data.products ?? [];
 }
 

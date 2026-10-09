@@ -30,8 +30,16 @@
     "accountId": "77dfa9b757691b2321fe0630f01c8c6a",
     "workerName": "thry",
     "mediaWorkerName": "thry-media",
+    "catalogWorkerName": "thry-catalog",
+    "catalogWorkerUrl": "https://thry-catalog.thrycoproduct.workers.dev",
+    "catalogWranglerConfig": "workers/thry-catalog/wrangler.jsonc",
     "productionWranglerConfig": "wrangler.workers.new-account.jsonc",
     "mediaWranglerConfig": "workers/r2-media-proxy/wrangler.jsonc",
+    "d1": {
+      "catalogDatabaseName": "thry-catalog",
+      "catalogDatabaseId": "85283c0d-4c77-4187-8d68-ff166a1a6d50",
+      "primaryLocationHint": "APAC"
+    },
     "r2": {
       "mediaBucket": "thry-cdn",
       "nextCacheBucket": "thry-next-cache",

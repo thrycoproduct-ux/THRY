@@ -5,7 +5,10 @@ import { clearPersistedCartStorage } from "./clear-persisted-cart";
 
 describe("clearPersistedCartStorage", () => {
   beforeEach(() => {
-    window.localStorage.setItem("cart", JSON.stringify({ cart: { a: { quantity: 4 } } }));
+    window.localStorage.setItem(
+      "cart",
+      JSON.stringify({ cart: { a: { quantity: 4 } } }),
+    );
     window.sessionStorage.setItem(
       "cart",
       JSON.stringify({ cart: { a: { quantity: 4 } } }),

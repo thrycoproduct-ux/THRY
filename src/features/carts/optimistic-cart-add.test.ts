@@ -1,7 +1,4 @@
-import {
-  buildCartLineKey,
-  buildCartVariantKey,
-} from "./cart-line";
+import { buildCartLineKey, buildCartVariantKey } from "./cart-line";
 import {
   buildOptimisticCartLineKeys,
   getCartLineQuantity,

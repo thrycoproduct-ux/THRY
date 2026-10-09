@@ -83,7 +83,10 @@ function AuthCallbackInner() {
         }
 
         let nextPath = requestedNext;
-        if (requestedNext === "/" && result.session.user.app_metadata?.isAdmin) {
+        if (
+          requestedNext === "/" &&
+          result.session.user.app_metadata?.isAdmin
+        ) {
           nextPath = ADMIN_POST_LOGIN_PATH;
         }
 

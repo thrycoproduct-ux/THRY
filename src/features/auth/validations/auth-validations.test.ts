@@ -1,8 +1,4 @@
-import {
-  authSchema,
-  passwordCreateSchema,
-  signupSchema,
-} from "./index";
+import { authSchema, passwordCreateSchema, signupSchema } from "./index";
 
 describe("passwordCreateSchema", () => {
   it("accepts a short simple password", () => {

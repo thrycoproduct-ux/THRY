@@ -10,7 +10,10 @@ import { loadProductDetailPageFromDb } from "./product-detail-drizzle.server";
 
 const mockDb = db as unknown as { select: jest.Mock };
 
-function mockSelectChain(rows: unknown[], terminal: "limit" | "orderBy" = "limit") {
+function mockSelectChain(
+  rows: unknown[],
+  terminal: "limit" | "orderBy" = "limit",
+) {
   const chain: Record<string, jest.Mock> = {
     from: jest.fn(),
     leftJoin: jest.fn(),
@@ -99,11 +102,15 @@ describe("loadProductDetailPageFromDb", () => {
     const result = await loadProductDetailPageFromDb("kolam-stencil");
 
     expect(mockDb.select).toHaveBeenCalledTimes(3);
-    expect(result?.productsCollection?.edges[0]?.node.name).toBe("Kolam Stencil");
-    expect(result?.productsCollection?.edges[0]?.node.images?.edges).toHaveLength(
-      1,
+    expect(result?.productsCollection?.edges[0]?.node.name).toBe(
+      "Kolam Stencil",
     );
-    expect(result?.productsCollection?.edges[0]?.node.commentsCollection).toBeUndefined();
+    expect(
+      result?.productsCollection?.edges[0]?.node.images?.edges,
+    ).toHaveLength(1);
+    expect(
+      result?.productsCollection?.edges[0]?.node.commentsCollection,
+    ).toBeUndefined();
     expect(result?.recommendations?.edges[0]?.node.slug).toBe("featured-item");
   });
 });

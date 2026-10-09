@@ -109,55 +109,58 @@ async function main() {
   });
 
   let sessionId: string | null = null;
-  const sessionOk = await testLabel("5432 session product-create shape", async () => {
-    const pgClient = postgres(sessionUrl, {
-      prepare: false,
-      max: 1,
-      max_pipeline: 0,
-      connect_timeout: 10,
-    });
-    const sessionDb = drizzle(pgClient, { schema });
-    try {
-      await sessionDb.transaction(async (tx) => {
-        await tx.execute(
-          sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
-        );
-        const productCode = await createNextProductCode(tx);
-        const name = `Local session test ${productCode}`;
-        const slug = await buildUniqueProductSlug(tx, name, productCode);
-        sessionId = createId();
-        const [row] = await tx
-          .insert(products)
-          .values({
-            id: sessionId,
-            name,
-            slug,
-            productCode,
-            description: "local session test",
-            featured: false,
-            badge: null,
-            rating: "4",
-            price: "1",
-            isDraft: true,
-            stock: 0,
-            collectionId: null,
-            discountEnabled: false,
-            discountPercent: null,
-            soldAsPack: false,
-            packSize: null,
-            isDigital: false,
-            featuredImageId,
-            tags: [],
-            images: [],
-            totalComments: 0,
-          })
-          .returning({ id: products.id });
-        if (!row) throw new Error("no row");
+  const sessionOk = await testLabel(
+    "5432 session product-create shape",
+    async () => {
+      const pgClient = postgres(sessionUrl, {
+        prepare: false,
+        max: 1,
+        max_pipeline: 0,
+        connect_timeout: 10,
       });
-    } finally {
-      await pgClient.end({ timeout: 5 }).catch(() => undefined);
-    }
-  });
+      const sessionDb = drizzle(pgClient, { schema });
+      try {
+        await sessionDb.transaction(async (tx) => {
+          await tx.execute(
+            sql`select pg_advisory_xact_lock(${PRODUCT_CODE_LOCK_ID})`,
+          );
+          const productCode = await createNextProductCode(tx);
+          const name = `Local session test ${productCode}`;
+          const slug = await buildUniqueProductSlug(tx, name, productCode);
+          sessionId = createId();
+          const [row] = await tx
+            .insert(products)
+            .values({
+              id: sessionId,
+              name,
+              slug,
+              productCode,
+              description: "local session test",
+              featured: false,
+              badge: null,
+              rating: "4",
+              price: "1",
+              isDraft: true,
+              stock: 0,
+              collectionId: null,
+              discountEnabled: false,
+              discountPercent: null,
+              soldAsPack: false,
+              packSize: null,
+              isDigital: false,
+              featuredImageId,
+              tags: [],
+              images: [],
+              totalComments: 0,
+            })
+            .returning({ id: products.id });
+          if (!row) throw new Error("no row");
+        });
+      } finally {
+        await pgClient.end({ timeout: 5 }).catch(() => undefined);
+      }
+    },
+  );
 
   if (sessionId) {
     await db.delete(products).where(eq(products.id, sessionId));
@@ -165,39 +168,42 @@ async function main() {
   }
 
   let noTxId: string | null = null;
-  const noTxOk = await testLabel("6543 no-transaction multi-query insert", async () => {
-    const productCode = await createNextProductCode(db);
-    const name = `Local no-tx ${productCode}`;
-    const slug = await buildUniqueProductSlug(db, name, productCode);
-    noTxId = createId();
-    const [row] = await db
-      .insert(products)
-      .values({
-        id: noTxId,
-        name,
-        slug,
-        productCode,
-        description: "local no-tx test",
-        featured: false,
-        badge: null,
-        rating: "4",
-        price: "1",
-        isDraft: true,
-        stock: 0,
-        collectionId: null,
-        discountEnabled: false,
-        discountPercent: null,
-        soldAsPack: false,
-        packSize: null,
-        isDigital: false,
-        featuredImageId,
-        tags: [],
-        images: [],
-        totalComments: 0,
-      })
-      .returning({ id: products.id });
-    if (!row) throw new Error("no row");
-  });
+  const noTxOk = await testLabel(
+    "6543 no-transaction multi-query insert",
+    async () => {
+      const productCode = await createNextProductCode(db);
+      const name = `Local no-tx ${productCode}`;
+      const slug = await buildUniqueProductSlug(db, name, productCode);
+      noTxId = createId();
+      const [row] = await db
+        .insert(products)
+        .values({
+          id: noTxId,
+          name,
+          slug,
+          productCode,
+          description: "local no-tx test",
+          featured: false,
+          badge: null,
+          rating: "4",
+          price: "1",
+          isDraft: true,
+          stock: 0,
+          collectionId: null,
+          discountEnabled: false,
+          discountPercent: null,
+          soldAsPack: false,
+          packSize: null,
+          isDigital: false,
+          featuredImageId,
+          tags: [],
+          images: [],
+          totalComments: 0,
+        })
+        .returning({ id: products.id });
+      if (!row) throw new Error("no row");
+    },
+  );
 
   if (noTxId) {
     await db.delete(products).where(eq(products.id, noTxId));

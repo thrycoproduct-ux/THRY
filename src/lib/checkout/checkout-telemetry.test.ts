@@ -15,12 +15,13 @@ describe("classifyCheckoutError", () => {
   it("maps razorpay script failures", () => {
     expect(
       classifyCheckoutError(
-        new Error("Razorpay checkout script failed to load. Please retry checkout."),
+        new Error(
+          "Razorpay checkout script failed to load. Please retry checkout.",
+        ),
       ),
     ).toEqual({
       type: "razorpay_script_failed",
-      reason:
-        "Razorpay checkout script failed to load. Please retry checkout.",
+      reason: "Razorpay checkout script failed to load. Please retry checkout.",
     });
   });
 

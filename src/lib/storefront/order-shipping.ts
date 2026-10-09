@@ -55,4 +55,3 @@ export const ORDER_RETURNS = {
   ] as const,
   fullDetailsHref: "/shipping-returns",
 } as const;
-

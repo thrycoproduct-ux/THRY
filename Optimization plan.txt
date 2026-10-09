@@ -1,0 +1,297 @@
+# Production-Safe Image & LCP Performance Plan
+
+Goal: Fix the ~13 MB image waste and ~350 ms CSS blocking from PageSpeed (https://pagespeed.web.dev/analysis/https-thryco-com/qhavk0n8gs?form_factor=mobile) WITHOUT breaking checkout, admin uploads, cart, or existing product pages.
+
+---
+
+## Principles (non-negotiable)
+
+| Rule | Why |
+|------|-----|
+| No big-bang deploy | Ship in small PRs, one concern per deploy |
+| Feature flags / env toggles | New image delivery can be turned off instantly |
+| Never delete old R2 files until verified | Keep originals during migration |
+| Validate on preview + production smoke | Every phase has a checklist before merge |
+| CrUX lags 28 days | Lab scores improve first; real-user PSI updates later |
+
+---
+
+## What's Actually Broken (root cause)
+
+Upload (admin)     -> often WebP ~650KB OK (new uploads)
+Storefront display -> serves FULL R2 file, unoptimized X
+Legacy R2 objects  -> many are huge PNGs (~500-800KB each) X
+Hero LCP           -> full-size CDN image, wrong preload target X
+CSS                -> 2 blocking chunks (~350ms) - minor vs images
+
+Biggest win: Fix HOW images are delivered, not re-upload everything first.
+
+---
+
+## Phase 0 - Baseline & Audit (read-only, 0 risk)
+
+Do:
+- Export list of medias rows: key, extension, linked products/collections/banners
+- HEAD-request sample CDN URLs -> compare Content-Type vs file extension (find PNG-as-webp)
+- Run PageSpeed + Lighthouse on: /, /shop, one PDP - save screenshots
+- Confirm true LCP element (hero banner vs category card)
+
+Validate:
+- Audit spreadsheet only - no code/deploy changes
+
+Rollback: N/A
+
+---
+
+## Phase 1 - Safe Delivery Layer (highest ROI, low DB risk)
+
+Problem: StorefrontImage uses unoptimized: true for all CDN URLs -> no srcset, full 500-800 KB files on 240px cards.
+
+Fix (pick one, behind env flag IMAGE_DELIVERY_MODE):
+
+### Option A - CDN resize helper (recommended)
+- Add cdnImageUrl(key, { width, quality, format }) -> media.thryco.com with width/quality params (or Cloudflare Image Resizing if enabled)
+- StorefrontImage uses resized URL for display; original key in DB unchanged
+- Card: w=400, hero: w=1200, PDP: w=800
+
+### Option B - Fix Next.js /_next/image on Vercel
+- Narrow shouldBypassImageOptimization() to SVGs only
+- Let sizes + srcset work for R2 URLs already in remotePatterns
+
+Files touched (small):
+- StorefrontImage.tsx, utils.ts (or new cdn-image.ts)
+- Product card / hero sizes props (already exist - start working)
+
+Validate before merge:
+- [ ] Homepage loads, hero visible
+- [ ] Shop grid images load
+- [ ] PDP main image + thumbnails
+- [ ] Cart / checkout unchanged
+- [ ] Admin media library preview unchanged
+- [ ] Network tab: card images < 80 KB (not 500+ KB)
+- [ ] No broken images (404 on CDN)
+- [ ] Lighthouse LCP improves on lab test
+
+Rollback: Set IMAGE_DELIVERY_MODE=legacy -> instant revert to current behavior
+
+Expected impact: LCP -0.5 to -1.5s on mobile lab; biggest PageSpeed win
+
+---
+
+## Phase 2 - LCP Hero Tuning (tiny, safe PR)
+
+Problem: Preload targets first category image, not hero; hero may not have fetchpriority="high".
+
+Fix:
+- Preload first hero slide URL (with Phase 1 resize width)
+- Hero: priority + fetchPriority="high", NO loading="lazy"
+- Remove fetchpriority="high" from below-fold product cards
+
+Validate:
+- [ ] Hero paints first on slow 3G throttle
+- [ ] PageSpeed "LCP request discovery" warning cleared or reduced
+- [ ] No layout shift on hero (CLS stays ~0.01)
+
+Rollback: Revert one file (page.tsx + hero component)
+
+---
+
+## Phase 3 - Upload Hardening (new uploads only)
+
+Problem: Bulk draft upload and some paths skip client WebP compression -> new huge PNGs can still land in R2.
+
+Fix:
+- Run compressImageForUpload() in bulk draft path
+- Reject or warn if uploaded file sniff != declared type
+- Admin UI shows post-compression size before save
+
+Validate:
+- [ ] Upload new product image in admin -> R2 object is WebP, < 1 MB
+- [ ] Bulk draft upload still works
+- [ ] Existing products unchanged
+
+Rollback: Revert upload path only; existing R2 objects untouched
+
+---
+
+## Phase 4 - Legacy R2 Backfill (controlled migration)
+
+Problem: ~13 MB of existing PNGs in R2 - upload fixes don't repair old inventory.
+
+Approach:
+1. New script backfill-r2-images.mjs (modeled on upload-saree-model-images.ts)
+2. Dry-run first -> log what would change
+3. Batch by priority:
+   - Batch 1: hero banners (5-10 images)
+   - Batch 2: featured / homepage products (~20)
+   - Batch 3: full catalog (nightly batches of 50-100)
+4. Per image: fetch -> sharp resize/WebP -> new key -> update medias.key + refs -> verify CDN -> delete old key
+
+Safety:
+- --dry-run default
+- Keep old key for 7 days (soft delete list)
+- Per-batch storefront cache revalidate
+- Stop on any 404 / DB mismatch
+
+Validate per batch:
+- [ ] Random 10 products: images load on shop + PDP
+- [ ] Admin media library shows correct thumbnails
+- [ ] Order emails / OG images still work
+- [ ] No 404s in Sentry/logs for media.thryco.com
+
+Rollback: Point medias.key back to old keys from backup CSV
+
+---
+
+## Phase 5 - CSS Render-Blocking (~350 ms)
+
+Lower priority - do after images.
+
+Fix:
+- Inline critical above-fold CSS or split chunks
+- font-display: swap + preload only primary woff2
+- Defer non-critical CSS
+
+Validate:
+- [ ] No FOUC / broken admin styles
+- [ ] FCP improves ~200-350 ms in lab
+
+Rollback: Revert CSS split
+
+---
+
+## Phase 6 - Guardrails (ongoing)
+
+- CI script: flag raw <img src={keytoUrl(...)}> bypassing StorefrontImage
+- scripts/validate-image-delivery.mjs - HEAD check hero + 5 product cards under size budget
+- Add to deploy checklist (like cart tests)
+
+---
+
+## What We Will NOT Do (production risk)
+
+| Don't | Why |
+|-------|-----|
+| Mass-delete R2 objects in one go | Broken images everywhere |
+| Change all medias.key without verify step | 404s on live site |
+| Enable /_next/image on Cloudflare Workers path without testing | Known attachment-header issues |
+| Re-upload entire catalog manually | Slow, error-prone |
+| Touch checkout / payment / cart code in same PR as images | Unrelated regression risk |
+
+---
+
+## Suggested Rollout Order & Timeline
+
+| Week | Phase | Risk | Expected gain |
+|------|-------|------|----------------|
+| 1 | 0 Audit + 1 Delivery layer (flag off -> on in prod) | Low | LCP lab -0.5-1.5s |
+| 1 | 2 Hero preload/LCP | Very low | LCP lab -200-400ms |
+| 2 | 3 Upload hardening | Low | Stops new debt |
+| 2-3 | 4 Backfill batch 1-2 (hero + featured) | Medium | PSI image audit -5+ MB |
+| 3-4 | 4 Backfill batch 3 (catalog) | Medium | Full ~13 MB savings |
+| 4 | 5 CSS | Low | FCP -200-350ms |
+
+---
+
+## Per-Deploy Validation Checklist (every PR)
+
+- npm test (image/utils tests)
+- npm run build
+- Vercel preview: /, /shop, /shop/[slug], /cart
+- Admin: upload one image, save product
+- Network: product card image < 100 KB
+- No new Sentry errors (30 min post-deploy)
+- PageSpeed lab on homepage (compare screenshot)
+
+---
+
+## PageSpeed Findings Summary (Aug 31, 2026)
+
+Core Web Vitals Assessment: FAILED (mobile, 28-day CrUX through Aug 28, 2026)
+
+| Metric | Your site (75th %) | Target | Status |
+|--------|-------------------|--------|--------|
+| LCP | 3.1s | <= 2.5s | Needs improvement |
+| INP | 406ms | <= 200ms | Needs improvement |
+| CLS | 0.01 | <= 0.1 | Good |
+| FCP | 2.5s | <= 1.8s | Needs improvement |
+| TTFB | 1.2s | <= 0.8s | Needs improvement |
+
+Render-blocking CSS: ~350 ms savings possible (2 CSS files from thryco.com)
+
+Image delivery: ~13,145 KiB (~13 MB) estimated savings from R2 (pub-7298c413a12641b5ba5dd9bff2d9009f.r2.dev)
+- Wrong format: alt says .webp but URLs are .png (500-800 KB each)
+- Oversized: e.g. 617x1100 image shown at ~239x318
+- No responsive images: same huge file for every screen size
+- Too many on first load: homepage loads many product images at once
+
+LCP hero image issues:
+- Don't lazy-load the LCP image (hero)
+- Use fetchpriority="high" on hero
+- Preload hero so browser finds it early
+- Current preload targets first category card, not hero
+
+Forced reflow: ~75 ms (minor)
+
+Network chain: HTML (271 ms) -> CSS (303-315 ms) -> Font woff2 (1,095 ms)
+
+---
+
+## Priority Order (what to fix first)
+
+| Priority | Fix | Impact |
+|----------|-----|--------|
+| 1 | Serve real WebP/AVIF, not PNG with .webp names | Huge - most of 13 MB |
+| 2 | Resize images to display size (cards ~300px wide) | Huge |
+| 3 | Responsive srcset / sizes on product cards | High |
+| 4 | Hero: no lazy-load, fetchpriority=high, optional preload | LCP |
+| 5 | CSS: inline critical CSS or defer non-critical | ~350 ms |
+| 6 | Font loading strategy | Moderate |
+
+---
+
+## Bottom Line
+
+| Priority | Action |
+|----------|--------|
+| Do first | Phase 1 - resize at delivery (no DB migration) |
+| Do second | Phase 2 - hero LCP preload |
+| Do third | Phase 3 - stop new huge uploads |
+| Do fourth | Phase 4 - backfill legacy PNGs in batches |
+| Do last | Phase 5 - CSS blocking |
+
+This plan fixes the 13 MB image problem and LCP without touching checkout, cart, or payments - and every phase can be rolled back independently.
+
+---
+
+## Technical Context (codebase)
+
+Upload pipeline:
+- Admin browser: canvas resize (max 1600px) + WebP encode (~650 KB target)
+- Server processUpload.ts: pass-through validation only, no sharp on Workers
+- Bulk draft upload: may skip compression - can land large PNG/JPEG in R2
+- R2 key format: uploads/upload-{nanoid}.{ext}
+
+Storefront delivery:
+- shouldBypassImageOptimization() forces unoptimized: true on all https:// CDN URLs
+- No /_next/image proxy, no srcset for CDN images
+- sizes prop exists in components but has no effect while unoptimized
+- media.thryco.com / R2 serves raw stored bytes
+
+Key files:
+- src/lib/admin/client-image-upload.ts
+- src/lib/image/processUpload.ts
+- src/components/media/StorefrontImage.tsx
+- src/lib/utils.ts (keytoUrl, shouldBypassImageOptimization)
+- src/app/(store)/page.tsx (homepage preload)
+- src/features/storefront/components/HomeHeroCarousel.tsx
+- src/features/products/components/ProductCard.tsx
+- scripts/upload-saree-model-images.ts (template for backfill)
+
+Recent INP/cart work (deployed) may take 2-4+ weeks to appear in CrUX PageSpeed scores.
+
+---
+
+Document created: August 31, 2026
+Project: THRY / thryco.com
+Source: PageSpeed Insights + codebase audit

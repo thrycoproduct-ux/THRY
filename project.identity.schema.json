@@ -62,8 +62,18 @@
         "accountId": { "type": "string", "minLength": 32 },
         "workerName": { "type": "string" },
         "mediaWorkerName": { "type": "string" },
+        "catalogWorkerName": { "type": "string" },
+        "catalogWranglerConfig": { "type": "string" },
         "productionWranglerConfig": { "type": "string" },
         "mediaWranglerConfig": { "type": "string" },
+        "d1": {
+          "type": "object",
+          "properties": {
+            "catalogDatabaseName": { "type": "string" },
+            "catalogDatabaseId": { "type": "string" },
+            "primaryLocationHint": { "type": "string" }
+          }
+        },
         "r2": {
           "type": "object",
           "required": ["mediaBucket", "nextCacheBucket", "s3Endpoint"],

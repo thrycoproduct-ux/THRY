@@ -8,13 +8,11 @@ import {
 describe("in-app-browser", () => {
   it("detects Instagram and Facebook WebViews", () => {
     expect(
-      detectInAppBrowser(
-        "Mozilla/5.0 ... Instagram 300.0.0.0.0 Android",
-      ),
+      detectInAppBrowser("Mozilla/5.0 ... Instagram 300.0.0.0.0 Android"),
     ).toBe("instagram");
-    expect(
-      detectInAppBrowser("Mozilla/5.0 ... FBAN/FBIOS ..."),
-    ).toBe("facebook");
+    expect(detectInAppBrowser("Mozilla/5.0 ... FBAN/FBIOS ...")).toBe(
+      "facebook",
+    );
     expect(isInAppBrowser("Mozilla/5.0 (iPhone) Safari")).toBe(false);
   });
 

@@ -66,12 +66,12 @@ export function resolveOAuthBrowserOrigin(
   currentOrigin?: string | null,
 ): string {
   const canonical = getCanonicalSiteOrigin();
-  const raw = String(currentOrigin ?? "").trim().replace(/\/$/, "");
+  const raw = String(currentOrigin ?? "")
+    .trim()
+    .replace(/\/$/, "");
   if (!raw) return canonical;
 
-  const allowed = new Set(
-    getAllowedAuthOrigins().map((o) => o.toLowerCase()),
-  );
+  const allowed = new Set(getAllowedAuthOrigins().map((o) => o.toLowerCase()));
   if (allowed.has(raw.toLowerCase())) return raw;
   return canonical;
 }

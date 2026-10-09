@@ -43,7 +43,7 @@ export function buildInstagramShortLinkTarget(
 ): URL {
   const code = normalizeInstagramShortCode(rawCode);
   const path = code
-    ? (INSTAGRAM_SHORT_LINKS[code] ?? `/collections/${code}`)
+    ? INSTAGRAM_SHORT_LINKS[code] ?? `/collections/${code}`
     : "/shop";
 
   const target = new URL(path, origin);

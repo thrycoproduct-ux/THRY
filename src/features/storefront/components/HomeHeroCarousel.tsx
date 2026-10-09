@@ -89,10 +89,7 @@ export function HomeHeroCarousel({ slides }: Props) {
                     aria-label={`${slide.title} — ${slide.cta}`}
                   />
                   <picture className="absolute inset-0">
-                    <source
-                      media="(min-width: 768px)"
-                      srcSet={desktopSrc}
-                    />
+                    <source media="(min-width: 768px)" srcSet={desktopSrc} />
                     <StorefrontImage
                       src={slide.image}
                       alt={slide.imageAlt}

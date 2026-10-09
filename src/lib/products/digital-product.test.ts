@@ -45,9 +45,9 @@ describe("digital product files", () => {
   });
 
   it("maps Safari Load failed to a CORS-friendly message", () => {
-    expect(
-      formatDigitalUploadNetworkError(new Error("Load failed")),
-    ).toMatch(/R2 CORS/i);
+    expect(formatDigitalUploadNetworkError(new Error("Load failed"))).toMatch(
+      /R2 CORS/i,
+    );
     expect(
       formatDigitalUploadNetworkError(new Error("Failed to fetch")),
     ).toMatch(/R2 CORS/i);

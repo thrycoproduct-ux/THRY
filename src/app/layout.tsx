@@ -3,9 +3,7 @@ import "./globals.css";
 import { Toaster } from "@/components/ui/toaster";
 import { siteConfig } from "@/config/site";
 import { brandSans, heroSerif } from "@/lib/fonts";
-import {
-  absoluteSocialFallbackUrl,
-} from "@/lib/seo/social-image";
+import { absoluteSocialFallbackUrl } from "@/lib/seo/social-image";
 import { getURL } from "@/lib/utils";
 import CustomProvider from "../providers/CustomProvider";
 import { MicrosoftClarity } from "@/components/analytics/MicrosoftClarity";

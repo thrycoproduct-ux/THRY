@@ -53,7 +53,11 @@ describe("completeOAuthCallback", () => {
       },
       exchangeCodeForSession: async () => ({
         session: null,
-        error: { message: "invalid request: both auth code and code verifier should be non-empty", code: "validation_failed" },
+        error: {
+          message:
+            "invalid request: both auth code and code verifier should be non-empty",
+          code: "validation_failed",
+        },
       }),
       verifyOtp: async () => ({ session: null, error: null }),
     });
@@ -86,7 +90,10 @@ describe("completeOAuthCallback", () => {
       getSession: async () => ({ session: null }),
       exchangeCodeForSession: async () => ({
         session: null,
-        error: { message: "invalid request: both auth code and code verifier should be non-empty" },
+        error: {
+          message:
+            "invalid request: both auth code and code verifier should be non-empty",
+        },
       }),
       verifyOtp: async () => ({ session: null, error: null }),
     });

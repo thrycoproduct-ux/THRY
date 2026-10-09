@@ -72,7 +72,11 @@ const PackingItemRow = React.memo(function PackingItemRow({
   );
 });
 
-export function AdminOrderPackingChecklist({ items }: { items: OrderItemView[] }) {
+export function AdminOrderPackingChecklist({
+  items,
+}: {
+  items: OrderItemView[];
+}) {
   const [packedMap, setPackedMap] = React.useState<Record<string, boolean>>({});
 
   const packedCount = React.useMemo(

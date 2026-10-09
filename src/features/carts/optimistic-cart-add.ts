@@ -12,7 +12,10 @@ import {
   buildCartVariantKey,
   normalizeCartSize,
 } from "@/features/carts/cart-line";
-import type { CartItems, OptionSelections } from "@/features/carts/useCartStore";
+import type {
+  CartItems,
+  OptionSelections,
+} from "@/features/carts/useCartStore";
 import useCartStore from "@/features/carts/useCartStore";
 import { clearAuthCartClearedMarker } from "@/features/carts/cart-cleared-marker";
 
@@ -101,8 +104,7 @@ export async function persistAuthCartLineInBackground(args: {
       });
     }
 
-    const localQty =
-      useCartStore.getState().cart[args.lineKey]?.quantity ?? 0;
+    const localQty = useCartStore.getState().cart[args.lineKey]?.quantity ?? 0;
 
     const { data: existingRow, error: existingErr } = await args.supabase
       .from("carts")
@@ -143,7 +145,9 @@ export async function persistAuthCartLineInBackground(args: {
         .eq("id", existingRow.id);
       if (updErr) return false;
     } else {
-      const { error: insErr } = await args.supabase.from("carts").insert(payload);
+      const { error: insErr } = await args.supabase
+        .from("carts")
+        .insert(payload);
       if (insErr) return false;
     }
 
@@ -198,9 +202,7 @@ export async function syncAuthCartAfterOptimisticAdd(args: {
 }
 
 export function buildOptimisticCartLineKeys(input: OptimisticCartAddInput) {
-  const normalizedSize = input.size
-    ? normalizeCartSize(input.size)
-    : undefined;
+  const normalizedSize = input.size ? normalizeCartSize(input.size) : undefined;
   const selections = input.selections;
   const variantKey = buildCartVariantKey({
     productId: input.productId,

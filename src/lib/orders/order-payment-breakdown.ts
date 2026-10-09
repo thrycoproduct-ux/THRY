@@ -140,7 +140,7 @@ export function buildOrderPaymentBreakdown(params: {
       key: "courier",
       label: "Courier",
       valueKind: isFree ? "free" : "money",
-      amount: isFree ? (courierCharge ?? 0) : displayMoney(courierCharge ?? 0),
+      amount: isFree ? courierCharge ?? 0 : displayMoney(courierCharge ?? 0),
     });
   }
 

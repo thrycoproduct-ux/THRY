@@ -111,7 +111,7 @@ export async function purgeStaleCartLinesAfterCompleteAdd(args: {
 }): Promise<void> {
   const sizeConfig =
     args.sizeConfigHint !== undefined
-      ? (args.sizeConfigHint ?? undefined)
+      ? args.sizeConfigHint ?? undefined
       : (await fetchCartSizeConfigsByProductIds([args.productId]))[
           args.productId
         ];
